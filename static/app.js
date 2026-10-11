@@ -31,6 +31,7 @@ function showTab(name) {
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
   location.hash = name;
   if (name === "systeme") refreshSystem();
+  if (name === "services") bus.dispatchEvent(new Event("services"));
 }
 
 function renderJobs() {

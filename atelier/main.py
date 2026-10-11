@@ -12,7 +12,7 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import db, docs, gpu, ollama, subs, translate, youtube  # noqa: F401
+from . import db, docs, gpu, ollama, services, subs, translate, youtube  # noqa: F401
 from .config import ROOT, data_dir, output_dir
 from .jobs import KINDS, manager
 
@@ -147,6 +147,24 @@ async def open_job(jid: int):
         stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
         start_new_session=True,
     )
+    return {"ok": True}
+
+
+@app.get("/api/services")
+async def services_list():
+    return await services.status()
+
+
+@app.post("/api/services/{sid}/{action}")
+async def services_act(sid: str, action: str):
+    try:
+        await services.act(sid, action)
+    except KeyError:
+        raise HTTPException(404, "service ou action inconnu")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
     return {"ok": True}
 
 

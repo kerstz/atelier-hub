@@ -60,3 +60,13 @@ decisions:
 - xlsx: graphiques/images perdus (limite openpyxl).
 - PDF progression: pas de % exploitable (barre rich non-tty): barre à 0 puis done.
 next: phase 6 Services.
+
+## Phase 6 — Services (smoke6.sh ok)
+done: services.py, GET /api/services (sonde TCP 127.0.0.1), POST /api/services/{id}/{start|stop}, UI onglet Services (pastille, Ouvrir, Démarrer/Arrêter, poll 5 s), scripts/smoke6.sh, config [services.*].
+decisions:
+- config: `[services.<id>] name, port, url?, unit?` (systemctl --user) ou `dir?, file?` (docker compose). Sans unit/dir: sonde + lien seulement.
+- seuls les ids du config.toml sont pilotables; commandes jamais construites depuis l'entrée UI.
+- compose: start = `up -d --pull never` (aucun téléchargement), stop = `stop`. Timeout 120 s.
+- smoke6 ne démarre/arrête rien (ne touche pas aux vrais services).
+env: aucun service n'a unit/dir dans config.toml: à remplir par l'utilisateur pour activer Démarrer/Arrêter. Ports défauts: openwebui 3000, pinchflat 8945, jellyfin 8096, immich 2283, stirling 8080.
+next: fin du plan. scripts/fix-pdf2zh.sh à relancer après `uv tool upgrade`.
