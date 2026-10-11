@@ -187,3 +187,8 @@ details.adv[open] summary{margin-bottom:var(--s3)}
 
 .dropzone.compact{flex-direction:row;justify-content:center;padding:var(--s3);font-size:.9em}
 .summary textarea{min-height:260px}
+
+#cv-drop{display:contents}
+.cv-groups{display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s3)}
+.cv-group{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s3);padding:var(--s3);border:1px solid var(--line);border-radius:var(--radius)}
+.cv-group strong{min-width:9em;font-weight:500}

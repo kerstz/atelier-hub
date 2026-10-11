@@ -56,6 +56,12 @@ model = ""
 num_ctx = 8192
 lang = "fr"
 
+[convert]
+# encodage matériel h264/hevc (RDNA2: pas d'encodage AV1 matériel → libsvtav1 CPU)
+vaapi_device = "/dev/dri/renderD128"
+# conversions simultanées (hors file GPU)
+jobs = 2
+
 # Services externes : sonde de port + démarrage/arrêt (jamais d'installation).
 # unit = unité systemd --user ; dir = dossier docker compose (+ file optionnel).
 # Sans unit ni dir : sonde + lien seulement.

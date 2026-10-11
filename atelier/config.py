@@ -26,6 +26,7 @@ DEFAULTS = {
         "pdf_model": "", "qps": 2, "auto_glossary": False,
         "ocr_bin": "ocrmypdf", "ocr_langs": "fra+eng", "ocr_jobs": 4,
     },
+    "convert": {"vaapi_device": "/dev/dri/renderD128", "jobs": 2},
     "youtube": {"sub_langs": "en", "cookies_from_browser": "", "rate_limit": ""},
 }
 
