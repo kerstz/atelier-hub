@@ -3,117 +3,19 @@ import os
 import re
 import shutil
 from pathlib import Path
-from typing import Callable
 
-from . import translate
+from . import inline, translate
 from .batch import Translator, numbered
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, manager, register
+from .office import LOADERS
 from .proc import run_cmd
 from .srt import flat
 
-PCT_RE = re.compile(r"(\d{1,3})(?:\.\d+)?\s*%")
 PAGES_RE = re.compile(r"^[0-9,\- ]{1,60}$")
 CONVERT = {".doc": "docx", ".odt": "docx", ".rtf": "docx", ".ppt": "pptx", ".odp": "pptx", ".xls": "xlsx", ".ods": "xlsx"}
-Slots = list[tuple[str, Callable[[str], None]]]
-
-
-def load_docx(path: Path) -> tuple[Slots, Callable[[Path], None]]:
-    import docx
-    from docx.oxml.ns import qn
-
-    doc = docx.Document(str(path))
-    roots = [doc.element.body]
-    for rel in doc.part.rels.values():
-        if rel.reltype.endswith(("/header", "/footer", "/footnotes", "/endnotes")):
-            roots.append(rel.target_part.element)
-    w_p, w_t = qn("w:p"), qn("w:t")
-
-    def owner(t):
-        e = t.getparent()
-        while e is not None and e.tag != w_p:
-            e = e.getparent()
-        return e
-
-    def setter(ts):
-        def set_(text: str) -> None:
-            ts[0].text = text
-            ts[0].set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
-            for t in ts[1:]:
-                t.text = ""
-        return set_
-
-    slots: Slots = []
-    for root in roots:
-        for p in root.iter(w_p):
-            ts = [t for t in p.iter(w_t) if owner(t) is p]
-            text = "".join(t.text or "" for t in ts)
-            if ts and re.search(r"\w", text):
-                slots.append((text, setter(ts)))
-    return slots, lambda dest: doc.save(str(dest))
-
-
-def load_pptx(path: Path) -> tuple[Slots, Callable[[Path], None]]:
-    from pptx import Presentation
-    from pptx.enum.shapes import MSO_SHAPE_TYPE
-
-    prs = Presentation(str(path))
-
-    def shapes(coll):
-        for sh in coll:
-            if sh.shape_type == MSO_SHAPE_TYPE.GROUP:
-                yield from shapes(sh.shapes)
-            else:
-                yield sh
-
-    frames = []
-    for slide in prs.slides:
-        for sh in shapes(slide.shapes):
-            if getattr(sh, "has_text_frame", False) and sh.has_text_frame:
-                frames.append(sh.text_frame)
-            if getattr(sh, "has_table", False) and sh.has_table:
-                frames += [c.text_frame for row in sh.table.rows for c in row.cells]
-        if slide.has_notes_slide and slide.notes_slide.notes_text_frame is not None:
-            frames.append(slide.notes_slide.notes_text_frame)
-
-    def setter(runs):
-        def set_(text: str) -> None:
-            runs[0].text = text
-            for r in runs[1:]:
-                r.text = ""
-        return set_
-
-    slots: Slots = []
-    for tf in frames:
-        for para in tf.paragraphs:
-            runs = list(para.runs)
-            text = "".join(r.text for r in runs)
-            if runs and re.search(r"\w", text):
-                slots.append((text, setter(runs)))
-    return slots, lambda dest: prs.save(str(dest))
-
-
-def load_xlsx(path: Path) -> tuple[Slots, Callable[[Path], None]]:
-    import openpyxl
-
-    wb = openpyxl.load_workbook(str(path))
-
-    def setter(cell):
-        def set_(text: str) -> None:
-            cell.value = text
-        return set_
-
-    slots: Slots = []
-    for ws in wb.worksheets:
-        for row in ws.iter_rows():
-            for cell in row:
-                v = cell.value
-                if isinstance(v, str) and not v.startswith("=") and re.search(r"\w", v):
-                    slots.append((v, setter(cell)))
-    return slots, lambda dest: wb.save(str(dest))
-
-
-LOADERS = {".docx": load_docx, ".pptx": load_pptx, ".xlsx": load_xlsx}
+ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+BAR_RE = re.compile(r"^\s*(.+?)\s+[━╸╺╾╼─\-]+\s+(\d+)/(\d+)")
 
 
 async def translate_texts(ctx: Ctx, texts: list[str], src, tgt, glossary, lo: float, hi: float) -> dict[str, str]:
@@ -148,16 +50,43 @@ async def translate_texts(ctx: Ctx, texts: list[str], src, tgt, glossary, lo: fl
 async def do_office(ctx: Ctx, path: Path, ext: str, name: str, src, tgt, glossary, out: Path) -> Path:
     ctx.set(0.02, "lecture…")
     slots, save = LOADERS[ext](path)
-    texts = [flat(t) for t, _ in slots]
-    if not texts:
+    if not slots:
         raise RuntimeError("aucun texte à traduire")
-    done = await translate_texts(ctx, texts, src, tgt, glossary, 0.05, 0.95)
-    for (_, setter), t in zip(slots, texts):
-        if t in done:
-            setter(done[t])
+    texts = [s.tagged or flat(s.text) for s in slots]
+    done = await translate_texts(ctx, texts, src, tgt, glossary, 0.05, 0.9)
+    retry = []
+    for s, t in zip(slots, texts):
+        segs = inline.decode(done[t], s.links) if s.tagged else None
+        if segs:
+            s.put_segs(segs)
+        elif s.tagged:
+            retry.append(s)
+        else:
+            s.put(done[t])
+    if retry:
+        plain = [flat(s.text) for s in retry]
+        again = await translate_texts(ctx, plain, src, tgt, glossary, 0.9, 0.95)
+        for s, t in zip(retry, plain):
+            s.put(again[t])
     dest = out / f"{name}.{tgt}{ext}"
     save(dest)
     return dest
+
+
+def pdf_progress(ctx: Ctx):
+    """pdf2zh-next draws a rich bar: overall row `translate ━━ 45/100`, stage rows `Stage (i/n) ━━ c/t`."""
+    def feed(line: str) -> None:
+        line = ANSI_RE.sub("", line).strip()
+        if m := BAR_RE.match(line):
+            cur, tot = int(m[2]), int(m[3])
+            if m[1] == "translate":
+                ctx.set(min(cur / max(tot, 1), 0.99))
+            elif cur < tot:
+                ctx.set(message=f"{m[1]} {cur}/{tot}"[:70])
+        elif line:
+            ctx.set(message=line[:70])
+
+    return feed
 
 
 async def do_pdf(ctx: Ctx, path: Path, name: str, src, tgt, glossary, pages: str, work: Path, out: Path) -> list[Path]:
@@ -188,16 +117,13 @@ async def do_pdf(ctx: Ctx, path: Path, name: str, src, tgt, glossary, pages: str
         argv += ["--glossaries", str(gfile)]
     argv.append(str(pdf))
 
-    def feed(line: str) -> None:
-        if m := PCT_RE.search(line):
-            ctx.set(min(int(m[1]), 99) / 100, line[:70])
-        else:
-            ctx.set(message=line[:70])
+    feed = pdf_progress(ctx)
 
     ctx.set(0, "attente GPU…")
     async with manager.gpu_lock:
         ctx.set(0, "traduction PDF…")
-        env = {**os.environ, "PYTHONUNBUFFERED": "1", "NO_COLOR": "1", "TERM": "dumb"}
+        env = {**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8", "FORCE_COLOR": "1", "NO_COLOR": "1",
+               "TERM": "xterm", "COLUMNS": "160"}
         await run_cmd(argv, feed, env=env)
     pdfs = sorted(res_dir.glob("*.pdf"))
     if not pdfs:
