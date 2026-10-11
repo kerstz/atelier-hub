@@ -4,7 +4,7 @@ import re
 import shutil
 from pathlib import Path
 
-from . import inline, ocr, translate
+from . import epub, inline, ocr, translate
 from .batch import Translator, numbered
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, manager, register
@@ -70,6 +70,20 @@ async def do_office(ctx: Ctx, path: Path, ext: str, name: str, src, tgt, glossar
             s.put(again[t])
     dest = out / f"{name}.{tgt}{ext}"
     save(dest)
+    return dest
+
+
+async def do_epub(ctx: Ctx, path: Path, name: str, src, tgt, glossary, out: Path) -> Path:
+    ctx.set(0.02, "lecture EPUB…")
+    dest = out / f"{name}.{tgt}.epub"
+    stage = [0.05, 0.9]
+
+    async def tt(texts: list[str]) -> dict[str, str]:
+        lo, hi = stage
+        stage[:] = [0.9, 0.95]
+        return await translate_texts(ctx, texts, src, tgt, glossary, lo, hi)
+
+    await epub.translate_epub(path, dest, tgt, tt)
     return dest
 
 
@@ -148,7 +162,7 @@ async def run(ctx: Ctx, p: dict) -> str:
     if tgt not in translate.LANGS or (src != "auto" and src not in translate.LANGS):
         raise RuntimeError("langue inconnue")
     ext = path.suffix.lower()
-    if ext != ".pdf" and ext not in LOADERS and ext not in CONVERT:
+    if ext not in (".pdf", ".epub") and ext not in LOADERS and ext not in CONVERT:
         raise RuntimeError(f"format non supporté: {ext}")
     glossary = translate.parse_glossary(p.get("glossary") or "")
     uploads = (data_dir() / "uploads").resolve()
@@ -162,6 +176,10 @@ async def run(ctx: Ctx, p: dict) -> str:
         if ext == ".pdf":
             dests = await do_pdf(ctx, path, name, src, tgt, glossary, (p.get("pages") or "").strip(), work, out, p.get("ocr", True) is not False)
             ctx.set(1.0, ", ".join(d.name for d in dests))
+            return str(out)
+        if ext == ".epub":
+            dest = await do_epub(ctx, path, name, src, tgt, glossary, out)
+            ctx.set(1.0, dest.name)
             return str(out)
         if ext in CONVERT:
             ctx.set(0, "conversion LibreOffice…")

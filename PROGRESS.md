@@ -100,3 +100,13 @@ decisions:
 - Image: un seul appel vision (lit + traduit), `[ollama] vision_model`; `ollama.exclusive()` décharge les autres modèles (aussi avant résumé). Historique: source "[image] nom".
 env: tesseract + data fra/eng/osd ok, pdftotext ok. Manque: ocrmypdf, gemma3:12b.
 next: installer, relancer smoke9.sh (live), `systemctl --user restart atelier`.
+
+## Phase 10 — Convertir + EPUB (smoke10.sh: hors-ligne ok; live à lancer après restart)
+done: convert.py (job `convert`, détection, ffmpeg VAAPI/CPU, vips, pandoc/LibreOffice, calibre), epub.py (traduction XHTML/NCX/OPF), onglet Convertir (convert.js), endpoints catalog/detect/jobs/{id}/download/convert/zip, config [convert].
+decisions:
+- 1 job par fichier; zip = GET /api/convert/zip?ids= (jobs done du dernier lot). Sorties ~/Atelier/convert, noms uniques "(2)".
+- Vidéo: h264/hevc VAAPI (-qp 20/25/30), repli CPU x264/x265 si échec; AV1 = libsvtav1 CPU. Même extension autorisée pour média (ré-encode/redim.), pas pour docs/ebooks. Verrou GPU seulement pour cibles VAAPI; CPU limité par [convert] jobs=2.
+- Docs: pandoc si dispo, LibreOffice sinon, chaîne via docx temporaire (md→pdf). pandoc/calibre absents -> erreur avec commande pacman.
+- EPUB: runs inline (b/i/liens=<aN>, code/img/br/notes sans lettres = atomes ⟦n⟧ re-posés tels quels, pre/script ignorés). Échec balises -> texte plat + atomes. TOC nav+NCX traduits, OPF: titre/description traduits, langue=cible, reste intact. Span imbriqué: wrapper externe retiré.
+env: pandoc, calibre absents (sudo pacman -S pandoc-cli calibre). Restart: `systemctl --user restart atelier`.
+next: phase 11 (à définir), puis phase 12 (appli desktop, spec fournie par l'utilisateur), puis gros audit avec Opus 5.5.

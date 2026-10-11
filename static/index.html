@@ -17,6 +17,7 @@
       <button class="nav" data-tab="youtube" title="YouTube"><i data-i="youtube"></i><span class="lbl">YouTube</span></button>
       <button class="nav" data-tab="soustitres" title="Sous-titres"><i data-i="captions"></i><span class="lbl">Sous-titres</span></button>
       <button class="nav" data-tab="documents" title="Documents"><i data-i="file-text"></i><span class="lbl">Documents</span></button>
+      <button class="nav" data-tab="convertir" title="Convertir"><i data-i="swap"></i><span class="lbl">Convertir</span></button>
       <button class="nav" data-tab="services" title="Services"><i data-i="server"></i><span class="lbl">Services</span></button>
       <button class="nav" data-tab="systeme" title="Système"><i data-i="cpu"></i><span class="lbl">Système</span></button>
     </nav>
@@ -132,7 +133,7 @@
       </section>
 
       <section id="tab-documents" class="tab" hidden>
-        <header class="page-head"><h1>Documents</h1><p class="dim">PDF, DOCX, PPTX, XLSX, ODT… : mise en page conservée au mieux.</p></header>
+        <header class="page-head"><h1>Documents</h1><p class="dim">PDF, DOCX, PPTX, XLSX, ODT, EPUB… : mise en page conservée au mieux.</p></header>
         <div class="card">
           <div id="dc-drop"><i data-i="upload"></i><strong>Déposer des documents</strong><span class="dim">glisser, coller ou cliquer — plusieurs fichiers possibles</span></div>
           <div id="dc-list" class="chips"></div>
@@ -157,6 +158,22 @@
           <span id="dc-status" class="dim"></span>
         </div>
         <div class="card"><div class="card-head"><h2>Résultats</h2></div><div id="dc-result"></div></div>
+      </section>
+
+      <section id="tab-convertir" class="tab" hidden>
+        <header class="page-head"><h1>Convertir</h1><p class="dim">Vidéo, audio, images, documents, e-books : le type est détecté, choisis le format cible.</p></header>
+        <div class="card">
+          <div id="cv-drop"><i data-i="upload"></i><strong>Déposer des fichiers</strong><span class="dim">glisser, coller ou cliquer — un lot = une tâche par fichier</span></div>
+          <div id="cv-list" class="chips"></div>
+          <div id="cv-groups" class="cv-groups"></div>
+        </div>
+        <div class="actionbar">
+          <button id="cv-go" class="btn primary" data-main disabled><i data-i="swap"></i><span>Convertir</span><kbd>Ctrl ↵</kbd></button>
+          <button id="cv-zip" class="btn ghost" disabled title="Télécharge les fichiers terminés du dernier lot"><i data-i="download"></i><span>Télécharger (zip)</span></button>
+          <button id="cv-clear" class="btn ghost"><i data-i="trash"></i><span>Vider la liste</span></button>
+          <span id="cv-status" class="dim"></span>
+        </div>
+        <div class="card"><div class="card-head"><h2>Résultats</h2></div><div id="cv-result"></div></div>
       </section>
 
       <section id="tab-services" class="tab" hidden>
@@ -211,6 +228,7 @@
 <script src="youtube.js"></script>
 <script src="subs.js"></script>
 <script src="docs.js"></script>
+<script src="convert.js"></script>
 <script src="services.js"></script>
 </body>
 </html>

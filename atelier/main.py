@@ -2,17 +2,19 @@ import asyncio
 import re
 import time
 import uuid
+import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
+from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import db, docs, gpu, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
+from . import convert, db, docs, gpu, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
 from .config import ROOT, data_dir, output_dir
 from .jobs import KINDS, manager
 
@@ -23,7 +25,7 @@ LOCAL_HOSTS = {"127.0.0.1", "localhost"}
 async def lifespan(_: FastAPI):
     db.init()
     output_dir().mkdir(parents=True, exist_ok=True)
-    for sub in ("youtube", "subs", "docs"):
+    for sub in ("youtube", "subs", "docs", "convert"):
         output_dir(sub).mkdir(exist_ok=True)
     up = data_dir() / "uploads"
     up.mkdir(exist_ok=True)
@@ -54,6 +56,10 @@ class JobIn(BaseModel):
 
 class ProbeIn(BaseModel):
     url: str
+
+
+class DetectIn(BaseModel):
+    path: str
 
 
 class UnloadIn(BaseModel):
@@ -157,6 +163,62 @@ async def open_job(jid: int):
         start_new_session=True,
     )
     return {"ok": True}
+
+
+def _uploaded(path: str) -> Path:
+    p = Path(path).resolve()
+    if not p.is_file() or not p.is_relative_to((data_dir() / "uploads").resolve()):
+        raise HTTPException(404, "fichier introuvable")
+    return p
+
+
+def _job_file(jid: int) -> Path | None:
+    job = db.get(jid)
+    if not job or job["status"] != "done" or not job["output"]:
+        return None
+    p = Path(job["output"]).resolve()
+    return p if p.is_file() and p.is_relative_to(output_dir().resolve()) else None
+
+
+@app.get("/api/convert/catalog")
+async def convert_catalog():
+    return convert.catalog()
+
+
+@app.post("/api/convert/detect")
+async def convert_detect(body: DetectIn):
+    return await convert.detect(_uploaded(body.path))
+
+
+@app.get("/api/jobs/{jid}/download")
+async def job_download(jid: int):
+    p = _job_file(jid)
+    if not p:
+        raise HTTPException(404, "pas de fichier")
+    return FileResponse(p, filename=p.name)
+
+
+def _zip(files: list[Path], dest: Path) -> None:
+    with zipfile.ZipFile(dest, "w") as z:
+        for f in files:
+            z.write(f, f.name, zipfile.ZIP_STORED if f.suffix.lower() in convert.COMPRESSED else zipfile.ZIP_DEFLATED)
+
+
+@app.get("/api/convert/zip")
+async def convert_zip(ids: str):
+    try:
+        wanted = [int(i) for i in ids.split(",") if i][:500]
+    except ValueError:
+        raise HTTPException(400, "ids invalides")
+    files = list(dict.fromkeys(p for p in map(_job_file, wanted) if p))
+    if not files:
+        raise HTTPException(404, "aucun fichier prêt")
+    tmp = data_dir() / "tmp"
+    tmp.mkdir(exist_ok=True)
+    dest = tmp / f"zip-{uuid.uuid4().hex[:8]}.zip"
+    await asyncio.to_thread(_zip, files, dest)
+    return FileResponse(dest, filename="atelier-convert.zip", media_type="application/zip",
+                        background=BackgroundTask(dest.unlink, missing_ok=True))
 
 
 @app.get("/api/services")
