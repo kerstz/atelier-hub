@@ -15,7 +15,7 @@ from .srt import flat
 PAGES_RE = re.compile(r"^[0-9,\- ]{1,60}$")
 CONVERT = {".doc": "docx", ".odt": "docx", ".rtf": "docx", ".ppt": "pptx", ".odp": "pptx", ".xls": "xlsx", ".ods": "xlsx"}
 ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
-BAR_RE = re.compile(r"^\s*(.+?)\s+[━╸╺╾╼─\-]+\s+(\d+)/(\d+)")
+BAR_RE = re.compile(r"^\s*(.+?)\s+[━╸╺╾╼─\-]*\s*(\d+)/(\d+)\s+\d+:\d\d:\d\d")
 
 
 async def translate_texts(ctx: Ctx, texts: list[str], src, tgt, glossary, lo: float, hi: float) -> dict[str, str]:

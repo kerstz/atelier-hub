@@ -1,10 +1,15 @@
 (() => {
   const $url = $("#yt-url"), $info = $("#yt-info"), $q = $("#yt-q"), $langs = $("#yt-langs");
   const $pl = $("#yt-pl"), $plw = $("#yt-pl-wrap"), $go = $("#yt-go"), $status = $("#yt-status");
-  const modes = [...document.querySelectorAll("input[name=yt-mode]")];
   let current = null;
 
-  const mode = () => modes.find((r) => r.checked).value;
+  const seg = ui.segmented(
+    $("#yt-mode"),
+    [["video", "Vidéo (mkv)", "youtube"], ["audio", "Audio (mp3)", "play"], ["subs", "Sous-titres seuls", "captions"]],
+    store.get("yt.mode", "video"),
+    () => sync()
+  );
+  const mode = () => seg.get();
 
   function sync() {
     $("#yt-q-wrap").hidden = mode() !== "video";
@@ -39,7 +44,8 @@
 
   async function go() {
     const url = $url.value.trim();
-    if (!url || current) return;
+    if (!url) return ($status.textContent = "Saisir une URL.");
+    if (current) return;
     sync();
     $go.disabled = true;
     $status.textContent = "En file…";
@@ -50,6 +56,7 @@
     });
     if (!r.ok) {
       $status.textContent = "Erreur de lancement.";
+      ui.toast("Erreur de lancement", "bad");
       $go.disabled = false;
       return;
     }
@@ -67,17 +74,13 @@
     }
   });
 
-  const saved = store.get("yt.mode", "video");
-  modes.forEach((r) => {
-    r.checked = r.value === saved;
-    r.onchange = sync;
-  });
   $q.value = store.get("yt.q", "best");
   $langs.value = store.get("yt.langs", "en");
   $q.onchange = $langs.onchange = sync;
   $("#yt-probe").onclick = probe;
-  $url.addEventListener("keydown", (e) => e.key === "Enter" && probe());
+  $url.addEventListener("keydown", (e) => e.key === "Enter" && !e.ctrlKey && probe());
   $url.addEventListener("change", probe);
   $go.onclick = go;
+  jobsView($("#yt-result"), (j) => j.kind === "youtube", {icon: "youtube", title: "Rien pour l'instant", hint: "Les téléchargements lancés ici s'affichent avec leur progression."});
   sync();
 })();
