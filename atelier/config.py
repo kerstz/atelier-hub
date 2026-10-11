@@ -12,7 +12,9 @@ DEFAULTS = {
         "url": "http://127.0.0.1:11434",
         "translate_model": "translategemma:12b",
         "second_model": "gemma3:12b",
+        "vision_model": "gemma3:12b",
     },
+    "summary": {"model": "", "num_ctx": 8192, "lang": "fr"},
     "translate": {"chunk_chars": 2500},
     "whisper": {
         "bin": "whisper-cli",
@@ -20,7 +22,10 @@ DEFAULTS = {
         "threads": 8,
     },
     "subtitles": {"batch": 40, "num_ctx": 8192, "use_auto_captions": False},
-    "docs": {"pdf_model": "", "qps": 2, "auto_glossary": False},
+    "docs": {
+        "pdf_model": "", "qps": 2, "auto_glossary": False,
+        "ocr_bin": "ocrmypdf", "ocr_langs": "fra+eng", "ocr_jobs": 4,
+    },
     "youtube": {"sub_langs": "en", "cookies_from_browser": "", "rate_limit": ""},
 }
 

@@ -1,11 +1,13 @@
+import base64
 import json
 import re
+from pathlib import Path
 from typing import AsyncIterator
 
 import httpx
 
-from . import db
-from .config import cfg
+from . import db, ollama
+from .config import cfg, data_dir
 from .jobs import Ctx, register
 
 LANGS = {
@@ -141,7 +143,58 @@ async def complete(model: str, messages: list[dict], **options) -> str:
     return "".join([t async for t in stream_chat(model, messages=messages, options=options)]).strip()
 
 
+IMAGE_EXT = {".png", ".jpg", ".jpeg", ".webp"}
+MAX_IMAGE = 20 << 20
+
+
+def image_prompt(src: str, tgt: str, glossary: list[tuple[str, str]]) -> str:
+    t_name = LANGS[tgt][0]
+    s = f" The text is in {LANGS[src][0]}." if src != "auto" else ""
+    head = (
+        f"Read all the text visible in this image and translate it into {t_name} ({tgt}).{s} "
+        "Keep the reading order and the line and paragraph breaks. "
+        f"Output only the {t_name} translation, with no description of the image and no commentary. "
+        "If the image contains no text, output exactly: [no text]"
+    )
+    if glossary:
+        head += "\nUse these fixed translations for the following terms:\n" + "\n".join(f"{a} = {b}" for a, b in glossary)
+    return head
+
+
+async def run_image(ctx: Ctx, p: dict, src: str, tgt: str) -> None:
+    path = Path(p["image"]).resolve()
+    if not path.is_relative_to((data_dir() / "uploads").resolve()) or not path.is_file():
+        raise RuntimeError("image introuvable")
+    try:
+        if path.suffix.lower() not in IMAGE_EXT:
+            raise RuntimeError("image: png, jpg ou webp")
+        if path.stat().st_size > MAX_IMAGE:
+            raise RuntimeError("image trop lourde (> 20 Mo)")
+        b64 = base64.b64encode(path.read_bytes()).decode()
+        name = re.sub(r"^[0-9a-f]{8}-", "", path.name)
+    finally:
+        path.unlink(missing_ok=True)
+    model = cfg["ollama"]["vision_model"]
+    ctx.set(0.05, "libération de la VRAM…")
+    await ollama.exclusive(model)
+    ctx.set(0.15, f"lecture de l'image ({model})…")
+    prompt = image_prompt(src, tgt, parse_glossary(p.get("glossary") or ""))
+    msgs = [{"role": "user", "content": prompt, "images": [b64]}]
+    out = ""
+    async for tok in stream_chat(model, messages=msgs):
+        out += tok
+        ctx.delta(tok)
+    if not out.strip():
+        raise RuntimeError("réponse vide du modèle")
+    db.add_translation(src, tgt, f"[image] {name}", out.strip())
+
+
 async def run(ctx: Ctx, p: dict) -> None:
+    if p.get("image"):
+        src, tgt = p.get("src", "auto"), p.get("tgt", "fr")
+        if tgt not in LANGS or (src != "auto" and src not in LANGS):
+            raise RuntimeError("langue inconnue")
+        return await run_image(ctx, p, src, tgt)
     text, src, tgt = (p.get("text") or "").strip(), p.get("src", "auto"), p.get("tgt", "fr")
     if not text:
         raise RuntimeError("texte vide")

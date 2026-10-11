@@ -73,6 +73,16 @@
   });
   $mux.onchange = () => ($("#st-q-wrap").hidden = !$mux.checked);
   $go.onclick = go;
+  const summarize = summaryPanel($("#tab-soustitres"), (t) => ($status.textContent = t));
+  $("#st-sum").onclick = () => {
+    const source = $in.value.trim();
+    if (!source) return ($status.textContent = "Choisir un fichier ou saisir une URL.");
+    store.set("st.tgt", $tgt.value);
+    summarize(
+      {source, src: $src.value, lang: $tgt.value, force_whisper: bool("#st-force")},
+      `Résumé : ${(picked?.name || source.split("/").pop()).slice(0, 40)}`
+    );
+  };
   jobsView($("#st-result"), (j) => j.kind === "subtitles", {icon: "captions", title: "Rien pour l'instant", hint: "Les fichiers .srt produits sont listés ici."});
 
   (async () => {

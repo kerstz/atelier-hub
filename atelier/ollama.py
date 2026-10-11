@@ -32,3 +32,14 @@ async def unload(model: str) -> None:
     async with httpx.AsyncClient(timeout=30) as c:
         r = await c.post(_url("/api/generate"), json={"model": model, "keep_alive": 0})
         r.raise_for_status()
+
+
+async def exclusive(model: str) -> None:
+    """Free VRAM: unload every loaded model except `model`."""
+    want = model if ":" in model else f"{model}:latest"
+    for m in (await loaded())["models"]:
+        if m["name"] != want:
+            try:
+                await unload(m["name"])
+            except httpx.HTTPError:
+                pass

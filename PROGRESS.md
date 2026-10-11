@@ -91,3 +91,12 @@ decisions:
 - icons.svg: 34 symboles Lucide (ISC), pas de CDN.
 env: capture sombre Firefox: profil avec `ui.systemUsesDarkTheme=1` + `--no-remote`. Service à redémarrer après maj backend (`systemctl --user restart atelier`).
 next: smoke3/4/5 non relancés (réseau YouTube / whisper / PDF), UI seule touchée.
+
+## Phase 9 — OCR, résumé, image (smoke9.sh: hors-ligne + OCR ok; résumé/image skip faute de gemma3:12b)
+done: ocr.py (has_text via pdftotext, ocr_pdf, job `ocr`), OCR auto dans do_pdf, summary.py (job `summary`, map-reduce), subs.acquire (extrait de subs.run), translate image (job translate + params.image), GET /api/jobs/{id}/result, UI: Résumer (YouTube, Sous-titres), OCR seul + options (Documents), dropzone image (Traduire).
+decisions:
+- ocrmypdf absent des dépôts pacman/CachyOS -> `uv tool install ocrmypdf` (PyPI 17.13.0, flags vérifiés via uvx). Auto-OCR si <50 car. alnum sur 5 premières pages; `-s -r -O 0 --output-type pdf`; `-f` si "refaire".
+- Résumé: modèle = summary.model ou ollama.second_model; num_ctx [summary]; chunks (num_ctx-2400)*3 car.; notes par bloc, réduction récursive (≤4 niveaux), final streamé. Sortie ~/Atelier/subs/<nom>.resume.md + SRT copié (réutilisable sans whisper). URL sans sous-titres = whisper à chaque Résumer.
+- Image: un seul appel vision (lit + traduit), `[ollama] vision_model`; `ollama.exclusive()` décharge les autres modèles (aussi avant résumé). Historique: source "[image] nom".
+env: tesseract + data fra/eng/osd ok, pdftotext ok. Manque: ocrmypdf, gemma3:12b.
+next: installer, relancer smoke9.sh (live), `systemctl --user restart atelier`.

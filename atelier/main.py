@@ -12,7 +12,7 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import db, docs, gpu, ollama, services, subs, translate, youtube  # noqa: F401
+from . import db, docs, gpu, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
 from .config import ROOT, data_dir, output_dir
 from .jobs import KINDS, manager
 
@@ -131,6 +131,15 @@ async def clear_jobs():
 @app.post("/api/jobs/{jid}/cancel")
 async def cancel_job(jid: int):
     return {"ok": manager.cancel(jid)}
+
+
+@app.get("/api/jobs/{jid}/result")
+async def job_result(jid: int):
+    job = db.get(jid)
+    path = Path(job["output"] or "").resolve() if job else None
+    if not path or not path.is_file() or path.suffix != ".md" or not path.is_relative_to(output_dir().resolve()):
+        raise HTTPException(404, "pas de résultat texte")
+    return PlainTextResponse(path.read_text(encoding="utf-8"))
 
 
 @app.post("/api/jobs/{jid}/open")
