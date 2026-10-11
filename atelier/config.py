@@ -1,0 +1,45 @@
+import os
+import tomllib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+DEFAULTS = {
+    "server": {"port": 7777},
+    "paths": {"output": "~/Atelier", "data": "~/.local/share/atelier"},
+    "gpu": {"card": "auto"},
+    "ollama": {
+        "url": "http://127.0.0.1:11434",
+        "translate_model": "translategemma:12b",
+        "second_model": "gemma3:12b",
+    },
+    "translate": {"chunk_chars": 2500},
+    "whisper": {
+        "bin": "whisper-cli",
+        "model": "~/.local/opt/whisper.cpp/models/ggml-large-v3-turbo.bin",
+        "threads": 8,
+    },
+    "subtitles": {"batch": 40, "num_ctx": 8192, "use_auto_captions": False},
+    "docs": {"pdf_model": "", "qps": 2, "auto_glossary": False},
+    "youtube": {"sub_langs": "en", "cookies_from_browser": "", "rate_limit": ""},
+}
+
+
+def _load() -> dict:
+    path = Path(os.environ.get("ATELIER_CONFIG", ROOT / "config.toml"))
+    user = tomllib.loads(path.read_text()) if path.exists() else {}
+    return {k: {**v, **user.get(k, {})} for k, v in DEFAULTS.items()} | {
+        k: v for k, v in user.items() if k not in DEFAULTS
+    }
+
+
+cfg = _load()
+
+
+def output_dir(kind: str | None = None) -> Path:
+    base = Path(cfg["paths"]["output"]).expanduser()
+    return base / kind if kind else base
+
+
+def data_dir() -> Path:
+    return Path(cfg["paths"]["data"]).expanduser()
