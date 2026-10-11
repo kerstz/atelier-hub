@@ -1,0 +1,44 @@
+[server]
+port = 7777
+
+[paths]
+output = "~/Atelier"
+data = "~/.local/share/atelier"
+
+[gpu]
+# "auto" = AMD card with most VRAM; or "card1"
+card = "auto"
+
+[ollama]
+url = "http://127.0.0.1:11434"
+translate_model = "translategemma:12b"
+second_model = "gemma3:12b"
+
+[translate]
+chunk_chars = 2500
+
+[youtube]
+sub_langs = "en"
+# ex: "firefox" pour vidéos protégées
+cookies_from_browser = ""
+# ex: "5M"
+rate_limit = ""
+
+[whisper]
+bin = "whisper-cli"
+model = "~/.local/opt/whisper.cpp/models/ggml-large-v3-turbo.bin"
+threads = 8
+
+[subtitles]
+# cues par lot envoyé au LLM
+batch = 40
+num_ctx = 8192
+# sous-titres auto YouTube (qualité < whisper) : non
+use_auto_captions = false
+
+[docs]
+# vide = ollama.translate_model
+pdf_model = ""
+qps = 2
+# extraction auto de glossaire par pdf2zh (appels LLM en plus)
+auto_glossary = false

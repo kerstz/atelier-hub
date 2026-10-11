@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atelier</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Atelier</h1>
+  <nav id="tabs">
+    <button data-tab="traduire">Traduire</button>
+    <button data-tab="youtube">YouTube</button>
+    <button data-tab="soustitres">Sous-titres</button>
+    <button data-tab="documents">Documents</button>
+    <button data-tab="services">Services</button>
+    <button data-tab="systeme">Système</button>
+  </nav>
+</header>
+<div class="layout">
+  <main>
+    <section id="tab-traduire" class="tab" hidden>
+      <div class="tr-bar">
+        <select id="tr-src" aria-label="Langue source"></select>
+        <button id="tr-swap" title="Inverser">⇄</button>
+        <select id="tr-tgt" aria-label="Langue cible"></select>
+        <button id="tr-go" class="primary">Traduire</button>
+        <button id="tr-cancel" hidden>Annuler</button>
+        <span id="tr-status" class="dim"></span>
+      </div>
+      <div class="panes">
+        <textarea id="tr-in" placeholder="Texte à traduire (Ctrl+Entrée)" spellcheck="false"></textarea>
+        <div class="out-wrap">
+          <textarea id="tr-out" readonly placeholder="Traduction"></textarea>
+          <button id="tr-copy">Copier</button>
+        </div>
+      </div>
+      <details>
+        <summary>Glossaire</summary>
+        <textarea id="tr-gloss" placeholder="un terme par ligne : terme=traduction" spellcheck="false"></textarea>
+      </details>
+      <div class="aside-head"><h2>Historique</h2><button id="tr-hclear">Vider</button></div>
+      <ul id="tr-hist" class="list"></ul>
+    </section>
+    <section id="tab-youtube" class="tab" hidden>
+      <div class="tr-bar">
+        <input id="yt-url" type="url" placeholder="URL YouTube (vidéo ou playlist)" spellcheck="false">
+        <button id="yt-probe">Analyser</button>
+      </div>
+      <p id="yt-info" class="dim"></p>
+      <div class="yt-opts">
+        <label><input type="radio" name="yt-mode" value="video"> Vidéo (mkv)</label>
+        <label><input type="radio" name="yt-mode" value="audio"> Audio (mp3)</label>
+        <label><input type="radio" name="yt-mode" value="subs"> Sous-titres seuls</label>
+      </div>
+      <div class="tr-bar">
+        <label id="yt-q-wrap">Qualité max
+          <select id="yt-q">
+            <option value="best">Meilleure</option>
+            <option value="2160">2160p</option>
+            <option value="1440">1440p</option>
+            <option value="1080">1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+            <option value="360">360p</option>
+          </select>
+        </label>
+        <label id="yt-l-wrap">Langues <input id="yt-langs" value="en" size="10" spellcheck="false"></label>
+        <label id="yt-pl-wrap" hidden><input id="yt-pl" type="checkbox" checked> Toute la playlist</label>
+      </div>
+      <button id="yt-go" class="primary">Télécharger</button>
+      <span id="yt-status" class="dim"></span>
+    </section>
+    <section id="tab-soustitres" class="tab" hidden>
+      <div class="tr-bar">
+        <input id="st-src-in" type="text" placeholder="URL ou chemin local (vidéo, audio, .srt) — ou glisser un fichier ici" spellcheck="false">
+        <button id="st-pick">Fichier…</button>
+        <input id="st-file" type="file" hidden>
+      </div>
+      <div class="tr-bar">
+        <label>Langue source <select id="st-src"></select></label>
+        <label>Cible <select id="st-tgt"></select></label>
+        <label><input id="st-tr" type="checkbox" checked> Traduire</label>
+        <label><input id="st-mux" type="checkbox"> Incruster dans un mkv</label>
+        <label id="st-q-wrap" hidden>Qualité max
+          <select id="st-q">
+            <option value="best">Meilleure</option>
+            <option value="2160">2160p</option>
+            <option value="1440">1440p</option>
+            <option value="1080" selected>1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+            <option value="360">360p</option>
+          </select>
+        </label>
+        <label><input id="st-force" type="checkbox"> Ignorer sous-titres existants (whisper)</label>
+      </div>
+      <details>
+        <summary>Glossaire</summary>
+        <textarea id="st-gloss" placeholder="un terme par ligne : terme=traduction" spellcheck="false"></textarea>
+      </details>
+      <p><button id="st-go" class="primary">Lancer</button> <span id="st-status" class="dim"></span></p>
+    </section>
+    <section id="tab-documents" class="tab" hidden>
+      <div id="dc-drop" class="dropzone">
+        Glisser des fichiers ici (PDF, DOCX, PPTX, XLSX, ODT, DOC…)<br>
+        <button id="dc-pick">Choisir…</button>
+        <input id="dc-file" type="file" multiple hidden>
+      </div>
+      <ul id="dc-list" class="list"></ul>
+      <div class="tr-bar">
+        <label>Langue source <select id="dc-src"></select></label>
+        <label>Cible <select id="dc-tgt"></select></label>
+        <label>Pages PDF <input id="dc-pages" type="text" size="10" placeholder="ex: 1-3,5" spellcheck="false"></label>
+      </div>
+      <details>
+        <summary>Glossaire</summary>
+        <textarea id="dc-gloss" placeholder="un terme par ligne : terme=traduction" spellcheck="false"></textarea>
+      </details>
+      <p><button id="dc-go" class="primary" disabled>Traduire</button> <button id="dc-clear">Vider la liste</button> <span id="dc-status" class="dim"></span></p>
+    </section>
+    <section id="tab-services" class="tab" hidden><p class="soon">Phase 6 — à venir.</p></section>
+    <section id="tab-systeme" class="tab" hidden>
+      <h2>Mémoire vidéo</h2>
+      <div class="bar"><div id="vram-fill"></div></div>
+      <p id="vram-text">…</p>
+      <h2>Modèles Ollama chargés</h2>
+      <p id="ollama-state"></p>
+      <ul id="models" class="list"></ul>
+      <h2>Verrou GPU</h2>
+      <p id="gpu-lock"></p>
+      <h2>Tâche de test</h2>
+      <button id="demo-gpu">Test GPU (5 s)</button>
+      <button id="demo-cpu">Test CPU (5 s)</button>
+    </section>
+  </main>
+  <aside>
+    <div class="aside-head"><h2>Tâches</h2><button id="clear">Vider</button></div>
+    <ul id="joblist" class="list"></ul>
+  </aside>
+</div>
+<script src="app.js"></script>
+<script src="translate.js"></script>
+<script src="youtube.js"></script>
+<script src="subs.js"></script>
+<script src="docs.js"></script>
+</body>
+</html>

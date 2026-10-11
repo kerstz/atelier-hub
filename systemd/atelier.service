@@ -1,0 +1,12 @@
+[Unit]
+Description=Atelier (hub local)
+After=network.target
+
+[Service]
+WorkingDirectory=@ROOT@
+ExecStart=@UV@ run --frozen --offline python -m atelier
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
