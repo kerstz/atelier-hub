@@ -70,3 +70,13 @@ decisions:
 - smoke6 ne démarre/arrête rien (ne touche pas aux vrais services).
 env: aucun service n'a unit/dir dans config.toml: à remplir par l'utilisateur pour activer Démarrer/Arrêter. Ports défauts: openwebui 3000, pinchflat 8945, jellyfin 8096, immich 2283, stirling 8080.
 next: fin du plan. scripts/fix-pdf2zh.sh à relancer après `uv tool upgrade`.
+
+## Phase 7 — Finition (smoke7.sh: partie hors-ligne ok, live à lancer)
+done: inline.py (balises <b>/<i>/<aN> encode/decode), office.py (loaders docx/pptx/xlsx extraits de docs.py, Slot), docs.py (flux tagué + repli), progression PDF, scripts/smoke7.sh.
+decisions:
+- Office: paragraphe envoyé tagué seulement s'il a ≥2 formats (gras/italique/lien); sinon texte plat comme avant. Balises invalides/inconnues/non fermées -> relance du paragraphe en texte plat (ancien comportement, 1er run).
+- docx: runs clonés depuis le run modèle (même format, sinon même lien), hyperlinks directs clonés. Champs (fldChar/fldSimple), runs avec tab/br/image, hyperlinks imbriqués -> chemin plat. pptx: a:br/a:fld -> plat. xlsx inchangé.
+- PDF: pdf2zh-next dessine une barre rich; env FORCE_COLOR=1 TERM=xterm COLUMNS=160 pour qu'elle sorte hors tty, parse `translate ━━ n/100` (global) + ligne d'étape en message. Si rich ne rend pas: ancien comportement (0 puis done).
+- Sous-titres -l: déjà en place depuis phase 4 (select Langue source -> whisper -l ; "Détecter" = auto). Rien changé, test ajouté dans smoke7. Défaut UI = en.
+env: smoke7 live = Ollama + service up; vérifie progression PDF 0<max<1.
+next: lancer scripts/smoke7.sh; si progression PDF reste 0, coller la sortie brute de `pdf2zh_next` (tty forcé) pour ajuster BAR_RE.
