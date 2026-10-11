@@ -184,3 +184,6 @@ details.adv[open] summary{margin-bottom:var(--s3)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
 }
+
+.dropzone.compact{flex-direction:row;justify-content:center;padding:var(--s3);font-size:.9em}
+.summary textarea{min-height:260px}

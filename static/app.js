@@ -77,6 +77,57 @@ function jobsView(box, filter, {icon = "inbox", title = "Aucun résultat", hint 
   render();
 }
 
+// Streaming markdown summary card appended to a tab; `status` receives progress text.
+function summaryPanel(host, status) {
+  const out = ui.h("textarea", "field tall");
+  out.readOnly = true;
+  out.placeholder = "Le résumé apparaît ici.";
+  const copyBtn = ui.button("Copier", {size: "sm", icon: "copy"});
+  ui.copy(copyBtn, () => out.value);
+  const stop = ui.button("Annuler", {variant: "danger", size: "sm", icon: "square", onclick: () => cur && post(`/api/jobs/${cur}/cancel`)});
+  stop.hidden = true;
+  const head = ui.h("div", "card-head");
+  head.append(ui.h("h2", null, "Résumé"), stop, copyBtn);
+  const card = ui.card(head, out);
+  card.classList.add("summary");
+  card.hidden = true;
+  host.append(card);
+  let cur = null;
+
+  bus.addEventListener("delta", (e) => {
+    if (e.detail.id !== cur) return;
+    out.value += e.detail.text;
+    out.scrollTop = out.scrollHeight;
+  });
+  bus.addEventListener("job", async (e) => {
+    const j = e.detail;
+    if (j.id !== cur) return;
+    if (j.status === "running" || j.status === "queued") return status(j.message || "En cours…");
+    stop.hidden = true;
+    cur = null;
+    status({done: "Résumé terminé.", failed: `Échec : ${j.error}`, cancelled: "Annulé."}[j.status]);
+    if (j.status === "done") {
+      const r = await fetch(`/api/jobs/${j.id}/result`);
+      if (r.ok) out.value = await r.text();
+    }
+  });
+
+  return async (params, title) => {
+    if (cur) return false;
+    const r = await post("/api/jobs", {kind: "summary", title, params});
+    if (!r.ok) {
+      ui.toast("Erreur de lancement", "bad");
+      return false;
+    }
+    cur = (await r.json()).id;
+    out.value = "";
+    card.hidden = false;
+    stop.hidden = false;
+    status("En file…");
+    return true;
+  };
+}
+
 let seen = new Set();
 function renderJobs() {
   const ul = $("#joblist");

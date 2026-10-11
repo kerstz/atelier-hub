@@ -81,6 +81,12 @@
   $url.addEventListener("keydown", (e) => e.key === "Enter" && !e.ctrlKey && probe());
   $url.addEventListener("change", probe);
   $go.onclick = go;
+  const summarize = summaryPanel($("#tab-youtube"), (t) => ($status.textContent = t));
+  $("#yt-sum").onclick = () => {
+    const url = $url.value.trim();
+    if (!url) return ($status.textContent = "Saisir une URL.");
+    summarize({source: url, src: "auto"}, `Résumé YouTube : ${url.slice(0, 50)}`);
+  };
   jobsView($("#yt-result"), (j) => j.kind === "youtube", {icon: "youtube", title: "Rien pour l'instant", hint: "Les téléchargements lancés ici s'affichent avec leur progression."});
   sync();
 })();

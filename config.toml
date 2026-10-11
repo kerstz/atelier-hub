@@ -13,6 +13,8 @@ card = "auto"
 url = "http://127.0.0.1:11434"
 translate_model = "translategemma:12b"
 second_model = "gemma3:12b"
+# modèle vision pour Traduire > image
+vision_model = "gemma3:12b"
 
 [translate]
 chunk_chars = 2500
@@ -42,6 +44,17 @@ pdf_model = ""
 qps = 2
 # extraction auto de glossaire par pdf2zh (appels LLM en plus)
 auto_glossary = false
+# OCR auto des PDF sans texte (uv tool install ocrmypdf ; tesseract-data-fra/eng)
+ocr_bin = "ocrmypdf"
+ocr_langs = "fra+eng"
+ocr_jobs = 4
+
+[summary]
+# vide = ollama.second_model
+model = ""
+# contexte du modèle : les transcripts longs sont découpés (map-reduce) pour tenir dedans
+num_ctx = 8192
+lang = "fr"
 
 # Services externes : sonde de port + démarrage/arrêt (jamais d'installation).
 # unit = unité systemd --user ; dir = dossier docker compose (+ file optionnel).

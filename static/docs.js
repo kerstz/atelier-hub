@@ -9,6 +9,7 @@
       render();
     });
     $go.disabled = files.length === 0;
+    $("#dc-ocr-go").disabled = !files.some((f) => /\.pdf$/i.test(f.name));
   }
 
   async function add(fileList) {
@@ -37,7 +38,7 @@
       const r = await post("/api/jobs", {
         kind: "document",
         title: `Document : ${f.name.slice(0, 40)}`,
-        params: {path: f.path, src: $src.value, tgt: $tgt.value, glossary: $gloss.value, pages: $pages.value},
+        params: {path: f.path, src: $src.value, tgt: $tgt.value, glossary: $gloss.value, pages: $pages.value, ocr: $("#dc-ocr").checked},
       });
       if (r.ok) ok++;
     }
@@ -52,7 +53,21 @@
     render();
   };
   $go.onclick = go;
-  jobsView($("#dc-result"), (j) => j.kind === "document", {icon: "file-text", title: "Rien pour l'instant", hint: "Les documents traduits sont enregistrés dans ~/Atelier/docs.", limit: 8});
+  $("#dc-ocr-go").onclick = async () => {
+    const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
+    if (!pdfs.length) return ($status.textContent = "OCR : ajouter au moins un PDF.");
+    let ok = 0;
+    for (const f of pdfs) {
+      const r = await post("/api/jobs", {
+        kind: "ocr", title: `OCR : ${f.name.slice(0, 40)}`, params: {path: f.path, force: $("#dc-force").checked},
+      });
+      if (r.ok) ok++;
+      files.splice(files.indexOf(f), 1);
+    }
+    render();
+    $status.textContent = `${ok} OCR lancé(s).`;
+  };
+  jobsView($("#dc-result"), (j) => j.kind === "document" || j.kind === "ocr", {icon: "file-text", title: "Rien pour l'instant", hint: "Les documents traduits et PDF océrisés sont enregistrés dans ~/Atelier/docs.", limit: 8});
 
   (async () => {
     const langs = await (await fetch("/api/langs")).json();

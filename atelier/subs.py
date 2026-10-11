@@ -129,6 +129,34 @@ def _clean(name: str) -> str:
     return name[:120] or "sous-titres"
 
 
+async def acquire(ctx, source, is_url, src, force_whisper, want_video, quality, work, whisper_hi):
+    """Transcript SRT for a URL / local media / local SRT. Returns (srt, media|None, name, progress_after)."""
+    sub: Path | None = None
+    media: Path | None = None
+    uploads = (data_dir() / "uploads").resolve()
+    if is_url:
+        sub, media = await fetch_url(ctx, source, src, force_whisper, want_video, quality, work, 0.1)
+    else:
+        local = Path(source)
+        name = re.sub(r"^[0-9a-f]{8}-", "", local.name) if local.resolve().is_relative_to(uploads) else local.name
+        if local.suffix.lower() == ".srt":
+            sub = local
+        else:
+            media = local
+    if sub is not None:
+        stem = sub.stem
+        if is_url and "." in stem:
+            stem = stem.rsplit(".", 1)[0]
+        name_base = stem if is_url else Path(name).stem
+    else:
+        name_base = media.stem if is_url else Path(name).stem
+    t_lo = 0.1
+    if sub is None:
+        sub = await transcribe(ctx, media, "auto" if src == "auto" else src, work, 0.1, whisper_hi)
+        t_lo = whisper_hi
+    return sub, media, _clean(name_base), t_lo
+
+
 async def run(ctx: Ctx, p: dict) -> str:
     source = (p.get("source") or "").strip()
     src, tgt = p.get("src", "en"), p.get("tgt", "fr")
@@ -151,34 +179,10 @@ async def run(ctx: Ctx, p: dict) -> str:
     out.mkdir(parents=True, exist_ok=True)
     uploads = (data_dir() / "uploads").resolve()
     try:
-        sub: Path | None = None
-        media: Path | None = None
-        if is_url:
-            sub, media = await fetch_url(
-                ctx, source, src, bool(p.get("force_whisper")), want_mux,
-                str(p.get("quality", "1080")), work, 0.1,
-            )
-        else:
-            local = Path(source)
-            name = re.sub(r"^[0-9a-f]{8}-", "", local.name) if local.resolve().is_relative_to(uploads) else local.name
-            if local.suffix.lower() == ".srt":
-                sub = local
-            else:
-                media = local
-        if sub is not None:
-            stem = sub.stem
-            if is_url and "." in stem:
-                stem = stem.rsplit(".", 1)[0]
-            name_base = stem if is_url else Path(name).stem
-        else:
-            name_base = media.stem if is_url else Path(name).stem
-        name_base = _clean(name_base)
-
-        t_lo = 0.1
-        if sub is None:
-            t_hi = 0.5 if do_tr else 0.95
-            sub = await transcribe(ctx, media, "auto" if src == "auto" else src, work, 0.1, t_hi)
-            t_lo = t_hi
+        sub, media, name_base, t_lo = await acquire(
+            ctx, source, is_url, src, bool(p.get("force_whisper")), want_mux,
+            str(p.get("quality", "1080")), work, 0.5 if do_tr else 0.95,
+        )
         cues = srt.parse(sub.read_text(encoding="utf-8", errors="replace"))
         if not cues:
             raise RuntimeError("aucune réplique dans le SRT")

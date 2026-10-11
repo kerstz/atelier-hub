@@ -4,7 +4,7 @@ import re
 import shutil
 from pathlib import Path
 
-from . import inline, translate
+from . import inline, ocr, translate
 from .batch import Translator, numbered
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, manager, register
@@ -89,9 +89,14 @@ def pdf_progress(ctx: Ctx):
     return feed
 
 
-async def do_pdf(ctx: Ctx, path: Path, name: str, src, tgt, glossary, pages: str, work: Path, out: Path) -> list[Path]:
+async def do_pdf(ctx: Ctx, path: Path, name: str, src, tgt, glossary, pages: str, work: Path, out: Path, use_ocr: bool = True) -> list[Path]:
     if src == "auto":
         raise RuntimeError("langue source requise pour un PDF")
+    if use_ocr and not await ocr.has_text(path):
+        ctx.set(0, "PDF sans texte: OCR…")
+        scanned = work / "ocr.pdf"
+        await ocr.ocr_pdf(ctx, path, scanned)
+        path = scanned
     d, ol = cfg["docs"], cfg["ollama"]
     res_dir = work / "out"
     res_dir.mkdir()
@@ -147,8 +152,7 @@ async def run(ctx: Ctx, p: dict) -> str:
         raise RuntimeError(f"format non supporté: {ext}")
     glossary = translate.parse_glossary(p.get("glossary") or "")
     uploads = (data_dir() / "uploads").resolve()
-    name = re.sub(r"^[0-9a-f]{8}-", "", path.name) if path.resolve().is_relative_to(uploads) else path.name
-    name = re.sub(r'[\\/:*?"<>|]+', "_", Path(name).stem).strip(" .")[:120] or "document"
+    name = ocr.upload_name(path)
     work = data_dir() / "tmp" / str(ctx.id)
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
@@ -156,7 +160,7 @@ async def run(ctx: Ctx, p: dict) -> str:
     out.mkdir(parents=True, exist_ok=True)
     try:
         if ext == ".pdf":
-            dests = await do_pdf(ctx, path, name, src, tgt, glossary, (p.get("pages") or "").strip(), work, out)
+            dests = await do_pdf(ctx, path, name, src, tgt, glossary, (p.get("pages") or "").strip(), work, out, p.get("ocr", True) is not False)
             ctx.set(1.0, ", ".join(d.name for d in dests))
             return str(out)
         if ext in CONVERT:

@@ -2,7 +2,30 @@
   const $in = $("#tr-in"), $out = $("#tr-out"), $src = $("#tr-src"), $tgt = $("#tr-tgt");
   const $go = $("#tr-go"), $cancel = $("#tr-cancel"), $status = $("#tr-status"), $gloss = $("#tr-gloss");
   const bufs = new Map();
-  let langs = [], current = null;
+  let langs = [], current = null, image = null;
+  const IMG = /^image\/(png|jpeg|webp)$/;
+
+  function showImage() {
+    ui.chips($("#tr-chip"), image ? [image] : [], () => {
+      image = null;
+      showImage();
+    });
+    $in.disabled = !!image;
+    $in.placeholder = image ? "Image jointe : le texte sera lu dans l'image." : "Texte à traduire…";
+  }
+
+  async function takeImage(file) {
+    if (!IMG.test(file.type)) return ui.toast("Image png, jpg ou webp uniquement", "bad");
+    $status.textContent = "Envoi de l'image…";
+    try {
+      image = {name: file.name || "capture.png", path: await uploadFile(file)};
+      $status.textContent = "";
+      showImage();
+    } catch {
+      $status.textContent = "Envoi échoué.";
+      ui.toast("Envoi échoué", "bad");
+    }
+  }
 
   function fillLangs() {
     langs.forEach((l) => {
@@ -23,18 +46,19 @@
 
   async function go() {
     const text = $in.value.trim();
-    if (!text || current) return;
+    if ((!text && !image) || current) return;
     store.set("tr.src", $src.value);
     store.set("tr.tgt", $tgt.value);
     store.set("tr.gloss", $gloss.value);
     $out.value = "";
     $status.textContent = "En file…";
     setBusy(true);
-    const title = `Traduction ${$src.value}→${$tgt.value} : ${text.slice(0, 30)}`;
+    const sent = image;
+    const title = `Traduction ${$src.value}→${$tgt.value} : ${sent ? `image ${sent.name}` : text.slice(0, 30)}`;
     const r = await post("/api/jobs", {
       kind: "translate",
       title,
-      params: {text, src: $src.value, tgt: $tgt.value, glossary: $gloss.value},
+      params: {text, image: sent?.path, src: $src.value, tgt: $tgt.value, glossary: $gloss.value},
     });
     if (!r.ok) {
       $status.textContent = "Erreur de lancement.";
@@ -43,6 +67,10 @@
       return;
     }
     current = (await r.json()).id;
+    if (sent) {
+      image = null; // le serveur consomme l'upload
+      showImage();
+    }
     $out.value = bufs.get(current) ?? "";
   }
 
@@ -90,6 +118,7 @@
   }
 
   $go.onclick = go;
+  ui.dropzone($("#tr-drop"), {onFiles: (fs) => takeImage(fs[0])});
   $cancel.onclick = () => current && post(`/api/jobs/${current}/cancel`);
   $("#tr-swap").onclick = () => {
     if ($src.value === "auto") return;
