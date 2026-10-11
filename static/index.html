@@ -120,7 +120,10 @@
       </details>
       <p><button id="dc-go" class="primary" disabled>Traduire</button> <button id="dc-clear">Vider la liste</button> <span id="dc-status" class="dim"></span></p>
     </section>
-    <section id="tab-services" class="tab" hidden><p class="soon">Phase 6 — à venir.</p></section>
+    <section id="tab-services" class="tab" hidden>
+      <p id="sv-state" class="dim"></p>
+      <ul id="sv-list" class="list"></ul>
+    </section>
     <section id="tab-systeme" class="tab" hidden>
       <h2>Mémoire vidéo</h2>
       <div class="bar"><div id="vram-fill"></div></div>
@@ -145,5 +148,6 @@
 <script src="youtube.js"></script>
 <script src="subs.js"></script>
 <script src="docs.js"></script>
+<script src="services.js"></script>
 </body>
 </html>

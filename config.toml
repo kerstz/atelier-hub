@@ -42,3 +42,26 @@ pdf_model = ""
 qps = 2
 # extraction auto de glossaire par pdf2zh (appels LLM en plus)
 auto_glossary = false
+
+# Services externes : sonde de port + démarrage/arrêt (jamais d'installation).
+# unit = unité systemd --user ; dir = dossier docker compose (+ file optionnel).
+# Sans unit ni dir : sonde + lien seulement.
+[services.openwebui]
+name = "Open WebUI"
+port = 3000
+
+[services.pinchflat]
+name = "Pinchflat"
+port = 8945
+
+[services.jellyfin]
+name = "Jellyfin"
+port = 8096
+
+[services.immich]
+name = "Immich"
+port = 2283
+
+[services.stirling]
+name = "Stirling-PDF"
+port = 8080
