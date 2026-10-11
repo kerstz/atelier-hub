@@ -60,7 +60,8 @@ class C:
     def set(self, p=None, message=None): got.append(p)
 f = docs.pdf_progress(C())
 f("\x1b[2Ktranslate \x1b[38;5;197m━━━━╸━━\x1b[0m 45/100 0:00:12 0:00:20")
-f("Parse PDF (1/1) ━━━━ 3/10 0:00:01")
+f("translate                                            45/100 0:00:12 0:00:20")
+f("Parse PDF (1/1)                                    3/10 0:00:01")
 check("pdf progression 45 %", 0.45 in got)
 
 seen = []
@@ -101,7 +102,7 @@ py - "$docs/smoke-fmt.fr.docx" <<'PY'
 import sys, docx
 r = docx.Document(sys.argv[1]).paragraphs[0].runs
 print("    ", [(x.text, x.bold, x.italic) for x in r])
-assert any(x.bold for x in r) and any(x.italic for x in r), "format perdu (fallback ?)"
+assert any(x.bold and x.text.strip() for x in r) and any(x.italic and x.text.strip() for x in r), "format perdu (fallback ?)"
 PY
 t "docx gras+italique gardés" "[ \$? = 0 ]"
 
@@ -109,7 +110,7 @@ j=$(submit "$tmp/smoke-fmt.pdf")
 mx=0
 for _ in $(seq 900); do
   s=$(job $j status); p=$(job $j progress)
-  mx=$(python3 -c "print(max($mx, $p))")
+  [ "$s" = running ] && mx=$(python3 -c "print(max($mx, $p))")
   case $s in done|failed|cancelled) break;; esac; sleep 1
 done
 t "pdf done" "[ $s = done ]"

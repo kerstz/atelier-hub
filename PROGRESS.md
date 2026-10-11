@@ -80,3 +80,14 @@ decisions:
 - Sous-titres -l: déjà en place depuis phase 4 (select Langue source -> whisper -l ; "Détecter" = auto). Rien changé, test ajouté dans smoke7. Défaut UI = en.
 env: smoke7 live = Ollama + service up; vérifie progression PDF 0<max<1.
 next: lancer scripts/smoke7.sh; si progression PDF reste 0, coller la sortie brute de `pdf2zh_next` (tty forcé) pour ajuster BAR_RE.
+
+## Phase 8 — Refonte UI (smoke, smoke2, smoke6, smoke7 ok; smoke3/4/5 non relancés)
+done: static/{ui.js,icons.svg,index.html,style.css} réécrits; app.js (shell, tray, toasts, thème, raccourcis); translate/youtube/subs/docs/services.js adaptés. Backend inchangé (sauf fix BAR_RE phase 7).
+decisions:
+- Composants dans ui.js: icon(sprite), button, card, toast, modal, progress, empty, skeleton, copy, select, segmented, dropzone(drag/coller/clic), chips. jobCard/jobsView dans app.js (tray + carte Résultat par onglet).
+- Thème: :root sombre par défaut, clair via prefers-color-scheme ou data-theme (localStorage `theme`, try/catch). Bouton violet #6b47ff (AA avec texte blanc), accent #7c5cff pour focus/barres.
+- Raccourcis: Ctrl+Entrée = bouton [data-main] de l'onglet, Ctrl+1..6 onglets, Échap ferme modal puis tray. Sidebar repliable (localStorage `sb`).
+- Tray: s'ouvre à chaque nouveau job; toasts sur fin/échec de job observé en direct.
+- icons.svg: 34 symboles Lucide (ISC), pas de CDN.
+env: capture sombre Firefox: profil avec `ui.systemUsesDarkTheme=1` + `--no-remote`. Service à redémarrer après maj backend (`systemctl --user restart atelier`).
+next: smoke3/4/5 non relancés (réseau YouTube / whisper / PDF), UI seule touchée.

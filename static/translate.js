@@ -1,10 +1,6 @@
 (() => {
   const $in = $("#tr-in"), $out = $("#tr-out"), $src = $("#tr-src"), $tgt = $("#tr-tgt");
   const $go = $("#tr-go"), $cancel = $("#tr-cancel"), $status = $("#tr-status"), $gloss = $("#tr-gloss");
-  const store = {
-    get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
-    set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
-  };
   const bufs = new Map();
   let langs = [], current = null;
 
@@ -42,6 +38,7 @@
     });
     if (!r.ok) {
       $status.textContent = "Erreur de lancement.";
+      ui.toast("Erreur de lancement", "bad");
       setBusy(false);
       return;
     }
@@ -72,12 +69,16 @@
   });
 
   async function loadHistory() {
-    const rows = await (await fetch("/api/translations")).json();
     const ul = $("#tr-hist");
+    if (!ul.children.length) ul.replaceChildren(ui.skeleton(2));
+    const rows = await (await fetch("/api/translations")).json();
     ul.replaceChildren();
+    if (!rows.length) ul.append(ui.empty("history", "Pas encore d'historique", "Les 20 dernières traductions apparaissent ici."));
     rows.forEach((h) => {
       const li = el("li");
       li.append(el("div", `${name(h.src)} → ${name(h.tgt)}`, "dim"), el("div", h.source, "clip"), el("div", h.result, "clip dim"));
+      li.tabIndex = 0;
+      li.onkeydown = (e) => e.key === "Enter" && li.click();
       li.onclick = () => {
         $in.value = h.source;
         $out.value = h.result;
@@ -90,25 +91,14 @@
 
   $go.onclick = go;
   $cancel.onclick = () => current && post(`/api/jobs/${current}/cancel`);
-  $in.addEventListener("keydown", (e) => {
-    if (e.ctrlKey && e.key === "Enter") go();
-  });
   $("#tr-swap").onclick = () => {
     if ($src.value === "auto") return;
     [$src.value, $tgt.value] = [$tgt.value, $src.value];
     [$in.value, $out.value] = [$out.value, $in.value];
   };
-  $("#tr-copy").onclick = async (e) => {
-    try {
-      await navigator.clipboard.writeText($out.value);
-      e.target.textContent = "Copié";
-    } catch {
-      $out.select();
-      document.execCommand("copy");
-    }
-    setTimeout(() => (e.target.textContent = "Copier"), 1200);
-  };
+  ui.copy($("#tr-copy"), () => $out.value);
   $("#tr-hclear").onclick = async () => {
+    if (!(await ui.modal({title: "Vider l'historique ?", body: "Les traductions enregistrées seront supprimées.", confirm: "Vider", danger: true}))) return;
     await post("/api/translations/clear");
     loadHistory();
   };

@@ -3,146 +3,202 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>Atelier</title>
+<script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;if(localStorage.getItem("sb")==="1")document.documentElement.dataset.sb="1"}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>Atelier</h1>
-  <nav id="tabs">
-    <button data-tab="traduire">Traduire</button>
-    <button data-tab="youtube">YouTube</button>
-    <button data-tab="soustitres">Sous-titres</button>
-    <button data-tab="documents">Documents</button>
-    <button data-tab="services">Services</button>
-    <button data-tab="systeme">Système</button>
-  </nav>
-</header>
-<div class="layout">
-  <main>
-    <section id="tab-traduire" class="tab" hidden>
-      <div class="tr-bar">
-        <select id="tr-src" aria-label="Langue source"></select>
-        <button id="tr-swap" title="Inverser">⇄</button>
-        <select id="tr-tgt" aria-label="Langue cible"></select>
-        <button id="tr-go" class="primary">Traduire</button>
-        <button id="tr-cancel" hidden>Annuler</button>
-        <span id="tr-status" class="dim"></span>
-      </div>
-      <div class="panes">
-        <textarea id="tr-in" placeholder="Texte à traduire (Ctrl+Entrée)" spellcheck="false"></textarea>
-        <div class="out-wrap">
-          <textarea id="tr-out" readonly placeholder="Traduction"></textarea>
-          <button id="tr-copy">Copier</button>
-        </div>
-      </div>
-      <details>
-        <summary>Glossaire</summary>
-        <textarea id="tr-gloss" placeholder="un terme par ligne : terme=traduction" spellcheck="false"></textarea>
-      </details>
-      <div class="aside-head"><h2>Historique</h2><button id="tr-hclear">Vider</button></div>
-      <ul id="tr-hist" class="list"></ul>
-    </section>
-    <section id="tab-youtube" class="tab" hidden>
-      <div class="tr-bar">
-        <input id="yt-url" type="url" placeholder="URL YouTube (vidéo ou playlist)" spellcheck="false">
-        <button id="yt-probe">Analyser</button>
-      </div>
-      <p id="yt-info" class="dim"></p>
-      <div class="yt-opts">
-        <label><input type="radio" name="yt-mode" value="video"> Vidéo (mkv)</label>
-        <label><input type="radio" name="yt-mode" value="audio"> Audio (mp3)</label>
-        <label><input type="radio" name="yt-mode" value="subs"> Sous-titres seuls</label>
-      </div>
-      <div class="tr-bar">
-        <label id="yt-q-wrap">Qualité max
-          <select id="yt-q">
-            <option value="best">Meilleure</option>
-            <option value="2160">2160p</option>
-            <option value="1440">1440p</option>
-            <option value="1080">1080p</option>
-            <option value="720">720p</option>
-            <option value="480">480p</option>
-            <option value="360">360p</option>
-          </select>
-        </label>
-        <label id="yt-l-wrap">Langues <input id="yt-langs" value="en" size="10" spellcheck="false"></label>
-        <label id="yt-pl-wrap" hidden><input id="yt-pl" type="checkbox" checked> Toute la playlist</label>
-      </div>
-      <button id="yt-go" class="primary">Télécharger</button>
-      <span id="yt-status" class="dim"></span>
-    </section>
-    <section id="tab-soustitres" class="tab" hidden>
-      <div class="tr-bar">
-        <input id="st-src-in" type="text" placeholder="URL ou chemin local (vidéo, audio, .srt) — ou glisser un fichier ici" spellcheck="false">
-        <button id="st-pick">Fichier…</button>
-        <input id="st-file" type="file" hidden>
-      </div>
-      <div class="tr-bar">
-        <label>Langue source <select id="st-src"></select></label>
-        <label>Cible <select id="st-tgt"></select></label>
-        <label><input id="st-tr" type="checkbox" checked> Traduire</label>
-        <label><input id="st-mux" type="checkbox"> Incruster dans un mkv</label>
-        <label id="st-q-wrap" hidden>Qualité max
-          <select id="st-q">
-            <option value="best">Meilleure</option>
-            <option value="2160">2160p</option>
-            <option value="1440">1440p</option>
-            <option value="1080" selected>1080p</option>
-            <option value="720">720p</option>
-            <option value="480">480p</option>
-            <option value="360">360p</option>
-          </select>
-        </label>
-        <label><input id="st-force" type="checkbox"> Ignorer sous-titres existants (whisper)</label>
-      </div>
-      <details>
-        <summary>Glossaire</summary>
-        <textarea id="st-gloss" placeholder="un terme par ligne : terme=traduction" spellcheck="false"></textarea>
-      </details>
-      <p><button id="st-go" class="primary">Lancer</button> <span id="st-status" class="dim"></span></p>
-    </section>
-    <section id="tab-documents" class="tab" hidden>
-      <div id="dc-drop" class="dropzone">
-        Glisser des fichiers ici (PDF, DOCX, PPTX, XLSX, ODT, DOC…)<br>
-        <button id="dc-pick">Choisir…</button>
-        <input id="dc-file" type="file" multiple hidden>
-      </div>
-      <ul id="dc-list" class="list"></ul>
-      <div class="tr-bar">
-        <label>Langue source <select id="dc-src"></select></label>
-        <label>Cible <select id="dc-tgt"></select></label>
-        <label>Pages PDF <input id="dc-pages" type="text" size="10" placeholder="ex: 1-3,5" spellcheck="false"></label>
-      </div>
-      <details>
-        <summary>Glossaire</summary>
-        <textarea id="dc-gloss" placeholder="un terme par ligne : terme=traduction" spellcheck="false"></textarea>
-      </details>
-      <p><button id="dc-go" class="primary" disabled>Traduire</button> <button id="dc-clear">Vider la liste</button> <span id="dc-status" class="dim"></span></p>
-    </section>
-    <section id="tab-services" class="tab" hidden>
-      <p id="sv-state" class="dim"></p>
-      <ul id="sv-list" class="list"></ul>
-    </section>
-    <section id="tab-systeme" class="tab" hidden>
-      <h2>Mémoire vidéo</h2>
-      <div class="bar"><div id="vram-fill"></div></div>
-      <p id="vram-text">…</p>
-      <h2>Modèles Ollama chargés</h2>
-      <p id="ollama-state"></p>
-      <ul id="models" class="list"></ul>
-      <h2>Verrou GPU</h2>
-      <p id="gpu-lock"></p>
-      <h2>Tâche de test</h2>
-      <button id="demo-gpu">Test GPU (5 s)</button>
-      <button id="demo-cpu">Test CPU (5 s)</button>
-    </section>
-  </main>
-  <aside>
-    <div class="aside-head"><h2>Tâches</h2><button id="clear">Vider</button></div>
-    <ul id="joblist" class="list"></ul>
+<div class="app">
+  <aside class="sidebar" aria-label="Navigation">
+    <div class="brand"><span class="logo" aria-hidden="true"></span><span class="lbl">Atelier</span></div>
+    <nav id="tabs">
+      <button class="nav" data-tab="traduire" title="Traduire"><i data-i="languages"></i><span class="lbl">Traduire</span></button>
+      <button class="nav" data-tab="youtube" title="YouTube"><i data-i="youtube"></i><span class="lbl">YouTube</span></button>
+      <button class="nav" data-tab="soustitres" title="Sous-titres"><i data-i="captions"></i><span class="lbl">Sous-titres</span></button>
+      <button class="nav" data-tab="documents" title="Documents"><i data-i="file-text"></i><span class="lbl">Documents</span></button>
+      <button class="nav" data-tab="services" title="Services"><i data-i="server"></i><span class="lbl">Services</span></button>
+      <button class="nav" data-tab="systeme" title="Système"><i data-i="cpu"></i><span class="lbl">Système</span></button>
+    </nav>
+    <div class="sb-foot">
+      <button class="nav" id="theme" title="Changer de thème"><i data-i="sun"></i><span class="lbl">Thème</span></button>
+      <button class="nav" id="collapse" title="Réduire la barre latérale"><i data-i="panel-left"></i><span class="lbl">Réduire</span></button>
+    </div>
   </aside>
+
+  <main>
+    <div class="content">
+      <section id="tab-traduire" class="tab" hidden>
+        <header class="page-head"><h1>Traduire</h1><p class="dim">Texte libre, traduit localement par le modèle Ollama.</p></header>
+        <div class="card">
+          <div class="lang-row">
+            <select id="tr-src" aria-label="Langue source"></select>
+            <button id="tr-swap" class="btn ghost icon-only" title="Inverser" aria-label="Inverser"><i data-i="swap"></i></button>
+            <select id="tr-tgt" aria-label="Langue cible"></select>
+          </div>
+          <textarea id="tr-in" class="field tall" placeholder="Texte à traduire…" spellcheck="false"></textarea>
+          <details class="adv">
+            <summary>Options avancées</summary>
+            <label class="stack">Glossaire <span class="dim">un terme par ligne : terme=traduction</span>
+              <textarea id="tr-gloss" class="field" spellcheck="false"></textarea>
+            </label>
+          </details>
+        </div>
+        <div class="actionbar">
+          <button id="tr-go" class="btn primary" data-main><i data-i="languages"></i><span>Traduire</span><kbd>Ctrl ↵</kbd></button>
+          <button id="tr-cancel" class="btn danger" hidden><i data-i="square"></i><span>Annuler</span></button>
+          <span id="tr-status" class="dim"></span>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Traduction</h2><button id="tr-copy" class="btn ghost sm"><i data-i="copy"></i><span>Copier</span></button></div>
+          <textarea id="tr-out" class="field tall" readonly placeholder="La traduction apparaît ici."></textarea>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Historique</h2><button id="tr-hclear" class="btn ghost sm"><i data-i="trash"></i><span>Vider</span></button></div>
+          <ul id="tr-hist" class="list"></ul>
+        </div>
+      </section>
+
+      <section id="tab-youtube" class="tab" hidden>
+        <header class="page-head"><h1>YouTube</h1><p class="dim">Vidéo, audio ou sous-titres, vidéo seule ou playlist.</p></header>
+        <div class="card">
+          <div class="field-row">
+            <input id="yt-url" class="field grow" type="url" placeholder="https://www.youtube.com/watch?v=…" spellcheck="false" aria-label="URL YouTube">
+            <button id="yt-probe" class="btn"><i data-i="search"></i><span>Analyser</span></button>
+          </div>
+          <p id="yt-info" class="dim"></p>
+          <div id="yt-mode" aria-label="Mode"></div>
+          <details class="adv">
+            <summary>Options avancées</summary>
+            <div class="field-row wrap">
+              <label id="yt-q-wrap" class="inline">Qualité max
+                <select id="yt-q">
+                  <option value="best">Meilleure</option><option value="2160">2160p</option><option value="1440">1440p</option>
+                  <option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option><option value="360">360p</option>
+                </select>
+              </label>
+              <label id="yt-l-wrap" class="inline">Langues <input id="yt-langs" class="field" value="en" size="10" spellcheck="false"></label>
+              <label id="yt-pl-wrap" class="check" hidden><input id="yt-pl" type="checkbox" checked> Toute la playlist</label>
+            </div>
+          </details>
+        </div>
+        <div class="actionbar">
+          <button id="yt-go" class="btn primary" data-main><i data-i="download"></i><span>Télécharger</span><kbd>Ctrl ↵</kbd></button>
+          <span id="yt-status" class="dim"></span>
+        </div>
+        <div class="card"><div class="card-head"><h2>Résultat</h2></div><div id="yt-result"></div></div>
+      </section>
+
+      <section id="tab-soustitres" class="tab" hidden>
+        <header class="page-head"><h1>Sous-titres</h1><p class="dim">URL ou fichier local : sous-titres existants, sinon whisper, puis traduction en SRT.</p></header>
+        <div class="card">
+          <div id="st-drop"><i data-i="upload"></i><strong>Déposer un fichier</strong><span class="dim">vidéo, audio ou .srt — glisser, coller ou cliquer</span></div>
+          <div id="st-chip" class="chips"></div>
+          <div class="field-row">
+            <i data-i="link" class="dim"></i>
+            <input id="st-src-in" class="field grow" type="text" placeholder="…ou une URL / un chemin local" spellcheck="false" aria-label="URL ou chemin local">
+          </div>
+          <div class="field-row wrap">
+            <label class="inline">Langue source <select id="st-src"></select></label>
+            <label class="inline">Cible <select id="st-tgt"></select></label>
+            <label class="check"><input id="st-tr" type="checkbox" checked> Traduire</label>
+            <label class="check"><input id="st-mux" type="checkbox"> Incruster dans un mkv</label>
+          </div>
+          <details class="adv">
+            <summary>Options avancées</summary>
+            <div class="field-row wrap">
+              <label id="st-q-wrap" class="inline" hidden>Qualité max
+                <select id="st-q">
+                  <option value="best">Meilleure</option><option value="2160">2160p</option><option value="1440">1440p</option>
+                  <option value="1080" selected>1080p</option><option value="720">720p</option><option value="480">480p</option><option value="360">360p</option>
+                </select>
+              </label>
+              <label class="check"><input id="st-force" type="checkbox"> Ignorer les sous-titres existants (whisper)</label>
+            </div>
+            <label class="stack">Glossaire <span class="dim">un terme par ligne : terme=traduction</span>
+              <textarea id="st-gloss" class="field" spellcheck="false"></textarea>
+            </label>
+          </details>
+        </div>
+        <div class="actionbar">
+          <button id="st-go" class="btn primary" data-main><i data-i="play"></i><span>Lancer</span><kbd>Ctrl ↵</kbd></button>
+          <span id="st-status" class="dim"></span>
+        </div>
+        <div class="card"><div class="card-head"><h2>Résultat</h2></div><div id="st-result"></div></div>
+      </section>
+
+      <section id="tab-documents" class="tab" hidden>
+        <header class="page-head"><h1>Documents</h1><p class="dim">PDF, DOCX, PPTX, XLSX, ODT… : mise en page conservée au mieux.</p></header>
+        <div class="card">
+          <div id="dc-drop"><i data-i="upload"></i><strong>Déposer des documents</strong><span class="dim">glisser, coller ou cliquer — plusieurs fichiers possibles</span></div>
+          <div id="dc-list" class="chips"></div>
+          <div class="field-row wrap">
+            <label class="inline">Langue source <select id="dc-src"></select></label>
+            <label class="inline">Cible <select id="dc-tgt"></select></label>
+          </div>
+          <details class="adv">
+            <summary>Options avancées</summary>
+            <label class="inline">Pages PDF <input id="dc-pages" class="field" type="text" size="10" placeholder="ex : 1-3,5" spellcheck="false"></label>
+            <label class="stack">Glossaire <span class="dim">un terme par ligne : terme=traduction</span>
+              <textarea id="dc-gloss" class="field" spellcheck="false"></textarea>
+            </label>
+          </details>
+        </div>
+        <div class="actionbar">
+          <button id="dc-go" class="btn primary" data-main disabled><i data-i="languages"></i><span>Traduire</span><kbd>Ctrl ↵</kbd></button>
+          <button id="dc-clear" class="btn ghost"><i data-i="trash"></i><span>Vider la liste</span></button>
+          <span id="dc-status" class="dim"></span>
+        </div>
+        <div class="card"><div class="card-head"><h2>Résultats</h2></div><div id="dc-result"></div></div>
+      </section>
+
+      <section id="tab-services" class="tab" hidden>
+        <header class="page-head"><h1>Services</h1><p class="dim">État des services locaux, démarrage et arrêt.</p></header>
+        <p id="sv-state" class="dim"></p>
+        <ul id="sv-list" class="grid"></ul>
+      </section>
+
+      <section id="tab-systeme" class="tab" hidden>
+        <header class="page-head"><h1>Système</h1><p class="dim">Mémoire vidéo, modèles chargés et verrou GPU.</p></header>
+        <div class="card">
+          <div class="card-head"><h2>Mémoire vidéo</h2></div>
+          <div class="progress"><div id="vram-fill"></div></div>
+          <p id="vram-text" class="dim">…</p>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Modèles Ollama chargés</h2></div>
+          <div id="ollama-state" class="dim"></div>
+          <ul id="models" class="list"></ul>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Verrou GPU</h2></div>
+          <p id="gpu-lock" class="dim"></p>
+          <details class="adv">
+            <summary>Options avancées</summary>
+            <div class="field-row">
+              <button id="demo-gpu" class="btn">Test GPU (5 s)</button>
+              <button id="demo-cpu" class="btn">Test CPU (5 s)</button>
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+  </main>
 </div>
+
+<section id="tray" class="tray" aria-label="Tâches" data-open="0">
+  <button id="tray-head" class="tray-head" aria-expanded="false">
+    <i data-i="list"></i><span>Tâches</span><span id="tray-count" class="badge" hidden></span>
+    <i data-i="chevron-up" class="chev"></i>
+  </button>
+  <div class="tray-body">
+    <ul id="joblist" class="list"></ul>
+    <div class="tray-foot"><button id="clear" class="btn ghost sm"><i data-i="trash"></i><span>Vider</span></button></div>
+  </div>
+</section>
+<div id="toasts" aria-live="polite"></div>
+
+<script src="ui.js"></script>
 <script src="app.js"></script>
 <script src="translate.js"></script>
 <script src="youtube.js"></script>

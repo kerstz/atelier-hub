@@ -1,22 +1,12 @@
 (() => {
-  const $zone = $("#dc-drop"), $list = $("#dc-list"), $go = $("#dc-go"), $status = $("#dc-status");
+  const $list = $("#dc-list"), $go = $("#dc-go"), $status = $("#dc-status");
   const $src = $("#dc-src"), $tgt = $("#dc-tgt"), $gloss = $("#dc-gloss"), $pages = $("#dc-pages");
   const files = [];
 
   function render() {
-    $list.replaceChildren();
-    files.forEach((f, i) => {
-      const li = el("li");
-      const row = el("div", null, "row");
-      row.append(el("span", f.name));
-      const b = el("button", "Retirer");
-      b.onclick = () => {
-        files.splice(i, 1);
-        render();
-      };
-      row.append(b);
-      li.append(row);
-      $list.append(li);
+    ui.chips($list, files, (i) => {
+      files.splice(i, 1);
+      render();
     });
     $go.disabled = files.length === 0;
   }
@@ -28,14 +18,16 @@
         files.push({name: file.name, path: await uploadFile(file)});
       } catch {
         $status.textContent = `Envoi échoué : ${file.name}`;
-        return;
+        ui.toast(`Envoi échoué : ${file.name}`, "bad");
+        break;
       }
+      render();
     }
-    $status.textContent = "";
-    render();
+    if ($status.textContent.startsWith("Envoi de")) $status.textContent = "";
   }
 
   async function go() {
+    if (!files.length) return;
     store.set("dc.src", $src.value);
     store.set("dc.tgt", $tgt.value);
     store.set("tr.gloss", $gloss.value);
@@ -51,36 +43,21 @@
     }
     files.length = 0;
     render();
-    $status.textContent = `${ok} tâche(s) lancée(s) — voir le panneau Tâches.`;
+    $status.textContent = `${ok} tâche(s) lancée(s).`;
   }
 
-  ["dragover", "dragenter"].forEach((ev) =>
-    $zone.addEventListener(ev, (e) => {
-      e.preventDefault();
-      $zone.classList.add("drop");
-    })
-  );
-  ["dragleave", "drop"].forEach((ev) => $zone.addEventListener(ev, () => $zone.classList.remove("drop")));
-  $zone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    add(e.dataTransfer.files);
-  });
-  $("#dc-pick").onclick = () => $("#dc-file").click();
-  $("#dc-file").onchange = (e) => add(e.target.files);
+  ui.dropzone($("#dc-drop"), {multiple: true, onFiles: add});
   $("#dc-clear").onclick = () => {
     files.length = 0;
     render();
   };
   $go.onclick = go;
+  jobsView($("#dc-result"), (j) => j.kind === "document", {icon: "file-text", title: "Rien pour l'instant", hint: "Les documents traduits sont enregistrés dans ~/Atelier/docs.", limit: 8});
 
   (async () => {
     const langs = await (await fetch("/api/langs")).json();
-    langs.forEach((l) => {
-      $src.append(new Option(l.name, l.code));
-      if (l.code !== "auto") $tgt.append(new Option(l.name, l.code));
-    });
-    $src.value = store.get("dc.src", "en");
-    $tgt.value = store.get("dc.tgt", "fr");
+    ui.select($src, langs.map((l) => [l.code, l.name]), store.get("dc.src", "en"));
+    ui.select($tgt, langs.filter((l) => l.code !== "auto").map((l) => [l.code, l.name]), store.get("dc.tgt", "fr"));
     $gloss.value = store.get("tr.gloss", "");
   })();
 })();
