@@ -64,6 +64,13 @@ out = d / "o"; out.mkdir()
 (out / "doc.fr.pdf").write_text("x"); (out / "doc (2).fr.pdf").write_text("x")
 check("B8: free_base saute les noms pris", util.free_base("doc", lambda b: (out / f"{b}.fr.pdf").exists()) == "doc (3)")
 check("B8: libre -> inchangé", util.free_base("new", lambda b: (out / f"{b}.fr.pdf").exists()) == "new")
+for f in ("r.fr.docx", "r.fr.mono.pdf", "r.fr.dual.pdf"):
+    (out / f).write_text("x")
+check("B8: pptx du même nom qu'un docx existant: pas de suffixe", docs.output_base(out, "r", ".pptx", "fr") == "r")
+check("B8: docx déjà présent -> (2)", docs.output_base(out, "r", ".docx", "fr") == "r (2)")
+check("B8: pdf mono/dual comptent comme une famille", docs.output_base(out, "r", ".pdf", "fr") == "r (2)")
+check("B8: .doc converti en docx -> collision docx", docs.output_base(out, "r", ".doc", "fr") == "r (2)")
+check("B8: autre langue cible: libre", docs.output_base(out, "r", ".docx", "de") == "r")
 src = "".join(open(f).read() for f in ("atelier/subs.py", "atelier/summary.py", "atelier/ocr.py", "atelier/docs.py"))
 check("B8: subs/summary/ocr/docs utilisent free_base", src.count("free_base(") >= 4)
 

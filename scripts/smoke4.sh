@@ -38,7 +38,7 @@ up=$(curl -fsS -X POST --data-binary @"$tmp/smoke-sub-test.srt" "$base/api/uploa
 t "upload écrit" "[ -f '$up' ]"
 j=$(submit "{\"source\":\"$up\",\"src\":\"en\",\"tgt\":\"fr\",\"translate\":false}")
 t "srt sans traduction" "[ \$(wait_done $j) = done ]"
-t "upload supprimé après job" "[ ! -f '$up' ]"
+t "upload conservé (réutilisable pour Résumer/Générer, purge par âge)" "[ -f '$up' ]"; rm -f "$up"
 rm -f "$subs"/smoke-up*
 
 j=$(submit '{"source":"/nonexistent.mkv"}')

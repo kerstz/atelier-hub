@@ -189,3 +189,8 @@ decisions (analyse Opus, lecture seule):
 - Noms FR existants précisés: pt "portugais (Portugal)", zh "chinois simplifié". Langue pt-BR/zh-TW: prompt "Brazilian Portuguese (pt-BR)" / "Traditional Chinese (zh-TW)".
 risques non vérifiés (pas de réseau/modèle): codes attendus par translategemma pour fil/pt-BR/zh-TW (tester "Filipino (fil)" vs "Tagalog (tl)" sur 2-3 phrases), qualité ceb/ms, chunk() sur le thaï (pas de ponctuation .!?), PDF droite-gauche dégradé, OCR: tesseract-data seulement fra+eng (ocr_langs global).
 env: redémarrer le service. Voix Piper: aucune par défaut pour ces langues (ajouter [tts.voices]).
+
+## Correctifs suite à smoke-all complet (2026-10-12)
+- smoke4: "upload supprimé" obsolète depuis phase 14 (subtitles keep_uploads) -> test attend maintenant l'upload conservé.
+- smoke5 (vrai bug phase 16): le nom unique de docs.run comparait tous les formats (`<nom>.<tgt>.*`): un pptx du même nom qu'un docx existant devenait "<nom> (2)". Corrigé: docs.output_base compare par type de sortie (docx/pptx/xlsx/epub séparés, pdf mono+dual = une famille). smoke5 nettoie ses sorties au départ.
+- smoke10/11/15 TIMEOUT dans smoke-all: veille système (journal: suspend exit 08:53, saut d'horloge 40301 s), pas un bug; chacun repasse seul en 1-7 s.

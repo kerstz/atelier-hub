@@ -18,6 +18,8 @@ submit() {
 py() { uv run --frozen --offline python "$@"; }
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"; rm -f "$docs"/smoke-doc*' EXIT
+# sorties uniques ("(2)") depuis la phase 16: repartir d'un dossier sans restes de ce test
+rm -f "$HOME"/Atelier/docs/smoke-doc*
 py - "$tmp" <<'PY'
 import sys, docx, openpyxl
 from pptx import Presentation
