@@ -122,6 +122,6 @@
   };
   bus.addEventListener("job", refreshZip);
   bus.addEventListener("jobs", refreshZip);
-  jobsView($("#cv-result"), (j) => j.kind === "convert", {icon: "swap", title: "Rien pour l'instant", hint: "Les fichiers convertis sont enregistrés dans ~/Atelier/convert.", limit: 12});
+  jobsView($("#cv-result"), (j) => j.kind === "convert", {icon: "swap", title: "Rien pour l'instant", hint: "Les fichiers convertis sont enregistrés dans le dossier Atelier › convert.", limit: 12});
   render();
 })();

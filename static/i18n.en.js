@@ -14,7 +14,7 @@ const I18N_EN = {
   "Dicter": "Dictate", "ou une image : déposer, coller une capture (Ctrl+V) ou cliquer": "or an image: drop, paste a screenshot (Ctrl+V) or click",
   "Options avancées": "Advanced options", "Glossaire": "Glossary", "un terme par ligne : terme=traduction": "one term per line: term=translation",
   "Annuler": "Cancel", "Traduction": "Translation", "Lire à voix haute (Piper)": "Read aloud (Piper)", "Écouter": "Listen",
-  "Enregistrer en mp3 dans ~/Atelier/audio": "Save as mp3 in ~/Atelier/audio", "Copier": "Copy", "Copié": "Copied",
+  "Enregistrer en mp3 dans le dossier Atelier › audio": "Save as mp3 in the Atelier › audio folder", "Copier": "Copy", "Copié": "Copied",
   "La traduction apparaît ici.": "The translation appears here.", "Historique": "History",
   "Pas encore d'historique": "No history yet", "Les 20 dernières traductions apparaissent ici.": "The last 20 translations appear here.",
   "Vider l'historique ?": "Clear history?", "Les traductions enregistrées seront supprimées.": "Saved translations will be deleted.",
@@ -24,7 +24,7 @@ const I18N_EN = {
   "Terminé.": "Done.", "Accès au micro refusé": "Microphone access denied", "Micro indisponible": "Microphone unavailable",
   "Envoi de la dictée…": "Uploading dictation…", "Dictée": "Dictation", "Transcription…": "Transcribing…", "Dictée échouée": "Dictation failed",
   "Arrêter": "Stop", "Export mp3…": "Exporting mp3…", "Synthèse vocale…": "Synthesizing speech…", "Dictée ajoutée.": "Dictation added.",
-  "MP3 enregistré dans ~/Atelier/audio": "MP3 saved in ~/Atelier/audio", "Détecter": "Detect",
+  "MP3 enregistré dans le dossier Atelier › audio": "MP3 saved in the Atelier › audio folder", "Détecter": "Detect",
   // youtube
   "Vidéo, audio ou sous-titres, vidéo seule ou playlist.": "Video, audio or subtitles, single video or playlist.",
   "URL YouTube": "YouTube URL", "Analyser": "Analyze", "Mode": "Mode", "Qualité max": "Max quality", "Meilleure": "Best", "Langues": "Languages",
@@ -34,10 +34,10 @@ const I18N_EN = {
   "Vidéo (mkv)": "Video (mkv)", "Rien pour l'instant": "Nothing yet",
   "Les téléchargements lancés ici s'affichent avec leur progression.": "Downloads started here appear with their progress.",
   // subtitles
-  "URL ou fichier local : sous-titres existants, sinon whisper, puis traduction en SRT.": "URL or local file: existing subtitles, otherwise whisper, then translation to SRT.",
+  "Vidéo en ligne ou fichier : reprend les sous-titres existants (sinon les crée par reconnaissance vocale), puis les traduit en .srt.": "Online video or file: reuses existing subtitles (otherwise creates them by speech recognition), then translates them to .srt.",
   "Déposer un fichier": "Drop a file", "vidéo, audio ou .srt — glisser, coller ou cliquer": "video, audio or .srt — drag, paste or click",
   "…ou une URL / un chemin local": "…or a URL / local path", "URL ou chemin local": "URL or local path", "Cible": "Target", "Source": "Source",
-  "Incruster dans un mkv": "Embed in an mkv", "Ignorer les sous-titres existants (whisper)": "Ignore existing subtitles (whisper)",
+  "Ajouter aussi à une copie de la vidéo (.mkv)": "Also add them to a copy of the video (.mkv)", "Ignorer les sous-titres existants (whisper)": "Ignore existing subtitles (whisper)",
   "Lancer": "Start", "Résumé, points clés et chapitres horodatés": "Summary, key points and timestamped chapters",
   "Choisir un fichier ou saisir une URL.": "Pick a file or enter a URL.", "Fichier repris de la tâche précédente.": "File taken from the previous task.",
   "Les fichiers .srt produits sont listés ici.": "Generated .srt files are listed here.", "Résumé": "Summary",
@@ -48,7 +48,7 @@ const I18N_EN = {
   "OCR automatique des PDF sans texte": "Automatic OCR for PDFs without text", "OCR : refaire même si du texte existe": "OCR: redo even if text exists",
   "Pages PDF": "PDF pages", "ex : 1-3,5": "e.g. 1-3,5", "Ajoute une couche texte aux PDF scannés (fra+eng)": "Adds a text layer to scanned PDFs (fra+eng)",
   "OCR seul": "OCR only", "Vider la liste": "Clear list", "Résultats": "Results", "OCR : ajouter au moins un PDF.": "OCR: add at least one PDF.",
-  "Les documents traduits et PDF océrisés sont enregistrés dans ~/Atelier/docs.": "Translated documents and OCR'd PDFs are saved in ~/Atelier/docs.",
+  "Les documents traduits et PDF océrisés sont enregistrés dans le dossier Atelier › docs.": "Translated documents and OCR'd PDFs are saved in the Atelier › docs folder.",
   // convert
   "Vidéo, audio, images, documents, e-books : le type est détecté, choisis le format cible.": "Video, audio, images, documents, e-books: the type is detected, pick the target format.",
   "Déposer des fichiers": "Drop files", "glisser, coller ou cliquer — un lot = une tâche par fichier": "drag, paste or click — a batch = one task per file",
@@ -56,9 +56,9 @@ const I18N_EN = {
   "Vidéo": "Video", "Images": "Images", "Tableurs": "Spreadsheets", "Présentations": "Presentations", "E-books": "E-books",
   "Qualité haute": "High quality", "Qualité normale": "Normal quality", "Fichier léger": "Small file", "Taille d'origine": "Original size",
   "aucun format commun": "no common format", "Format non reconnu": "Unrecognized format",
-  "Les fichiers convertis sont enregistrés dans ~/Atelier/convert.": "Converted files are saved in ~/Atelier/convert.",
+  "Les fichiers convertis sont enregistrés dans le dossier Atelier › convert.": "Converted files are saved in the Atelier › convert folder.",
   // images / audio
-  "Agrandissement ×2 / ×4 (Real-ESRGAN, GPU) et détourage du fond (rembg).": "×2 / ×4 upscaling (Real-ESRGAN, GPU) and background removal (rembg).",
+  "Agrandir une image (×2 / ×4) ou enlever son arrière-plan.": "Enlarge an image (×2 / ×4) or remove its background.",
   "Déposer des images": "Drop images", "png, jpg, webp… — une tâche par image": "png, jpg, webp… — one task per image", "Action": "Action", "Option": "Option",
   "Séparation des pistes (Demucs) et réduction du bruit de la voix (DeepFilterNet).": "Stem separation (Demucs) and voice denoising (DeepFilterNet).",
   "Déposer des fichiers audio ou vidéo": "Drop audio or video files", "une tâche par fichier": "one task per file", "Format": "Format",
@@ -69,7 +69,7 @@ const I18N_EN = {
   "Séparer la voix": "Separate the voice", "Garder la musique": "Keep the music", "Vidéo (mkv)": "Video (mkv)",
   "Micro par défaut": "Default microphone", "Source": "Source", "Démarrer le direct": "Start live", "Arrêter le direct": "Stop live",
   "Contourner": "Bypass", "Voir": "View",
-  "Séparation des pistes (Demucs), réduction du bruit (DeepFilterNet) et changeur de voix (Seed-VC).": "Stem separation (Demucs), noise reduction (DeepFilterNet) and voice changer (Seed-VC).",
+  "Séparer la voix de la musique, réduire le bruit, changer une voix.": "Separate voice from music, reduce noise, change a voice.",
   "Change la voix d'un fichier ou de ton micro en direct. Moteur IA (Seed-VC, GPU) pour les voix réalistes, effets simples sans modèle.": "Change the voice of a file or of your microphone live. AI engine (Seed-VC, GPU) for realistic voices, simple effects without a model.",
   "Femme claire": "Clear woman", "Femme chaleureuse": "Warm woman", "Femme grave": "Deep woman", "Homme posé": "Calm man", "Homme grave": "Deep man",
   "Homme jeune": "Young man", "Narrateur": "Narrator", "Voix jeune aiguë": "High young voice", "Voix âgée": "Elderly voice", "Voix neutre": "Neutral voice",
@@ -81,8 +81,8 @@ const I18N_EN = {
   "non installée": "not installed", "Dans Discord/OBS, choisir « Micro Atelier (voix) » comme micro.": "In Discord/OBS, pick “Micro Atelier (voix)” as the microphone.",
   "Photo": "Photo", "Illustration / anime": "Illustration / anime", "Général": "General", "Général (précis)": "General (precise)", "Personnes": "People", "Anime": "Anime",
   "Séparer en 4 pistes": "Split into 4 stems", "Voix + accompagnement": "Vocals + accompaniment", "Réduire le bruit (voix)": "Reduce noise (voice)",
-  "Les images sont enregistrées dans ~/Atelier/images.": "Images are saved in ~/Atelier/images.",
-  "Les fichiers sont enregistrés dans ~/Atelier/audio.": "Files are saved in ~/Atelier/audio.",
+  "Les images sont enregistrées dans le dossier Atelier › images.": "Images are saved in the Atelier › images folder.",
+  "Les fichiers sont enregistrés dans le dossier Atelier › audio.": "Files are saved in the Atelier › audio folder.",
   // services / system
   "État des services locaux, démarrage et arrêt.": "State of local services, start and stop.",
   "Mémoire vidéo, modèles chargés et verrou GPU.": "Video memory, loaded models and GPU lock.",
@@ -92,7 +92,7 @@ const I18N_EN = {
   "Vérifier que le service ollama tourne.": "Check that the ollama service is running.", "Ollama injoignable": "Ollama unreachable",
   "Aucun modèle chargé": "No model loaded", "Un modèle se charge à la première traduction.": "A model loads on the first translation.",
   "Décharger": "Unload", "Libre.": "Free.", "Occupé : une tâche GPU tourne.": "Busy: a GPU task is running.",
-  "GPU introuvable (sysfs amdgpu)": "GPU not found (amdgpu sysfs)", "Revérifier ": "Re-check",
+  "Mémoire vidéo non mesurable sur cette machine.": "Video memory cannot be measured on this machine.", "Revérifier ": "Re-check",
   // jobs / tray
   "En file": "Queued", "Terminé": "Done", "Échec": "Failed", "Annulé": "Cancelled", "En file…": "Queued…", "En cours…": "Running…", "Annulé.": "Cancelled.",
   "Aucune tâche": "No tasks", "Aucune tâche dans ce filtre": "No tasks in this filter", "Aucun résultat": "No results", "pas de fichier audio": "no audio file", "aucun lecteur audio installé": "no audio player installed",
@@ -124,6 +124,25 @@ const I18N_EN = {
   "Peu de RAM disponible en ce moment: fermer des applications avant un gros document.": "Little RAM available right now: close applications before a big document.",
   "traduction": "translation", "présent": "present", "Écouter, MP3": "Listen, MP3",
   "Progression": "Progress", "Tout est en place": "Everything is in place",
+  // first-launch assistant + missing tool notices (setup.js)
+  "Bienvenue ! Encore une étape avant de commencer": "Welcome! One more step before you start",
+  "Ces outils gratuits sont nécessaires pour traduire, télécharger et convertir. Ils s'installent une seule fois.":
+    "These free tools are needed to translate, download and convert. They are installed only once.",
+  "Une fenêtre va s'ouvrir : suivre ses étapes (quelques minutes), puis revenir ici et cliquer sur « Revérifier ».":
+    "A window will open: follow its steps (a few minutes), then come back here and click “Check again”.",
+  "Installer les outils": "Install the tools", "Installer": "Install",
+  "installation automatique disponible seulement avec l'installeur Windows": "automatic installation only available with the Windows installer", "Plus tard": "Later", "Tout est prêt": "All set",
+  "Il manque encore des outils": "Some tools are still missing", "Installation lancée dans une autre fenêtre": "Installation started in another window",
+  "Lancement impossible": "Could not start", "Analyse impossible.": "Analysis failed.",
+  "Ouvrir PowerShell (menu Démarrer › « PowerShell »), coller la commande, valider avec Entrée et suivre les étapes.":
+    "Open PowerShell (Start menu › “PowerShell”), paste the command, press Enter and follow the steps.",
+  "Ouvrir un terminal (Ctrl+Alt+T), coller les commandes une par une et valider avec Entrée (mot de passe demandé).":
+    "Open a terminal (Ctrl+Alt+T), paste the commands one by one and press Enter (password required).",
+  "Ouvrir un terminal, coller les commandes une par une et valider avec Entrée (mot de passe demandé).":
+    "Open a terminal, paste the commands one by one and press Enter (password required).",
+  "Outil manquant pour cet onglet": "Missing tool for this tab", "Outils manquants pour cet onglet": "Missing tools for this tab",
+  "Essentiel : tout est en place.": "Essentials: all in place.",
+  "YouTube vidéo": "YouTube video", "YouTube audio": "YouTube audio", "YouTube sous-titres": "YouTube subtitles",
 };
 
 const I18N_RX = [
@@ -159,7 +178,10 @@ const I18N_RX = [
   [/^conversion échouée$/, "conversion failed"], [/^URL invalide$/, "invalid URL"], [/^pages invalides$/, "invalid pages"],
   [/^langue source requise pour un PDF$/, "source language required for a PDF"], [/^pas de fichier$/, "no file"],
   [/^pas de résultat texte$/, "no text result"], [/^pas de sortie$/, "no output"], [/^hors dossier de sortie$/, "outside the output folder"],
-  [/^(.*) absent: (.*)$/, "$1 missing: $2"], [/^pas de voix pour '(.*)': ajouter \[tts\.voices\] .*$/, "no voice for '$1': add it under [tts.voices] in config.toml"],
+  [/^(.*) absent: (.*)$/, "$1 missing: $2"], [/^(.*) n'est pas installé( : .*)?$/, "$1 is not installed$2"],
+  [/^Essentiel : (\d+) manquant\(s\)\.(.*)$/, "Essentials: $1 missing.$2"],
+  [/^(.*) Outils optionnels : (\d+) non installé\(s\), seulement utiles pour certaines fonctions\.$/, "$1 Optional tools: $2 not installed, only needed for some features."],
+  [/^Outils optionnels \((\d+)\/(\d+) installés\)$/, "Optional tools ($1/$2 installed)"], [/^(.*) — pour : (.*)$/, "$1 — for: $2"], [/^pour : (.*)$/, "for: $1"], [/^pas de voix pour '(.*)': ajouter \[tts\.voices\] .*$/, "no voice for '$1': add it under [tts.voices] in config.toml"],
   [/^voix (.*) absente: (.*)$/, "voice $1 missing: $2"], [/^données tesseract manquantes: (.*)$/, "missing tesseract data: $1"],
   [/^seules les tâches échouées ou annulées se relancent$/, "only failed or cancelled tasks can be retried"],
   [/^EPUB (trop volumineux|suspect).*$/, "EPUB too large or suspicious"], [/^glossaire inconnu$/, "unknown glossary"],

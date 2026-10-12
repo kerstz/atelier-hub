@@ -134,6 +134,7 @@
         if (!res.ok) throw new Error();
         dictJob = (await res.json()).id;
         $status.textContent = "Transcription…";
+        settle(dictJob);  // a missing whisper fails before the id is known
       } catch {
         $status.textContent = "";
         ui.toast("Dictée échouée", "bad");
@@ -196,6 +197,7 @@
     if (!r.ok) return ui.toast("Erreur de lancement", "bad");
     ttsJob = (await r.json()).id;
     $status.textContent = mode === "mp3" ? "Export mp3…" : "Synthèse vocale…";
+    settle(ttsJob);  // a missing piper fails before the id is known
   }
 
   bus.addEventListener("delta", (e) => {
@@ -213,7 +215,7 @@
       ttsJob = null;
       if (j.status !== "done") return ($status.textContent = `Lecture : ${j.error || "annulée"}`);
       $status.textContent = "";
-      if (ttsMode === "mp3") return ui.toast("MP3 enregistré dans ~/Atelier/audio", "ok");
+      if (ttsMode === "mp3") return ui.toast("MP3 enregistré dans le dossier Atelier › audio", "ok");
       playOnServer(j.id).then((ok) => {
         if (ok) return;
         audio = new Audio(`/api/jobs/${j.id}/download`);  // no system player: browser fallback

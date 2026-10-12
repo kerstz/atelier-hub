@@ -88,7 +88,10 @@ async def local_only(request: Request, call_next):
     # other local web apps (same-site, other port) and cross-site pages can't drive the API, GET included
     if request.url.path.startswith("/api/") and request.headers.get("sec-fetch-site", "same-origin") not in ("same-origin", "none"):
         return PlainTextResponse("forbidden", status_code=403)
-    return await call_next(request)
+    resp = await call_next(request)
+    if not request.url.path.startswith("/api/"):  # UI files: revalidate (etag) so an update never mixes old and new JS
+        resp.headers.setdefault("cache-control", "no-cache")
+    return resp
 
 
 class JobIn(BaseModel):
@@ -154,6 +157,8 @@ async def upload(request: Request, name: str):
 async def youtube_probe(body: ProbeIn):
     try:
         return await youtube.probe(body.url)
+    except FileNotFoundError as e:
+        raise HTTPException(400, plat.missing_tool(e) or str(e))
     except RuntimeError as e:
         raise HTTPException(400, str(e))
     except asyncio.TimeoutError:
@@ -308,6 +313,27 @@ app.include_router(voicelive.router)
 @app.get("/api/deps")
 async def deps():
     return await maint.deps()
+
+
+@app.get("/api/setup")
+async def setup():
+    rows = await maint.deps()
+    return {**maint.setup_info(rows), "rows": rows}
+
+
+@app.post("/api/setup/run")
+async def setup_run(tier: str = "minimal"):
+    """Windows installer build only: open the tool installer (win-setup.ps1) in its own console window."""
+    if tier not in ("minimal", "standard", "full"):
+        raise HTTPException(400, "tier inconnu")
+    import subprocess
+    import sys
+    script = Path(sys.executable).parent / "scripts" / "win-setup.ps1"
+    if not (plat.NT and plat.FROZEN and script.is_file()):
+        raise HTTPException(400, "installation automatique disponible seulement avec l'installeur Windows")
+    subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-File", str(script),
+                      "-Tier", tier, "-Models"], creationflags=0x10)  # CREATE_NEW_CONSOLE
+    return {"ok": True}
 
 
 TEXT_EXT = {".srt", ".vtt", ".txt", ".md", ".json", ".csv"}

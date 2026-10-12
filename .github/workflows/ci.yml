@@ -26,6 +26,17 @@ jobs:
             echo "== smoke$n"; bash scripts/smoke$n.sh 2>&1 | grep -v Deprecat | tee /tmp/s$n.log
             ! grep -q '^FAIL' /tmp/s$n.log
           done
+      - name: Frozen Linux binary serves every route (PyInstaller)
+        run: |
+          uv run --with pyinstaller --with ctranslate2 --with sentencepiece pyinstaller --noconfirm --log-level WARN --distpath dist --workpath build packaging/atelier.spec
+          dist/Atelier/Atelier --check-imports /tmp/imports.txt || { cat /tmp/imports.txt; exit 1; }
+          ATELIER_NO_WINDOW=1 dist/Atelier/Atelier > /tmp/atelier.log 2>&1 &
+          pid=$!
+          ok=0
+          for i in $(seq 60); do curl -fsS -o /dev/null http://127.0.0.1:7777/api/system && ok=1 && break; sleep 1; done
+          [ $ok = 1 ] && uv run --frozen python scripts/frozen-check.py http://127.0.0.1:7777 /tmp/atelier.log || ok=0
+          kill $pid
+          [ $ok = 1 ] || { cat /tmp/atelier.log; exit 1; }
 
   windows:
     runs-on: windows-latest
@@ -47,10 +58,12 @@ jobs:
           uv sync --frozen
           uv run --frozen python -m compileall -q atelier
           uv run --with pillow python packaging/make_icon.py
-          uv run --with pyinstaller --with pywebview --with sounddevice pyinstaller --noconfirm --distpath dist --workpath build packaging/atelier.spec
-      - name: The exe starts and serves (no window)
+          uv run --with pyinstaller --with pywebview --with sounddevice --with ctranslate2 --with sentencepiece pyinstaller --noconfirm --distpath dist --workpath build packaging/atelier.spec
+      - name: The exe starts and serves (no window; every GET route, static files, SSE, upload)
         shell: pwsh
         run: |
+          $r = Start-Process dist\Atelier\Atelier.exe -ArgumentList "--check-imports", "$env:RUNNER_TEMP\imports.txt" -Wait -PassThru
+          if ($r.ExitCode) { Get-Content "$env:RUNNER_TEMP\imports.txt"; throw "modules missing from the exe" }
           $env:ATELIER_NO_WINDOW = "1"
           $p = Start-Process dist\Atelier\Atelier.exe -PassThru
           $ok = $false
@@ -58,6 +71,7 @@ jobs:
             try { if ((Invoke-WebRequest http://127.0.0.1:7777/api/system -UseBasicParsing).StatusCode -eq 200) { $ok = $true; break } } catch {}
             Start-Sleep 1
           }
+          if ($ok) { uv run --frozen python scripts/frozen-check.py http://127.0.0.1:7777 "$env:APPDATA\Atelier\atelier.log"; $ok = $LASTEXITCODE -eq 0 }
           Stop-Process $p -Force
           if (-not $ok) { Get-Content "$env:APPDATA\Atelier\atelier.log" -ErrorAction SilentlyContinue; throw "exe did not answer" }
       - uses: actions/upload-artifact@v4

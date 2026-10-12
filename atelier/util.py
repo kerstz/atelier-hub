@@ -32,7 +32,10 @@ def consume_uploads(params: dict, still_used: set[Path] | None = None) -> None:
     for p in upload_paths(params):
         if still_used and p in still_used:
             continue
-        p.unlink(missing_ok=True)
+        try:
+            p.unlink(missing_ok=True)
+        except OSError:  # Windows: still open elsewhere (antivirus, viewer): left to the age purge
+            pass
 
 
 def missing_uploads(params: dict) -> list[Path]:

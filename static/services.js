@@ -75,4 +75,9 @@
   bus.addEventListener("services", load);
   setInterval(load, 5000);
   load();
+  // nothing configured (installer / .deb users): no empty power-user tab in the sidebar
+  fetch("/api/services").then((r) => r.json()).then((list) => {
+    const nav = document.querySelector('#tabs [data-tab="services"]');
+    if (nav && !list.length && $("#tab-services").hidden) nav.hidden = true;
+  }).catch(() => {});
 })();

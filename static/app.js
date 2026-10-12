@@ -21,7 +21,7 @@ async function uploadFile(file) {
 const GO = i18n.lang === "en" ? "GB" : "Go", MO = i18n.lang === "en" ? "MB" : "Mo";
 const gib = (b) => (b / 2 ** 30).toFixed(1) + " " + GO;
 const el = (tag, text, cls) => ui.h(tag, cls, text);
-const tabs = () => [...document.querySelectorAll("#tabs .nav")];
+const tabs = () => [...document.querySelectorAll("#tabs .nav:not([hidden])")];
 
 function showTab(name) {
   if (!$(`#tab-${name}`)) name = "traduire";
@@ -317,7 +317,9 @@ function onJob(j, initial = false) {
   const prev = jobs.get(j.id);
   jobs.set(j.id, j);
   if (!initial) {
-    if (!prev && !seen.has(j.id)) setTray(true);
+    // new job: tabs with their own result card (or Traduire's status line) already show it; the tray would only cover it
+    const shown = document.querySelector(".tab:not([hidden]) [id$='-result'], #tab-traduire:not([hidden])");
+    if (!prev && !seen.has(j.id) && !shown) setTray(true);
     if (prev && !FINAL.includes(prev.status) && FINAL.includes(j.status)) {
       const t = j.title.slice(0, 50);
       if (j.status === "done") ui.toast(`Terminé : ${t}`, "ok");
@@ -360,26 +362,36 @@ async function refreshDeps() {
   } catch {
     return;
   }
-  const bad = rows.filter((r) => !r.ok).length;
-  $("#deps-sum").textContent = bad ? `${bad} élément(s) manquant(s) sur ${rows.length}.` : `Tout est en place (${rows.length}).`;
-  ul.replaceChildren(
-    ...rows.map((r) => {
-      const li = el("li");
-      li.append(ui.icon(r.ok ? "circle-check" : "circle-x"));
-      const body = el("div");
-      body.append(el("strong", r.label), el("span", ` — ${r.detail}`, "dim"), el("div", `utile pour : ${r.used_by}`, "used"));
-      li.append(body);
-      if (r.hint) {
-        const h = el("div", null, "hint");
-        h.append(el("code", r.hint));
-        const c = ui.button("Copier", {size: "sm", icon: "copy"});
-        ui.copy(c, () => r.hint);
-        h.append(c);
-        li.append(h);
-      }
-      return li;
-    })
-  );
+  const ess = rows.filter((r) => r.essential), opt = rows.filter((r) => !r.essential);
+  const badE = ess.filter((r) => !r.ok).length, badO = opt.filter((r) => !r.ok).length;
+  $("#deps-sum").textContent = (badE ? `Essentiel : ${badE} manquant(s).` : "Essentiel : tout est en place.") +
+    (badO ? ` Outils optionnels : ${badO} non installé(s), seulement utiles pour certaines fonctions.` : "");
+  const item = (r) => {
+    const li = el("li");
+    li.append(ui.icon(r.ok ? "circle-check" : "circle-x"));
+    const body = el("div");
+    body.append(el("strong", r.label), el("span", ` — ${r.detail}`, "dim"), el("div", `utile pour : ${r.used_by}`, "used"));
+    li.append(body);
+    if (r.hint) {
+      const h = el("div", null, "hint");
+      h.append(el("code", r.hint));
+      const c = ui.button("Copier", {size: "sm", icon: "copy"});
+      ui.copy(c, () => r.hint);
+      h.append(c);
+      li.append(h);
+    }
+    return li;
+  };
+  // optional tools folded away: a long red list scares more than it helps
+  const more = el("li", null, "deps-more");
+  const det = el("details", null, "adv");
+  const sum = el("summary", `Outils optionnels (${opt.length - badO}/${opt.length} installés)`);
+  const sub = el("ul", null, "list deps");
+  sub.append(...opt.map(item));
+  det.append(sum, sub);
+  ui.disclosure?.(det);
+  more.append(det);
+  ul.replaceChildren(...ess.map(item), more);
 }
 
 const mib = (b) => (b >= 2 ** 30 ? `${(b / 2 ** 30).toFixed(1)} ${GO}` : `${Math.round(b / 2 ** 20)} ${MO}`);
@@ -424,11 +436,11 @@ async function refreshSystem() {
     $("#vram-text").textContent = `${gib(v.used)} / ${gib(v.total)} (${v.card})${busy}`;
   } else {
     $("#vram-fill").style.width = "0";
-    $("#vram-text").textContent = "GPU introuvable (sysfs amdgpu)";
+    $("#vram-text").textContent = "Mémoire vidéo non mesurable sur cette machine.";
   }
   const st = $("#ollama-state");
   st.replaceChildren();
-  if (!s.ollama.up) st.append(ui.empty("alert", "Ollama injoignable", "Vérifier que le service ollama tourne."));
+  if (!s.ollama.up) st.append(ui.empty("alert", "Ollama injoignable", (typeof setup !== "undefined" && setup.hint("ollama")) ||"Vérifier que le service ollama tourne."));
   else if (!s.ollama.models.length) st.append(ui.empty("inbox", "Aucun modèle chargé", "Un modèle se charge à la première traduction."));
   const ul = $("#models");
   ul.replaceChildren();

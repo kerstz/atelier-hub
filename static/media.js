@@ -70,7 +70,7 @@
   }
 
   tab({
-    p: "im", kind: "image", title: {icon: "image", hint: "Les images sont enregistrées dans ~/Atelier/images."},
+    p: "im", kind: "image", title: {icon: "image", hint: "Les images sont enregistrées dans le dossier Atelier › images."},
     actions: [
       {id: "upscale2", label: "Agrandir ×2", params: {action: "upscale", factor: 2}, options: [["photo", "Photo"], ["anime", "Illustration / anime"]], optKey: "style"},
       {id: "upscale4", label: "Agrandir ×4", params: {action: "upscale", factor: 4}, options: [["photo", "Photo"], ["anime", "Illustration / anime"]], optKey: "style"},
@@ -79,7 +79,7 @@
     ],
   });
   tab({
-    p: "au", kind: "audio", title: {icon: "music", hint: "Les fichiers sont enregistrés dans ~/Atelier/audio."},
+    p: "au", kind: "audio", title: {icon: "music", hint: "Les fichiers sont enregistrés dans le dossier Atelier › audio."},
     actions: [
       {id: "stems4", label: "Séparer en 4 pistes", params: {action: "stems", model: "htdemucs"}, options: [["mp3", "MP3"], ["flac", "FLAC"], ["wav", "WAV"]], optKey: "format"},
       {id: "stems2", label: "Voix + accompagnement", params: {action: "stems", model: "htdemucs", two_stems: true}, options: [["mp3", "MP3"], ["flac", "FLAC"], ["wav", "WAV"]], optKey: "format"},

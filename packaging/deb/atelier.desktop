@@ -6,4 +6,5 @@ Comment=Hub local : traduction, YouTube, sous-titres, documents, conversion
 Exec=/usr/bin/atelier
 Icon=atelier
 Terminal=false
-Categories=Utility;AudioVideo;Office;
+Categories=Utility;
+Keywords=traduction;youtube;sous-titres;pdf;conversion;

@@ -56,7 +56,8 @@ def _win_argv(s: dict, action: str) -> list[str]:
         return ["sc", action, s["winsvc"]]
     exe = os.path.expandvars(os.path.expanduser(s["win_exe"]))
     if action == "start":
-        return [exe, *shlex.split(s.get("win_args", ""), posix=False)]
+        # posix=False keeps backslashes but also the quotes: Popen would re-quote them as literal characters
+        return [exe, *(a[1:-1] if len(a) > 1 and a[0] == a[-1] == '"' else a for a in shlex.split(s.get("win_args", ""), posix=False))]
     return ["taskkill", "/IM", os.path.basename(exe), "/T", "/F"]
 
 

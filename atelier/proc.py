@@ -2,6 +2,7 @@ import asyncio
 import re
 from collections import deque
 import shlex
+import subprocess
 from typing import Callable
 
 from . import joblog, plat
@@ -30,7 +31,7 @@ async def run_cmd(argv: list[str], on_line: Callable[[str], None] | None = None,
     proc = None
     try:
         if log:
-            log.write("$ " + shlex.join(argv))
+            log.write("$ " + (subprocess.list2cmdline(argv) if plat.NT else shlex.join(argv)))
         proc = await asyncio.create_subprocess_exec(
             *argv,
             stdout=asyncio.subprocess.PIPE,
@@ -46,7 +47,9 @@ async def run_cmd(argv: list[str], on_line: Callable[[str], None] | None = None,
                 _emit(raw, tail, on_line, log)
         _emit(buf, tail, on_line, log)
         rc = await proc.wait()
-    except BaseException:
+    except BaseException as e:
+        if isinstance(e, FileNotFoundError) and proc is None and not e.filename:
+            e.filename = argv[0]  # Windows CreateProcess error carries no name: say which tool is missing
         # cancel, or a callback/log error: never leave the child running unsupervised
         if proc is not None and proc.returncode is None:
             plat.kill_tree(proc)

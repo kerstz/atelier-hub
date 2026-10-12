@@ -31,9 +31,9 @@
       $info.textContent = "Erreur réseau.";
       return;
     }
-    const d = await r.json();
+    const d = await r.json().catch(() => ({}));
     if (!r.ok) {
-      $info.textContent = d.detail || "Erreur.";
+      $info.textContent = d.detail || "Analyse impossible.";
       return;
     }
     $info.textContent = d.playlist
@@ -51,7 +51,7 @@
     $status.textContent = "En file…";
     const r = await post("/api/jobs", {
       kind: "youtube",
-      title: `YouTube ${mode()} : ${url.slice(0, 50)}`,
+      title: `YouTube ${{video: "vidéo", audio: "audio", subs: "sous-titres"}[mode()]} : ${url.slice(0, 50)}`,
       params: {url, mode: mode(), quality: $q.value, sub_langs: $langs.value, playlist: !$plw.hidden && $pl.checked},
     });
     if (!r.ok) {

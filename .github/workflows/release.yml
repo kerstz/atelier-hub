@@ -17,27 +17,27 @@ jobs:
       - name: Build Atelier (PyInstaller, onedir)
         run: |
           uv sync --frozen
-          uv run --with pyinstaller pyinstaller --noconfirm --clean --distpath dist --workpath build packaging/atelier.spec
-      - name: The binary starts and serves
+          uv run --with pyinstaller --with ctranslate2 --with sentencepiece pyinstaller --noconfirm --clean --distpath dist --workpath build packaging/atelier.spec
+      - name: The binary starts and serves (every GET route, static files, SSE, upload)
         run: |
-          ATELIER_NO_WINDOW=1 dist/Atelier/Atelier &
+          dist/Atelier/Atelier --check-imports /tmp/imports.txt || { cat /tmp/imports.txt; exit 1; }
+          ATELIER_NO_WINDOW=1 dist/Atelier/Atelier > /tmp/atelier.log 2>&1 &
           pid=$!
           ok=0
           for i in $(seq 60); do curl -fsS -o /dev/null http://127.0.0.1:7777/api/system && ok=1 && break; sleep 1; done
+          [ $ok = 1 ] && uv run --frozen python scripts/frozen-check.py http://127.0.0.1:7777 /tmp/atelier.log || ok=0
           kill $pid
-          [ $ok = 1 ] || { cat ~/.config/Atelier/atelier.log 2>/dev/null; exit 1; }
+          [ $ok = 1 ] || { cat /tmp/atelier.log; exit 1; }
       - name: Build .deb
         run: bash scripts/build-deb.sh "${GITHUB_REF_NAME:-0.0.0}"
       - name: Package installs
         run: |
           sudo dpkg -i dist/atelier_*_amd64.deb || sudo apt-get install -f -y
           test -x /usr/bin/atelier && test -x /opt/atelier/Atelier
-      - name: Publish release assets
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v4
         with:
-          files: dist/atelier_*_amd64.deb
-          generate_release_notes: true
+          name: deb
+          path: dist/atelier_*_amd64.deb
 
   windows:
     runs-on: windows-latest
@@ -49,10 +49,12 @@ jobs:
         run: |
           uv sync --frozen
           uv run --with pillow python packaging/make_icon.py
-          uv run --with pyinstaller --with pywebview --with sounddevice pyinstaller --noconfirm --clean --distpath dist --workpath build packaging/atelier.spec
-      - name: The exe starts and serves (no window)
+          uv run --with pyinstaller --with pywebview --with sounddevice --with ctranslate2 --with sentencepiece pyinstaller --noconfirm --clean --distpath dist --workpath build packaging/atelier.spec
+      - name: The exe starts and serves (no window; every GET route, static files, SSE, upload)
         shell: pwsh
         run: |
+          $r = Start-Process dist\Atelier\Atelier.exe -ArgumentList "--check-imports", "$env:RUNNER_TEMP\imports.txt" -Wait -PassThru
+          if ($r.ExitCode) { Get-Content "$env:RUNNER_TEMP\imports.txt"; throw "modules missing from the exe" }
           $env:ATELIER_NO_WINDOW = "1"
           $p = Start-Process dist\Atelier\Atelier.exe -PassThru
           $ok = $false
@@ -60,6 +62,7 @@ jobs:
             try { if ((Invoke-WebRequest http://127.0.0.1:7777/api/system -UseBasicParsing).StatusCode -eq 200) { $ok = $true; break } } catch {}
             Start-Sleep 1
           }
+          if ($ok) { uv run --frozen python scripts/frozen-check.py http://127.0.0.1:7777 "$env:APPDATA\Atelier\atelier.log"; $ok = $LASTEXITCODE -eq 0 }
           Stop-Process $p -Force
           if (-not $ok) { Get-Content "$env:APPDATA\Atelier\atelier.log" -ErrorAction SilentlyContinue; throw "exe did not answer" }
       - name: Installer (Inno Setup) and portable zip
@@ -70,11 +73,28 @@ jobs:
           New-Item -ItemType Directory dist\Atelier\scripts | Out-Null
           Copy-Item scripts\*.ps1 dist\Atelier\scripts
           Compress-Archive -Path dist\Atelier\* -DestinationPath dist\Atelier-windows-portable.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/Atelier-Setup.exe
+            dist/Atelier-windows-portable.zip
+
+  publish:  # only once BOTH platforms built and passed the frozen-binary checks
+    needs: [deb, windows]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
       - name: Publish release assets
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/Atelier-Setup.exe
-            dist/Atelier-windows-portable.zip
+            assets/atelier_*_amd64.deb
+            assets/Atelier-Setup.exe
+            assets/Atelier-windows-portable.zip
+          fail_on_unmatched_files: true
           generate_release_notes: true

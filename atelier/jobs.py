@@ -127,7 +127,8 @@ class Manager:
             self.update(jid, status="cancelled", finished=time.time())
         except Exception as e:
             joblog.append(jid, "== échec ==\n" + traceback.format_exc())
-            self.update(jid, status="failed", error=plat.localize(str(e)), finished=time.time())
+            why = isinstance(e, FileNotFoundError) and plat.missing_tool(e) or plat.localize(str(e))
+            self.update(jid, status="failed", error=why, finished=time.time())
             notify.finished(db.get(jid), params, time.time() - t0)
         finally:
             if held:

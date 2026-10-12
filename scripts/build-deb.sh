@@ -4,6 +4,8 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 ver="${1:-$(sed -n 's/^version = "\(.*\)"/\1/p' "$root/pyproject.toml" | head -1)}"
 ver="${ver#v}"
+# a dpkg version starts with a digit: a manual run on a branch (GITHUB_REF_NAME=main) falls back to pyproject's
+[[ $ver =~ ^[0-9][A-Za-z0-9.+~-]*$ ]] || ver="$(sed -n 's/^version = "\(.*\)"/\1/p' "$root/pyproject.toml" | head -1)~${ver//[^A-Za-z0-9]/}"
 src="$root/dist/Atelier"
 [ -x "$src/Atelier" ] || { echo "build PyInstaller d'abord: $src/Atelier introuvable" >&2; exit 1; }
 pkg="$root/dist/deb"
@@ -14,6 +16,8 @@ install -m755 "$root/packaging/deb/atelier" "$pkg/usr/bin/atelier"
 install -m644 "$root/packaging/deb/atelier.service" "$pkg/usr/lib/systemd/user/atelier.service"
 install -m644 "$root/packaging/deb/atelier.desktop" "$pkg/usr/share/applications/atelier.desktop"
 install -m644 "$root/static/icon.svg" "$pkg/usr/share/icons/hicolor/scalable/apps/atelier.svg"
+install -d "$pkg/opt/atelier/scripts"  # plat.localize points the setup hints here
+install -m755 "$root"/scripts/{build-whisper,fix-pdf2zh,voice-setup,voice-refs}.sh "$pkg/opt/atelier/scripts/"
 size=$(du -sk "$pkg" | cut -f1)
 cat > "$pkg/DEBIAN/control" <<CTL
 Package: atelier

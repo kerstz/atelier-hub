@@ -177,7 +177,7 @@
 
   const res = h("div");
   fileBox.after(res);
-  jobsView(res, (j) => j.kind === "voice" || j.kind === "voice_live", {icon: "mic", title: "Rien pour l'instant", hint: "Les fichiers sont enregistrés dans ~/Atelier/audio.", limit: 10});
+  jobsView(res, (j) => j.kind === "voice" || j.kind === "voice_live", {icon: "mic", title: "Rien pour l'instant", hint: "Les fichiers sont enregistrés dans le dossier Atelier › audio.", limit: 10});
   drawAdd();
   load().then(poll);
 })();

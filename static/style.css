@@ -217,3 +217,18 @@ details.adv[open] summary{margin-bottom:var(--s3)}
 .player-seek{flex:1 1 12rem;min-width:8rem}
 .player-vol{width:6rem}
 .player-time{font-variant-numeric:tabular-nums}
+
+/* First-launch assistant + per-tab missing tool notice (setup.js) */
+.setup{border-color:var(--accent);margin-bottom:var(--s4)}
+.setup p{margin:0}
+.setup-miss{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s1)}
+.setup-miss li{display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
+.setup-miss .ic{color:var(--bad);width:16px;height:16px}
+.cmd{display:flex;align-items:center;gap:var(--s2);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:var(--s1) var(--s1) var(--s1) var(--s3);min-width:0}
+.cmd code{flex:1;min-width:0;font:13px/1.4 var(--mono);overflow-wrap:anywhere;user-select:all}
+.notice{display:flex;flex-direction:column;gap:var(--s2);padding:var(--s3) var(--s4);border:1px solid var(--bad);border-radius:var(--radius);background:var(--surface)}
+.notice-title{display:flex;align-items:center;gap:var(--s2);color:var(--bad)}
+.notice-title .ic{width:18px;height:18px}
+.notice-row{display:flex;flex-direction:column;gap:var(--s1);font-size:13px;color:var(--dim)}
+.deps>li.deps-more{display:block;background:none;border:0;padding:0}
+.btn.primary .dim{color:rgba(255,255,255,.82)}

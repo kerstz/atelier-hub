@@ -72,6 +72,18 @@ def _cli(argv: list[str]) -> int | None:
         models = sorted({m for m in tiers.recommend(hw.profile())["models"].values() if m})
         open(argv[1], "w", encoding="utf-8").write("\n".join(models) + "\n")
         return 0
+    if argv[:1] == ["--check-imports"] and len(argv) > 1:  # CI: optional/lazy modules really are in the bundle
+        import importlib
+        mods = ["ctranslate2", "sentencepiece", "docx", "pptx", "openpyxl", "lxml.etree", "httpx", "certifi", "atelier.main"]
+        mods += ["webview", "sounddevice", "tkinter"] if plat.NT else []
+        bad = []
+        for m in mods:
+            try:
+                importlib.import_module(m)
+            except Exception as e:
+                bad.append(f"{m}: {e}")
+        open(argv[1], "w", encoding="utf-8").write("\n".join(bad or ["ok"]) + "\n")
+        return 1 if bad else 0
     return None
 
 
@@ -85,6 +97,9 @@ def main() -> int:
         os.environ.pop("LD_LIBRARY_PATH", None)
         if orig:
             os.environ["LD_LIBRARY_PATH"] = orig
+        local_bin = os.path.expanduser("~/.local/bin")  # uv/pipx tools; absent from systemd --user's PATH
+        if local_bin not in os.environ.get("PATH", "").split(os.pathsep):
+            os.environ["PATH"] = os.environ.get("PATH", "/usr/bin:/bin") + os.pathsep + local_bin
     from .config import cfg
     port = int(cfg["server"]["port"])
     url = f"http://127.0.0.1:{port}/"
@@ -95,6 +110,10 @@ def main() -> int:
 
     from .main import app
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_config=None, timeout_graceful_shutdown=3))
+    if not plat.NT:  # uvicorn in a thread sets no signal handler: without this, systemd stop skips job cleanup
+        import signal
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            signal.signal(sig, lambda *_: setattr(server, "should_exit", True))
     t = threading.Thread(target=server.run, daemon=True)
     t.start()
     if not _wait(port):

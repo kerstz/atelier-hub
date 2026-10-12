@@ -161,14 +161,21 @@ def purge_cache() -> None:
     now, files = time.time(), sorted((f for f in d.iterdir() if f.is_file()), key=lambda f: f.stat().st_mtime)
     for f in files:
         if now - f.stat().st_mtime > cfg["player"]["cache_days"] * 86400 or f.name.endswith(".part.mp4") or f.name.endswith(".part.m4a"):
-            f.unlink(missing_ok=True)
+            _rm(f)
     files = [f for f in files if f.exists()]
     total, cap = sum(f.stat().st_size for f in files), int(float(cfg["player"]["cache_max_gb"]) * (1 << 30))
     for f in files:
         if total <= cap:
             break
         total -= f.stat().st_size
+        _rm(f)
+
+
+def _rm(f: Path) -> None:
+    try:
         f.unlink(missing_ok=True)
+    except OSError:  # Windows: being streamed or still written by a preview job
+        pass
 
 
 def cache_bytes() -> int:

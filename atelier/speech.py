@@ -74,7 +74,10 @@ def purge_listen(max_age: float = 86400) -> None:
     if cache.is_dir():
         for f in cache.iterdir():
             if f.is_file() and time.time() - f.stat().st_mtime > max_age:
-                f.unlink(missing_ok=True)
+                try:
+                    f.unlink(missing_ok=True)
+                except OSError:  # Windows: still being played
+                    pass
 
 
 async def dictate(ctx: Ctx, p: dict) -> None:

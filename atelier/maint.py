@@ -1,5 +1,6 @@
 """System maintenance views: tool availability ("Dépendances") and disk usage / safe cleanup."""
 import asyncio
+import functools
 import os
 import shutil
 from pathlib import Path
@@ -33,10 +34,82 @@ def _win_hint(hint: str) -> str:
     return plat.localize(hint)
 
 
+# hints are written for Arch (pacman); Debian/Ubuntu and Fedora get their own package manager and names
+PKG = {
+    "debian": ("sudo apt install", "tesseract-ocr-{}", {"poppler": "poppler-utils", "tesseract": "tesseract-ocr", "pandoc-cli": "pandoc",
+                                                       "libreoffice-fresh": "libreoffice", "libvips": "libvips-tools",
+                                                       "libnotify": "libnotify-bin"}),
+    "fedora": ("sudo dnf install", "tesseract-langpack-{}", {"ffmpeg": "ffmpeg-free", "poppler": "poppler-utils", "pandoc-cli": "pandoc",
+                                                            "libreoffice-fresh": "libreoffice", "libvips": "vips-tools"}),
+}
+FAMILIES = {"arch": "arch cachyos manjaro endeavouros garuda artix arcolinux",
+            "debian": "debian ubuntu linuxmint pop raspbian zorin elementary neon kali",
+            "fedora": "fedora rhel centos rocky almalinux nobara bazzite ultramarine"}
+
+
+@functools.cache
+def distro_family(path: str = "/etc/os-release") -> str:
+    """arch | debian | fedora | unknown, from os-release ID then ID_LIKE (same table as install.sh)."""
+    try:
+        kv = dict(line.partition("=")[::2] for line in Path(path).read_text().splitlines())
+    except OSError:
+        return "unknown"
+    for w in (kv.get("ID", "") + " " + kv.get("ID_LIKE", "")).replace('"', "").replace("'", "").split():
+        for fam, ids in FAMILIES.items():
+            if w in ids.split():
+                return fam
+    return "unknown"
+
+
+def _linux_hint(hint: str, fam: str) -> str:
+    if not hint.startswith("sudo pacman -S ") or fam not in PKG:
+        return hint
+    if fam == "debian" and hint == "sudo pacman -S yt-dlp":  # apt's yt-dlp lags behind YouTube changes
+        return "sudo apt install pipx && pipx install yt-dlp"
+    cmd, tess, names = PKG[fam]
+    pkgs = [tess.format(p[15:]) if p.startswith("tesseract-data-") else names.get(p, p) for p in hint.split()[3:]]
+    return f"{cmd} {' '.join(pkgs)}"
+
+
 def _row(id_: str, label: str, ok: bool, detail: str, hint: str, used: str) -> dict:
     if plat.IS_WIN:
         hint = _win_hint(hint)
-    return {"id": id_, "label": label, "ok": ok, "detail": detail, "hint": "" if ok else hint, "used_by": used}
+    else:
+        hint = plat.localize(hint)  # pacman -> this distro's package manager; .deb: scripts/ -> /opt/atelier/scripts
+    return {"id": id_, "label": label, "ok": ok, "detail": detail, "hint": "" if ok else hint, "used_by": used,
+            "essential": id_ in ESSENTIAL}
+
+
+# what a first launch needs (Traduire, YouTube, Convertir); everything else is optional and shown folded
+ESSENTIAL = {"ffmpeg", "ffprobe", "yt-dlp", "ollama", "model-translate_model"}
+
+
+def setup_info(rows: list[dict]) -> dict:
+    """First-launch assistant: what is missing among the essentials and the one command that installs it."""
+    miss = [r for r in rows if r["essential"] and not r["ok"]]
+    if any(r["id"] == "ffmpeg" for r in miss):  # same package: one line is enough
+        miss = [r for r in miss if r["id"] != "ffprobe"]
+    d = plat.distro()
+    cmds: list[str] = []
+    if d == "windows":
+        if any(r["id"] != "model-translate_model" for r in miss):
+            cmds.append(plat.localize("scripts/win-setup.sh") + " -Tier minimal -Models")
+        elif miss:
+            cmds.append(miss[0]["hint"])
+    else:
+        pk = [p for r in miss for p in (("ffmpeg",) if r["id"] in ("ffmpeg", "ffprobe") else ("yt-dlp",) if r["id"] == "yt-dlp" else ())]
+        pk = list(dict.fromkeys(pk))
+        if d == "debian" and "yt-dlp" in pk:  # apt's yt-dlp lags behind YouTube: pipx (same choice as _linux_hint)
+            cmds.append(f"sudo apt install {'ffmpeg ' if 'ffmpeg' in pk else ''}pipx && pipx install yt-dlp")
+        elif pk:
+            cmds.append(_linux_hint("sudo pacman -S " + " ".join(pk), d))
+        cmds += [r["hint"] for r in miss if r["id"] in ("ollama", "model-translate_model")]
+    if d != "windows" and any(r["id"] == "ollama" for r in miss):  # model row exists once Ollama answers; win-setup -Models pulls it
+        from . import engines
+        if m := engines.model("translate"):
+            cmds.append(f"ollama pull {m}")
+    return {"os": d, "missing": miss, "commands": cmds, "can_run": plat.NT and plat.FROZEN and bool(miss),
+            "output": str(output_dir()), "win_setup": plat.localize("scripts/win-setup.sh") if d == "windows" else ""}
 
 
 async def deps() -> list[dict]:
@@ -66,7 +139,7 @@ async def deps() -> list[dict]:
                 have = {m["name"] for m in r.json().get("models", [])}
         except (httpx.HTTPError, ValueError):
             pass
-    rows.append(_row("ollama", "Ollama", up, c["ollama"]["url"] if up else "injoignable", "systemctl start ollama", "traduction, résumé"))
+    rows.append(_row("ollama", "Ollama", up, c["ollama"]["url"] if up else "injoignable", plat.ollama_hint(), "traduction, résumé"))
     if up:
         from . import engines
         for role, used in (("translate", "traduction"), ("second", "résumé, 2ᵉ modèle"), ("vision", "traduction d'image")):
@@ -132,7 +205,7 @@ def _size(path: Path) -> int:
 def _disk() -> dict:
     d = data_dir()
     base = output_dir()
-    items = [{"id": f"out:{n}", "label": f"~/Atelier/{n}", "bytes": _size(base / n), "clean": False} for n in OUT_DIRS]
+    items = [{"id": f"out:{n}", "label": str(base / n), "bytes": _size(base / n), "clean": False} for n in OUT_DIRS]
     items += [
         {"id": "uploads", "label": "envois en attente (uploads)", "bytes": _size(d / "uploads"), "clean": True},
         {"id": "logs", "label": "journaux des tâches", "bytes": _size(d / "logs"), "clean": True},
@@ -149,6 +222,16 @@ async def disk() -> dict:
     return await asyncio.to_thread(_disk)
 
 
+def _rm(f: Path) -> int:
+    """Bytes freed; 0 for a file still open (Windows refuses to delete it: upload in progress, file being played)."""
+    try:
+        n = f.stat().st_size
+        f.unlink(missing_ok=True)
+        return n
+    except OSError:
+        return 0
+
+
 def _clean(target: str) -> int:
     d = data_dir()
     freed = 0
@@ -157,20 +240,17 @@ def _clean(target: str) -> int:
         keep = {p.resolve() for p in active}
         for f in (d / "uploads").iterdir():
             if f.is_file() and f.resolve() not in keep:
-                freed += f.stat().st_size
-                f.unlink(missing_ok=True)
+                freed += _rm(f)
     elif target == "logs":
         live = {r["id"] for r in db.recent(100000) if r["status"] in ("queued", "running")}
         for f in (d / "logs").glob("*.log") if (d / "logs").is_dir() else []:
             if f.stem.isdigit() and int(f.stem) not in live:
-                freed += f.stat().st_size
-                f.unlink(missing_ok=True)
+                freed += _rm(f)
     elif target == "listen":
         cache = output_dir("audio") / ".listen"
         for f in cache.iterdir() if cache.is_dir() else []:
             if f.is_file():
-                freed += f.stat().st_size
-                f.unlink(missing_ok=True)
+                freed += _rm(f)
     elif target == "playercache":
         from . import media
         freed += media.clear_cache()

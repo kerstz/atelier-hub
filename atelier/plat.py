@@ -53,9 +53,75 @@ def open_folder(folder: str) -> None:
                      stderr=subprocess.DEVNULL, start_new_session=True)
 
 
+def distro() -> str:
+    """windows | arch | debian | fedora | unknown — which install commands the UI shows."""
+    if IS_WIN:
+        return "windows"
+    from .maint import distro_family
+    return distro_family(os.environ.get("ATELIER_OS_RELEASE", "/etc/os-release"))
+
+
+# Arch package -> winget id ("" = no winget package)
+WINGET = {"ffmpeg": "Gyan.FFmpeg", "yt-dlp": "yt-dlp.yt-dlp", "poppler": "oschwartz10612.Poppler", "pandoc-cli": "JohnMacFarlane.Pandoc",
+          "libreoffice-fresh": "TheDocumentFoundation.LibreOffice", "calibre": "calibre.calibre",
+          "tesseract": "UB-Mannheim.TesseractOCR", "ollama": "Ollama.Ollama"}
+OLLAMA_INSTALL = "curl -fsSL https://ollama.com/install.sh | sh"
+
+
+def _pkg_cmd(hint: str) -> str:
+    """'sudo pacman -S a b' -> the same install for this OS."""
+    d = distro()
+    if d == "windows":
+        ids = [WINGET.get(p, "") for p in hint.split()[3:] if not p.startswith("tesseract-data-")]
+        if not ids or not all(ids):
+            return "installateur Windows : voir la page du projet"
+        return " ; ".join(f"winget install {i}" for i in dict.fromkeys(ids))
+    from .maint import _linux_hint
+    return _linux_hint(hint, d)
+
+
+def ollama_hint() -> str:
+    """How to get Ollama answering on this machine (installed but stopped, or not installed)."""
+    have = bool(shutil.which("ollama"))
+    d = distro()
+    if d == "windows":
+        return "lancer Ollama (menu Démarrer)" if have else "winget install Ollama.Ollama"
+    if have:
+        return "sudo systemctl start ollama"
+    return "sudo pacman -S ollama && sudo systemctl enable --now ollama" if d == "arch" else OLLAMA_INSTALL
+
+
+TOOL_HINT = {"ffmpeg": "sudo pacman -S ffmpeg", "ffprobe": "sudo pacman -S ffmpeg", "yt-dlp": "sudo pacman -S yt-dlp",
+             "pandoc": "sudo pacman -S pandoc-cli", "soffice": "sudo pacman -S libreoffice-fresh",
+             "ebook-convert": "sudo pacman -S calibre", "pdftotext": "sudo pacman -S poppler", "tesseract": "sudo pacman -S tesseract",
+             "whisper-cli": "scripts/build-whisper.sh", "ollama": "", "mpv": "sudo pacman -S mpv"}
+
+
+def missing_tool(e: OSError) -> str:
+    """FileNotFoundError from spawning a CLI -> 'X n'est pas installé : <how>' (never a raw errno/path).
+    "" when it is not about a program (a missing data file keeps its own message)."""
+    raw = str(e.filename or "")
+    name = Path(raw).name
+    stem = name[:-4] if name.lower().endswith(".exe") else name
+    if not raw:
+        return "Un outil nécessaire est introuvable : voir Système › Dépendances." if NT else ""
+    if stem not in TOOL_HINT and ("/" in raw or "\\" in raw or "." in stem):
+        return ""
+    hint = ollama_hint() if stem == "ollama" else TOOL_HINT.get(stem, "")
+    return localize(f"{stem} n'est pas installé" + (f" : {hint}" if hint else " (voir Système › Dépendances)"))
+
+
 def localize(msg: str) -> str:
-    """User-facing text show the Windows equivalent there."""
+    """User-facing text: package/script commands rewritten for this OS (apt on Debian/Ubuntu, winget/.ps1 on Windows)."""
+    msg = re.sub(r"sudo pacman -S [\w.+-]+(?: [\w.+-]+)*", lambda m: _pkg_cmd(m.group(0)), msg)
+    if msg.startswith("Ollama injoignable") and " — " not in msg:
+        msg += f" — {ollama_hint()}"
     if not IS_WIN:
+        if FROZEN:  # .deb ships the standalone setup scripts in /opt/atelier/scripts (scripts/build-deb.sh)
+            def sh(m):
+                f = Path(sys.executable).parent / "scripts" / m.group(1)
+                return f"bash {f}{m.group(2)}" if f.is_file() else "voir la page du projet (README, section outils)"
+            msg = re.sub(r"scripts/([\w-]+\.sh)((?: [\w=-]+)*)", sh, msg)
         return msg
     base = str(Path(sys.executable).parent) + "\\" if FROZEN else ""
     run = 'powershell -ExecutionPolicy Bypass -File ' if FROZEN else ""

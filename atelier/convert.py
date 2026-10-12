@@ -231,6 +231,7 @@ def video_args(target: str, q: int, height: int, src_h: int, vaapi: bool | str) 
 
 
 async def do_video(ctx: Ctx, src: Path, target: str, dest: Path, q: int, height: int) -> None:
+    need("ffmpeg", "ffprobe", hint="sudo pacman -S ffmpeg")  # else probe() reads as "no track"
     info = await probe(src)
     if not has_video(info):
         raise RuntimeError("aucune piste vidéo")
@@ -278,6 +279,7 @@ AUDIO_ARGS = {
 
 
 async def do_audio(ctx: Ctx, src: Path, target: str, dest: Path, q: int) -> None:
+    need("ffmpeg", "ffprobe", hint="sudo pacman -S ffmpeg")  # else probe() reads as "no track"
     info = await probe(src)
     if not any(s.get("codec_type") == "audio" for s in info.get("streams", [])):
         raise RuntimeError("aucune piste audio")

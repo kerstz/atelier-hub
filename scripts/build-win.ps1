@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot)
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { throw "uv introuvable: winget install astral-sh.uv" }
 uv run --with pillow python packaging\make_icon.py
-uv run --with pyinstaller --with pywebview --with sounddevice pyinstaller --noconfirm --clean --distpath dist --workpath build packaging\atelier.spec
+uv run --with pyinstaller --with pywebview --with sounddevice --with ctranslate2 --with sentencepiece pyinstaller --noconfirm --clean --distpath dist --workpath build packaging\atelier.spec
 if ($LASTEXITCODE) { throw "PyInstaller a échoué" }
 $iscc = Get-Command iscc -ErrorAction SilentlyContinue
 if ($iscc) { $iscc = $iscc.Source } elseif (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" } else { $iscc = $null }

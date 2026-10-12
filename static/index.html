@@ -58,7 +58,7 @@
           <span id="tr-status" class="dim"></span>
         </div>
         <div class="card">
-          <div class="card-head"><h2>Traduction</h2><button id="tr-listen" class="btn ghost sm" title="Lire à voix haute (Piper)"><i data-i="volume"></i><span>Écouter</span></button><button id="tr-mp3" class="btn ghost sm" title="Enregistrer en mp3 dans ~/Atelier/audio"><i data-i="download"></i><span>MP3</span></button><button id="tr-copy" class="btn ghost sm"><i data-i="copy"></i><span>Copier</span></button></div>
+          <div class="card-head"><h2>Traduction</h2><button id="tr-listen" class="btn ghost sm" title="Lire à voix haute (Piper)"><i data-i="volume"></i><span>Écouter</span></button><button id="tr-mp3" class="btn ghost sm" title="Enregistrer en mp3 dans le dossier Atelier › audio"><i data-i="download"></i><span>MP3</span></button><button id="tr-copy" class="btn ghost sm"><i data-i="copy"></i><span>Copier</span></button></div>
           <textarea id="tr-out" class="field tall" readonly placeholder="La traduction apparaît ici."></textarea>
         </div>
         <div class="card">
@@ -99,7 +99,7 @@
       </section>
 
       <section id="tab-soustitres" class="tab" hidden>
-        <header class="page-head"><h1>Sous-titres</h1><p class="dim">URL ou fichier local : sous-titres existants, sinon whisper, puis traduction en SRT.</p></header>
+        <header class="page-head"><h1>Sous-titres</h1><p class="dim">Vidéo en ligne ou fichier : reprend les sous-titres existants (sinon les crée par reconnaissance vocale), puis les traduit en .srt.</p></header>
         <div class="card">
           <div id="st-drop"><i data-i="upload"></i><strong>Déposer un fichier</strong><span class="dim">vidéo, audio ou .srt — glisser, coller ou cliquer</span></div>
           <div id="st-chip" class="chips"></div>
@@ -111,7 +111,7 @@
             <label class="inline">Langue source <select id="st-src"></select></label>
             <label class="inline">Cible <select id="st-tgt"></select></label>
             <label class="check"><input id="st-tr" type="checkbox" checked> Traduire</label>
-            <label class="check"><input id="st-mux" type="checkbox"> Incruster dans un mkv</label>
+            <label class="check"><input id="st-mux" type="checkbox"> Ajouter aussi à une copie de la vidéo (.mkv)</label>
           </div>
           <details class="adv">
             <summary>Options avancées</summary>
@@ -182,7 +182,7 @@
       </section>
 
       <section id="tab-images" class="tab" hidden>
-        <header class="page-head"><h1>Images</h1><p class="dim">Agrandissement ×2 / ×4 (Real-ESRGAN, GPU) et détourage du fond (rembg).</p></header>
+        <header class="page-head"><h1>Images</h1><p class="dim">Agrandir une image (×2 / ×4) ou enlever son arrière-plan.</p></header>
         <div class="card">
           <div id="im-drop"><i data-i="upload"></i><strong>Déposer des images</strong><span class="dim">png, jpg, webp… — une tâche par image</span></div>
           <div id="im-list" class="chips"></div>
@@ -200,7 +200,7 @@
       </section>
 
       <section id="tab-audio" class="tab" hidden>
-        <header class="page-head"><h1>Audio</h1><p class="dim">Séparation des pistes (Demucs), réduction du bruit (DeepFilterNet) et changeur de voix (Seed-VC).</p></header>
+        <header class="page-head"><h1>Audio</h1><p class="dim">Séparer la voix de la musique, réduire le bruit, changer une voix.</p></header>
         <div class="card">
           <div id="au-drop"><i data-i="upload"></i><strong>Déposer des fichiers audio ou vidéo</strong><span class="dim">une tâche par fichier</span></div>
           <div id="au-list" class="chips"></div>
@@ -286,6 +286,7 @@
 <script src="i18n.js"></script>
 <script src="ui.js"></script>
 <script src="app.js"></script>
+<script src="setup.js"></script>
 <script src="translate.js"></script>
 <script src="youtube.js"></script>
 <script src="subs.js"></script>

@@ -284,3 +284,9 @@ next: pousser un tag, regarder le job CI, corriger.
 - Release v0.1.0 publiée (CI verte): .exe, zip, .deb. Bug corrigé: pathex relatif + collect_submodules vide dans atelier.spec.
 - v0.1.1: correctifs audit Opus Windows (venv voix, chemins upload, consoles, UTF-8, LibreOffice URI, téléchargements WebView2, ps1 BOM/TLS). Restent: signature, OCR fra, VRAM FR, WASAPI, Inno AppId.
 - v0.1.2: JS chemins Windows, localize (ExecutionPolicy), .part modèle, fra.traineddata, Inno AppId/version/x64, zip avec scripts. Testé sous wine: exe sert, upload accentué, job document OK.
+
+## v0.1.3 — passe Opus x4 (wine, .deb en chroot, bundle gelé, UI)
+done: A wine+ffmpeg/yt-dlp réels (fichiers verrouillés, guillemets services, message outil absent), B .deb sur Debian 12/13 Ubuntu 22/24 (SIGTERM propre, PATH ~/.local/bin, conseils apt, scripts dans /opt/atelier/scripts, version ~main), D bundle complet (ctranslate2+sentencepiece, --check-imports, scripts/frozen-check.py, publish seulement si deb+windows verts), E carte d'accueil outils manquants, Services masqué si vide, textes simplifiés.
+decisions: ctranslate2 embarqué (+180 Mo): NLLB CPU marche sans rien installer. Cache-Control no-cache sur static.
+non testé: vrai Windows (WebView2, installeur, win-setup), vrai bureau Debian, systemctl --user réel.
+env: smoke21 "direct IA worker" échoue déjà sur HEAD (pas une régression).
