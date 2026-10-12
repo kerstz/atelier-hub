@@ -15,7 +15,7 @@ from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import audio, convert, db, docs, gpu, images, joblog, maint, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
+from . import audio, convert, db, docs, engines, gpu, hw, images, joblog, maint, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
 from .config import ROOT, cfg, data_dir, output_dir
 from .jobs import KINDS, manager
 from .util import missing_uploads, upload_paths
@@ -305,6 +305,13 @@ async def convert_zip(ids: str):
 @app.get("/api/deps")
 async def deps():
     return await maint.deps()
+
+
+@app.get("/api/profile")
+async def profile(refresh: bool = False):
+    if refresh:
+        hw.profile(refresh=True)
+    return await engines.describe()
 
 
 @app.get("/api/disk")

@@ -25,7 +25,7 @@ t "full: calibre, piper-tts, rembg, demucs, realesrgan, deep-filter" "plan cachy
 t "--no-whisper / --no-desktop / --no-service respectés" "plan cachyos arch --no-whisper --no-desktop --no-service > $tmp/n.txt; ! grep -q 'build-whisper' $tmp/n.txt && ! grep -q 'install-desktop' $tmp/n.txt && ! grep -q 'install-service' $tmp/n.txt"
 t "--ollama (arch) -> ollama-vulkan + enable" "plan cachyos arch --ollama > $tmp/o.txt; grep -Eq 'ollama-(vulkan|cuda)' $tmp/o.txt && grep -Eq 'systemctl enable --now ollama|already installed' $tmp/o.txt"
 t "--ollama (debian) -> installateur officiel, jamais lancé sans confirmation" "plan debian '' --ollama | grep -q 'ollama.com/install.sh'"
-t "--models -> ollama pull des 2 modèles" "plan cachyos arch --models > $tmp/p.txt; grep -q 'ollama pull translategemma:12b' $tmp/p.txt && grep -q 'ollama pull gemma3:12b' $tmp/p.txt"
+t "--models -> modèles recommandés pour la machine (atelier.hw)" "plan cachyos arch --models > $tmp/p.txt; grep -q 'recommended for this machine' $tmp/p.txt && grep -q 'atelier.hw --models' $tmp/p.txt"
 t "uv non-Arch: installateur officiel proposé (confirmation)" "PATH=/usr/bin:/bin plan debian '' | grep -qE 'astral.sh/uv/install.sh|uv tool install'"
 t "dry-run n'exécute rien (sudo factice qui échoue)" "mkdir -p $tmp/bin; printf '#!/bin/sh\nexit 99\n' > $tmp/bin/sudo; chmod +x $tmp/bin/sudo; PATH=$tmp/bin:\$PATH plan cachyos arch >/dev/null"
 

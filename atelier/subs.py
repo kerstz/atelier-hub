@@ -3,12 +3,12 @@ import re
 import shutil
 from pathlib import Path
 
-from . import ollama, srt, translate
+from . import engines, ollama, srt, translate
 from .batch import Translator, numbered
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, manager, register
 from .proc import run_cmd
-from .util import free_base
+from .util import HEAVY, free_base
 from .youtube import PCT_RE, QUALITIES, _check_url, _mode_args, _net_args
 
 PROG_RE = re.compile(r"progress\s*=\s*(\d+)%")
@@ -24,8 +24,9 @@ async def translate_cues(ctx: Ctx, cues: list[srt.Cue], src: str, tgt: str, glos
     size = int(cfg["subtitles"]["batch"])
     batches = [todo[i : i + size] for i in range(0, len(todo), size)]
     prev: list[dict] = []
-    ctx.set(lo, "attente GPU…")
-    async with manager.gpu_lock:
+    eng = await engines.pick()
+    ctx.set(lo, "attente GPU…" if eng.gpu else "en file…")
+    async with (manager.gpu_lock if eng.gpu else HEAVY):
         for bi, batch in enumerate(batches):
             res = await tr.batch(batch, prev)
             results.update(res)

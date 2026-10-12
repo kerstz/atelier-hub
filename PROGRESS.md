@@ -216,3 +216,14 @@ decisions:
 - Non testé en réel: apt/dnf/zypper (noms de paquets de mémoire; dry-run vérifié, un paquet absent n'arrête pas le reste).
 env: smoke-all quick: 364 ok, 0 FAIL.
 next: choix du modèle de traduction selon la machine + repli sans LLM pour petites machines (demande en cours).
+
+## Phase 20 — Matériel et moteur de traduction (smoke20.sh, sans aucun modèle)
+done: hw.py (profil GPU AMD/NVIDIA/iGPU, RAM, cœurs, AVX2), tiers.py (palier -> modèles par rôle), engines.py (Ollama | CTranslate2+NLLB-200, pick/describe), `[translate] engine`, `[ctranslate2]`, modèles "auto", GET /api/profile + carte Système, install.sh --models (recommandés) / --engine=ct2, python -m atelier.hw.
+decisions (analyse Opus):
+- Paliers (VRAM totale): ≥23 Go gpu-24 (27B), ≥14 gpu-16 (12B, config actuelle), ≥7 gpu-8 et ≥3,5 gpu-4 (4B), sinon CPU: ≥15 Go RAM + AVX2 = cpu-16 (NLLB 1.3B, 4B pour le texte libre), sinon cpu-small (NLLB 600M, gemma3:1b, ni vision ni PDF).
+- Valeurs explicites de config.toml toujours prioritaires; "auto" seulement si demandé. Cette machine reste sur translategemma:12b / gemma3:12b.
+- engine=auto: ollama si joignable + modèle recommandé présent + palier GPU; sinon ctranslate2 si model.bin + .model présents; sinon ollama (l'erreur dit quoi installer). Jamais de téléchargement implicite.
+- CT2: segment par segment (pas de prompt [n]), balises <b><i><aN> retirées (le repli texte brut existe déjà), marqueurs ⟦n⟧ re-posés en fin de segment, ≤800 car., glossaire non appliqué, langues via table NLLB (35/35). Verrous: moteur CPU prend HEAVY, pas gpu_lock. PDF refusé avec un message (pdf2zh exige Ollama): convertir en DOCX.
+- install.sh --engine=ct2: pip ctranslate2 sentencepiece huggingface_hub + dépôt JustFrederik/<nllb>-ct2-int8 (id NON vérifié), confirmation avant téléchargement, stocké dans [ctranslate2] model_dir.
+non testé en réel: qualité/vitesse NLLB, dépôt HF, tags gemma3:1b / translategemma:4b/27b (fakes ctranslate2 + faux sysfs dans smoke20). Argos non implémenté (NLLB le couvre).
+env: smoke-all quick 407 ok. Redémarrer le service.

@@ -1,6 +1,6 @@
 import re
 
-from . import translate
+from . import engines, translate
 from .config import cfg
 
 NUM_RE = re.compile(r"^\s*\[(\d+)\]\s*(.*)$")
@@ -29,8 +29,9 @@ def parse_numbered(out: str, ids: list[int]) -> dict[int, str] | None:
 class Translator:
     def __init__(self, src: str, tgt: str, glossary: list[tuple[str, str]]):
         self.src, self.tgt, self.glossary = src, tgt, glossary
-        self.model = cfg["ollama"]["translate_model"]
+        self.model = engines.model("translate")
         self.num_ctx = int(cfg["subtitles"]["num_ctx"])
+        self.engine = None
 
     async def _ask(self, msgs: list[dict], temp: float) -> str:
         return await translate.complete(self.model, msgs, temperature=temp, num_ctx=self.num_ctx)
@@ -38,11 +39,22 @@ class Translator:
     def prompt(self, text: str) -> str:
         return translate.build_prompt(self.src, self.tgt, text, self.glossary)
 
+    async def _eng(self):
+        if self.engine is None:
+            self.engine = await engines.pick()
+        return self.engine
+
     async def single(self, text: str) -> str:
+        eng = await self._eng()
+        if eng.name == "ctranslate2":
+            return (await eng.translate_items([(1, text)], self.src, self.tgt))[1]
         out = await self._ask([{"role": "user", "content": self.prompt(text)}], 0)
         return " ".join(out.split()) or text
 
     async def batch(self, items: list[tuple[int, str]], prev: list[dict]) -> dict[int, str]:
+        eng = await self._eng()
+        if eng.name == "ctranslate2":  # segment by segment: no numbered prompt, nothing to parse
+            return await eng.translate_items(items, self.src, self.tgt)
         if len(items) == 1:
             return {items[0][0]: await self.single(items[0][1])}
         ids = [n for n, _ in items]
