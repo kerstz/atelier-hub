@@ -203,4 +203,4 @@ async def run(ctx: Ctx, p: dict) -> str:
         shutil.rmtree(work, ignore_errors=True)
 
 
-register("subtitles", run)
+register("subtitles", run, keep_uploads=True)

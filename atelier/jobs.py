@@ -7,7 +7,7 @@ from typing import Awaitable, Callable
 
 from . import db, joblog, notify, ollama
 from .config import cfg
-from .util import consume_uploads
+from .util import consume_uploads, upload_paths
 
 
 @dataclass
@@ -15,13 +15,14 @@ class Kind:
     handler: Callable[["Ctx", dict], Awaitable[str | None]]
     gpu: bool | Callable[[dict], bool] = False
     frees_vram: bool = False  # GPU job that never uses Ollama: unload models first
+    keep_uploads: bool = False  # UI reuses the same upload for follow-up jobs: left to the age purge
 
 
 KINDS: dict[str, Kind] = {}
 
 
-def register(name: str, handler, gpu=False, frees_vram: bool = False) -> None:
-    KINDS[name] = Kind(handler, gpu, frees_vram)
+def register(name: str, handler, gpu=False, frees_vram: bool = False, keep_uploads: bool = False) -> None:
+    KINDS[name] = Kind(handler, gpu, frees_vram, keep_uploads)
 
 
 class Ctx:
@@ -91,7 +92,9 @@ class Manager:
                     joblog.append(jid, "VRAM libérée: " + ", ".join(gone))
             out = await k.handler(Ctx(self, jid), params)
             self.update(jid, status="done", progress=1.0, output=out, finished=time.time())
-            consume_uploads(params)
+            if not k.keep_uploads:
+                used = {p for other in db.active_params(exclude=jid) for p in upload_paths(other)}
+                consume_uploads(params, used)
             notify.finished(db.get(jid), params, time.time() - t0)
         except asyncio.CancelledError:
             joblog.append(jid, "== annulé ==")

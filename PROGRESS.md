@@ -145,3 +145,14 @@ decisions:
 - smoke-all.sh [--quick] [N…]: résumé ok/FAIL/skip/temps par script, code retour ≠0 si FAIL; --quick saute 3/4/5 (YouTube, whisper, PDF).
 env: redémarrer le service pour les endpoints (`systemctl --user restart atelier`). smoke3/4/5 jamais relancés depuis phase 8: `bash scripts/smoke-all.sh` complet à lancer par l'utilisateur.
 next: audit Opus 5.5; après audit: dépendances (panneau Système), contexte inter-blocs Traduire, glossaires serveur, chaînage d'outils, disque, a11y.
+
+## Phase 14 — Correctifs audit, lots 1+2 (smoke14.sh)
+done: H3+B3 (middleware origine complète + Sec-Fetch-Site), M3 (upload_paths résolu, clés path/image/source), H1 (upload gardé tant qu'un autre job actif le lit; keep_uploads pour subtitles/summary), M6 (pandoc), H2 (arrêt propre), M10 (purge périodique), B2 (kill enfant), M4 (profil soffice).
+decisions:
+- Middleware: Origin doit valoir http://<Host de la requête> (port compris). Sur /api/*, Sec-Fetch-Site ∉ {same-origin, none} -> 403 (couvre aussi autre port local = same-site). Pages statiques accessibles par lien. Sans header (curl, scripts) accepté.
+- Uploads: consommés après succès sauf si un job queued/running les référence (db.active_params). subtitles/summary: jamais consommés (l'UI réutilise le fichier pour Résumer/Générer), purge par âge.
+- Pandoc: `--sandbox` seul casse docx/odt/epub (data files introuvables). Deux étapes: lecteur --sandbox -> JSON AST, écrivain avec strip_images.lua (images -> texte alt). Testé en réel: aucun média embarqué. Bonus: chemins pandoc de smoke10 enfin exécutés (md->docx, md->pdf ok).
+- Arrêt: uvicorn timeout_graceful_shutdown=3 + lifespan annule les jobs et attend 8 s (finally exécutés; jobs "cancelled", relançables). data/tmp vidé au démarrage; janitor horaire: uploads >2 j (sauf jobs actifs), .listen, journaux.
+- proc.run_cmd: toute exception (callback, log) tue le groupe de processus enfant.
+env: redémarrer le service (`systemctl --user restart atelier`) pour activer; le smoke14 live échoue avant restart.
+next: lots 3 (SSE/UI: M1, M2), 4 (perf: M8, M9, M5), 5 (M7, B1, B4-B9) de l'audit.

@@ -9,18 +9,29 @@ from .config import data_dir
 HEAVY = asyncio.Semaphore(1)
 
 
+UPLOAD_KEYS = ("path", "image", "source")
+
+
 def upload_paths(params: dict) -> list[Path]:
-    """Params values (str, or list of str) that point inside the uploads dir."""
-    root = str((data_dir() / "uploads").resolve()) + os.sep
-    vals: list = []
-    for v in params.values():
-        vals += v if isinstance(v, list) else [v]
-    return [Path(v) for v in vals if isinstance(v, str) and v.startswith(root)]
+    """Input files of a job that live inside the uploads dir (resolved: no `..` or symlink escape)."""
+    root = (data_dir() / "uploads").resolve()
+    out = []
+    for k in UPLOAD_KEYS:
+        v = params.get(k)
+        if not isinstance(v, str) or not v.startswith("/"):
+            continue
+        p = Path(v).resolve()
+        if p.is_relative_to(root) and p != root:
+            out.append(p)
+    return out
 
 
-def consume_uploads(params: dict) -> None:
-    """Delete a finished job's uploaded inputs. Only called on success so failed/cancelled jobs can be retried."""
+def consume_uploads(params: dict, still_used: set[Path] | None = None) -> None:
+    """Delete a finished job's uploaded inputs, except files another queued/running job still reads.
+    Only called on success so failed/cancelled jobs can be retried."""
     for p in upload_paths(params):
+        if still_used and p in still_used:
+            continue
         p.unlink(missing_ok=True)
 
 

@@ -183,7 +183,8 @@ async def run(ctx: Ctx, p: dict) -> str:
         if ext in CONVERT:
             ctx.set(0, "conversion LibreOffice…")
             await run_cmd(
-                ["soffice", "--headless", "--convert-to", CONVERT[ext], "--outdir", str(work), str(path)]
+                ["soffice", f"-env:UserInstallation=file://{work}/profile", "--headless", "--convert-to", CONVERT[ext],
+                 "--outdir", str(work), str(path)]
             )
             conv = work / f"{path.stem}.{CONVERT[ext]}"
             if not conv.is_file():

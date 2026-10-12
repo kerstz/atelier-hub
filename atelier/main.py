@@ -1,5 +1,6 @@
 import asyncio
 import re
+import shutil
 import time
 import uuid
 import zipfile
@@ -17,9 +18,34 @@ from pydantic import BaseModel
 from . import audio, convert, db, docs, gpu, images, joblog, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
 from .config import ROOT, data_dir, output_dir
 from .jobs import KINDS, manager
-from .util import missing_uploads
+from .util import missing_uploads, upload_paths
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost"}
+
+
+UPLOAD_TTL = 2 * 86400
+
+
+def purge_uploads() -> None:
+    """Delete uploads older than the TTL, except files an active job still reads."""
+    used = {p for params in db.active_params() for p in upload_paths(params)}
+    for f in (data_dir() / "uploads").iterdir():
+        try:
+            if f.is_file() and time.time() - f.stat().st_mtime > UPLOAD_TTL and f.resolve() not in used:
+                f.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+async def _janitor() -> None:
+    while True:
+        await asyncio.sleep(3600)
+        try:
+            purge_uploads()
+            speech.purge_listen()
+            joblog.purge()
+        except Exception:
+            pass
 
 
 @asynccontextmanager
@@ -30,12 +56,18 @@ async def lifespan(_: FastAPI):
         output_dir(sub).mkdir(exist_ok=True)
     speech.purge_listen()
     joblog.purge()
-    up = data_dir() / "uploads"
-    up.mkdir(exist_ok=True)
-    for f in up.iterdir():
-        if f.is_file() and time.time() - f.stat().st_mtime > 2 * 86400:
-            f.unlink(missing_ok=True)
+    (data_dir() / "uploads").mkdir(exist_ok=True)
+    shutil.rmtree(data_dir() / "tmp", ignore_errors=True)  # no job survives a restart: leftovers are garbage
+    (data_dir() / "tmp").mkdir(exist_ok=True)
+    purge_uploads()
+    janitor = asyncio.create_task(_janitor())
     yield
+    janitor.cancel()
+    tasks = list(manager.tasks.values())
+    for t in tasks:
+        t.cancel()
+    if tasks:  # let handlers run their finally blocks (work dirs, partial outputs)
+        await asyncio.wait(tasks, timeout=8)
 
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None)
@@ -46,7 +78,13 @@ async def local_only(request: Request, call_next):
     if urlparse("//" + request.headers.get("host", "")).hostname not in LOCAL_HOSTS:
         return PlainTextResponse("forbidden", status_code=403)
     origin = request.headers.get("origin")
-    if origin and urlparse(origin).hostname not in LOCAL_HOSTS:
+    if origin:
+        o = urlparse(origin)
+        # same origin only: scheme + host + port must equal what the browser used to reach us
+        if o.scheme != "http" or o.netloc != request.headers.get("host", ""):
+            return PlainTextResponse("forbidden", status_code=403)
+    # other local web apps (same-site, other port) and cross-site pages can't drive the API, GET included
+    if request.url.path.startswith("/api/") and request.headers.get("sec-fetch-site", "same-origin") not in ("same-origin", "none"):
         return PlainTextResponse("forbidden", status_code=403)
     return await call_next(request)
 
