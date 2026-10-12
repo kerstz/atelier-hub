@@ -13,6 +13,8 @@ def init() -> None:
     data_dir().mkdir(parents=True, exist_ok=True)
     _db = sqlite3.connect(data_dir() / "atelier.db", check_same_thread=False)
     _db.row_factory = sqlite3.Row
+    _db.execute("pragma journal_mode=wal")
+    _db.execute("pragma synchronous=normal")
     _db.execute(
         """create table if not exists jobs(
         id integer primary key autoincrement, kind text, title text, params text,

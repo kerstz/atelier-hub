@@ -156,3 +156,14 @@ decisions:
 - proc.run_cmd: toute exception (callback, log) tue le groupe de processus enfant.
 env: redémarrer le service (`systemctl --user restart atelier`) pour activer; le smoke14 live échoue avant restart.
 next: lots 3 (SSE/UI: M1, M2), 4 (perf: M8, M9, M5), 5 (M7, B1, B4-B9) de l'audit.
+
+## Phase 15 — Correctifs audit, lots 3+4 (smoke15.sh)
+done: M1 (SSE saturée -> flux terminé + resync à l'ouverture), M2 (settle après lancement), M8 (progression coalescée, WAL, tray par carte), M9 (Office/EPUB hors boucle), M5 (slot CPU avant verrou GPU).
+decisions:
+- Manager.update: messages/progress seuls limités à 4/s par job avec flush différé (call_later 0.25 s); tout changement de statut passe tout de suite et emporte les champs en attente. SQLite: journal WAL + synchronous=NORMAL.
+- SSE: file pleine -> abonné dans manager.dropped, générateur sort, EventSource se reconnecte, app.js `resync()` recharge /api/jobs et rejoue en événements "job" ceux qui ont changé (finit aussi les jobs restés "En cours" après redémarrage).
+- UI: tray = une carte remplacée par événement (upsertJob), jobsView ne se redessine que pour les jobs de son filtre. settle(id) applique l'état final si l'événement a battu la réponse du POST.
+- docs/epub: load, apply/rebuild, save/zip dans asyncio.to_thread (DOCX 6000 par., EPUB 250 chap.: pas de gel > 0.05 s). Upload: écriture disque via to_thread. EPUB: zip fermé dans finally (B6 partiel).
+- GPU: convert (VAAPI) et audio (demucs GPU) ne passent plus gpu=True au gestionnaire: slot CPU (_sem / HEAVY) d'abord, puis gpu_lock dans le handler; demucs décharge Ollama lui-même.
+env: redémarrer le service. smoke-all inclut maintenant 14 et 15.
+next: lot 5 de l'audit: M7 (segments longs), B1 (taille upload/disque), B4 (timeout Ollama), B5 (notify --), B6 (plafond EPUB), B7 (socket /tmp), B8 (unique sorties), B9 (lxml, fastapi).

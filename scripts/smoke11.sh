@@ -87,7 +87,7 @@ def go(kind, **p):
 
 check("jobs enregistrés", all(k in KINDS for k in ("tts", "dictate", "image", "audio")))
 check("verrou GPU: upscale oui, rembg non", KINDS["image"].gpu({"action": "upscale"}) and not KINDS["image"].gpu({"action": "rembg"}))
-check("verrou GPU: demucs cpu non", not KINDS["audio"].gpu({"action": "stems"}))
+check("verrou GPU: demucs pris dans le handler (après le slot CPU), pas par le gestionnaire", KINDS["audio"].gpu is False)
 
 r, _ = go("tts", text="Bonjour le monde", lang="fr", mode="listen")
 check("tts écoute -> wav dans .listen", isinstance(r, str) and r.endswith("99911.wav") and pathlib.Path(r).stat().st_size > 100)

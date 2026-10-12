@@ -101,7 +101,7 @@ function jobsView(box, filter, {icon = "inbox", title = "Aucun résultat", hint 
     ul.append(...list.map(jobCard));
     box.replaceChildren(ul);
   };
-  bus.addEventListener("job", render);
+  bus.addEventListener("job", (e) => filter(e.detail) && render());
   bus.addEventListener("jobs", render);
   render();
 }
@@ -149,6 +149,7 @@ function summaryPanel(host, status) {
       return false;
     }
     cur = (await r.json()).id;
+    settle(cur);
     out.value = "";
     card.hidden = false;
     stop.hidden = false;
@@ -158,15 +159,49 @@ function summaryPanel(host, status) {
 }
 
 let seen = new Set();
-function renderJobs() {
-  const ul = $("#joblist");
-  const all = [...jobs.values()].sort((a, b) => b.id - a.id);
-  ul.replaceChildren(...all.map(jobCard));
-  if (!all.length) ul.append(ui.empty("inbox", "Aucune tâche", "Les traductions et téléchargements apparaissent ici."));
-  const active = all.filter((j) => !FINAL.includes(j.status)).length;
+const cards = new Map();
+function trayBadge() {
+  const active = [...jobs.values()].filter((j) => !FINAL.includes(j.status)).length;
   const badge = $("#tray-count");
   badge.hidden = !active;
   badge.textContent = active;
+}
+
+// Full rebuild (initial load / resync / clear).
+function renderJobs() {
+  const ul = $("#joblist");
+  const all = [...jobs.values()].sort((a, b) => b.id - a.id);
+  cards.clear();
+  const lis = all.map((j) => {
+    const li = jobCard(j);
+    cards.set(j.id, li);
+    return li;
+  });
+  ul.replaceChildren(...lis);
+  if (!all.length) ul.append(ui.empty("inbox", "Aucune tâche", "Les traductions et téléchargements apparaissent ici."));
+  trayBadge();
+}
+
+// One event = one card touched (progress arrives several times a second).
+function upsertJob(j) {
+  const ul = $("#joblist");
+  const li = jobCard(j);
+  const old = cards.get(j.id);
+  if (old?.isConnected) old.replaceWith(li);
+  else {
+    ul.querySelector(".empty")?.remove();
+    const next = [...cards.entries()].filter(([id, c]) => id < j.id && c.isConnected).sort((a, b) => b[0] - a[0])[0];
+    if (next) next[1].before(li);
+    else ul.append(li);
+  }
+  cards.set(j.id, li);
+  trayBadge();
+}
+
+// Job already finished by the time we learn its id (event raced the POST response): apply the end state now.
+function settle(id) {
+  const j = jobs.get(id);
+  if (j && FINAL.includes(j.status)) bus.dispatchEvent(new CustomEvent("job", {detail: j}));
 }
 
 function setTray(open) {
@@ -232,12 +267,33 @@ async function refreshSystem() {
   $("#gpu-lock").textContent = s.gpu_busy ? "Occupé : une tâche GPU tourne." : "Libre.";
 }
 
+// (Re)load the job list: first load, and after any SSE (re)connection so a dropped stream or a
+// restarted service never leaves stale "En cours" cards. Changed jobs are replayed as "job" events.
+async function resync() {
+  let list;
+  try {
+    list = await (await fetch("/api/jobs")).json();
+  } catch {
+    return;
+  }
+  const before = new Map(jobs);
+  jobs.clear();
+  list.forEach((j) => onJob(j, true));
+  renderJobs();
+  bus.dispatchEvent(new Event("jobs"));
+  list.forEach((j) => {
+    const p = before.get(j.id);
+    if (p && (p.status !== j.status || p.progress !== j.progress)) bus.dispatchEvent(new CustomEvent("job", {detail: j}));
+  });
+}
+
 function listen() {
   const es = new EventSource("/api/events");
+  es.onopen = resync;
   es.addEventListener("job", (e) => {
     const j = JSON.parse(e.data);
     onJob(j);
-    renderJobs();
+    upsertJob(j);
     bus.dispatchEvent(new CustomEvent("job", {detail: j}));
   });
   es.addEventListener("delta", (e) => bus.dispatchEvent(new CustomEvent("delta", {detail: JSON.parse(e.data)})));

@@ -4,7 +4,8 @@ from pathlib import Path
 
 from .config import cfg, output_dir
 from .convert import need, unique
-from .jobs import Ctx, register
+from . import ollama
+from .jobs import Ctx, manager, register
 from .ocr import upload_name
 from .proc import CmdError, run_cmd
 from .util import binpath, HEAVY, src_file, workdir
@@ -57,12 +58,24 @@ async def stems(ctx: Ctx, src: Path, name: str, p: dict, work: Path) -> str:
         if m := PCT_RE.search(line):
             ctx.set(0.05 + 0.9 * min(int(m[1]), 100) / 100, f"séparation {m[1]} %")
 
-    ctx.set(0.05, "attente GPU…" if demucs_gpu() else "séparation…")
-    async with HEAVY:
+    async def separate() -> None:
         try:
             await run_cmd(argv, feed)
         except CmdError as e:
             raise RuntimeError(f"{e} (1er lancement: le modèle {model} se télécharge, réseau requis)") from None
+
+    ctx.set(0.05, "en file…")
+    async with HEAVY:  # CPU slot first: the global GPU lock is never held while idle behind another job
+        if demucs_gpu():
+            ctx.set(0.05, "attente GPU…")
+            async with manager.gpu_lock:
+                if cfg["gpu"]["free_vram"]:
+                    await ollama.unload_all()
+                ctx.set(0.05, "séparation…")
+                await separate()
+        else:
+            ctx.set(0.05, "séparation…")
+            await separate()
     found = sorted((work / "sep").glob(f"{model}/*/*.{fmt}"))
     if not found:
         raise RuntimeError("demucs: aucune piste produite")
@@ -117,4 +130,4 @@ async def run(ctx: Ctx, p: dict) -> str:
     return res
 
 
-register("audio", run, gpu=lambda p: p.get("action", "stems") == "stems" and demucs_gpu(), frees_vram=True)
+register("audio", run)

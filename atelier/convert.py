@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 
 from .config import cfg, data_dir, output_dir
-from .jobs import Ctx, register
+from .jobs import Ctx, manager, register
 from .ocr import upload_name
 from .proc import CmdError, run_cmd
 
@@ -347,9 +347,13 @@ async def run(ctx: Ctx, p: dict) -> str:
     dest = unique(out, upload_name(path), TARGETS[target][1])
     ctx.set(0, "attente…")
     try:
-        async with _sem:
+        async with _sem:  # CPU slot first: never hold the global GPU lock while idle in a queue
             kind = target[0]
-            if kind == "v":
+            if kind == "v" and is_gpu_target(target):
+                ctx.set(0, "attente GPU…")
+                async with manager.gpu_lock:
+                    await do_video(ctx, path, target, dest, q, size)
+            elif kind == "v":
                 await do_video(ctx, path, target, dest, q, size)
             elif kind == "a":
                 await do_audio(ctx, path, target, dest, q)
@@ -370,4 +374,4 @@ async def run(ctx: Ctx, p: dict) -> str:
     return str(dest)
 
 
-register("convert", run, gpu=lambda p: is_gpu_target(p.get("target", "")))
+register("convert", run)

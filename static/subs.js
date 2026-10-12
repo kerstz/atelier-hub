@@ -51,6 +51,7 @@
       return;
     }
     current = (await r.json()).id;
+    settle(current);
   }
 
   bus.addEventListener("job", (e) => {
