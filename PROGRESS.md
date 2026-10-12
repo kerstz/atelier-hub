@@ -233,3 +233,7 @@ env: smoke-all quick 407 ok. Redémarrer le service.
 - Correctifs: `WEBKIT_DISABLE_DMABUF_RENDERER=1` par défaut (ATELIER_WEBKIT_SAFE=0 pour l'enlever); signal `web-process-terminated` -> rechargement de la page; >3 crashs en 2 min -> code retour 2 -> le lanceur ouvre chromium. Crash simulé (SIGABRT sur le processus de rendu): la fenêtre reste vivante et se recharge.
 - Bug trouvé ensuite ("page blanche"): le crochet visait `window.native.webview`, or `window.native` n'est que la Gtk.ApplicationWindow -> jamais armé, la fenêtre restait blanche après un crash. Corrigé via `webview.platforms.gtk.BrowserView.instances[uid].webview` (+ `window.native.present()` pour le focus); rechargement par `load_uri` après 400 ms; journal `$XDG_RUNTIME_DIR/desktop.log`. Vérifié: SIGABRT du processus de rendu -> "reloaded", nouveau processus.
 - Si ça persiste: `coredumpctl info <pid>` + lancer avec `ATELIER_WEBKIT_SAFE=1 WEBKIT_DISABLE_COMPOSITING_MODE=1`.
+
+## Correctif — "Écouter" faisait crasher la fenêtre (2026-10-12)
+- Cause: chaque `audio.play()` (<audio> + GStreamer) dans WebKitGTK abortait le processus de rendu; les 4 coredumps coïncident à la seconde avec la fin des jobs tts #289/#291/#293.
+- Correctif: Écouter lit le wav sur la machine (atelier/player.py: pw-play > paplay > aplay > ffplay > mpv); POST /api/jobs/{id}/play, /api/play/stop, GET /api/play; le bouton bascule Écouter/Arrêter par sondage. Repli <audio> uniquement si aucun lecteur système. Fichiers limités au dossier de sortie, Origin/Sec-Fetch comme le reste de l'API.

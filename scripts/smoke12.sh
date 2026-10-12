@@ -49,6 +49,7 @@ t "window class réel = atelier (notes PROGRESS)" "grep -q 'StartupWMClass=@WMCL
 t "python fenêtre: syntaxe" "python3 -m py_compile scripts/atelier_desktop.py"
 t "fenêtre: DMABUF WebKit désactivé par défaut + reprise sur crash du rendu" "grep -q WEBKIT_DISABLE_DMABUF_RENDERER scripts/atelier_desktop.py && grep -q web-process-terminated scripts/atelier_desktop.py"
 t "fenêtre: crochet sur BrowserView.instances (pas window.native.webview) + journal desktop.log" "grep -q 'BrowserView.instances' scripts/atelier_desktop.py && ! grep -q 'window.native.webview' scripts/atelier_desktop.py && grep -q 'desktop.log' scripts/atelier_desktop.py"
+t "Écouter: lecture par un lecteur système (pas <audio> dans WebKit)" "grep -q '/api/jobs/\${id}/play' static/translate.js && grep -q 'playOnServer' static/translate.js && grep -q 'job_play' atelier/main.py"
 t "lanceur: code 2 -> repli navigateur" "grep -q 'rc -eq 2' scripts/atelier-desktop"
 t "JS route/prefill: syntaxe" "node --check static/app.js && node --check static/translate.js && node --check static/youtube.js"
 

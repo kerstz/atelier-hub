@@ -15,7 +15,7 @@ from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import audio, convert, db, docs, engines, gpu, hw, images, joblog, maint, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
+from . import audio, convert, db, docs, engines, gpu, hw, images, joblog, maint, player, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
 from .config import ROOT, cfg, data_dir, output_dir
 from .jobs import KINDS, manager
 from .util import missing_uploads, upload_paths
@@ -305,6 +305,31 @@ async def convert_zip(ids: str):
 @app.get("/api/deps")
 async def deps():
     return await maint.deps()
+
+
+AUDIO_EXT = {".wav", ".mp3", ".flac", ".ogg", ".opus", ".m4a"}
+
+
+@app.post("/api/jobs/{jid}/play")
+async def job_play(jid: int):
+    """Play a finished job's audio file on the machine speakers (the browser's <audio> is unsafe in WebKitGTK)."""
+    p = _job_file(jid)
+    if not p or p.suffix.lower() not in AUDIO_EXT:
+        raise HTTPException(404, "pas de fichier audio")
+    if not player.available():
+        raise HTTPException(501, "aucun lecteur audio installé")
+    return {"playing": True, "player": await player.play(str(p))}
+
+
+@app.post("/api/play/stop")
+async def play_stop():
+    await player.stop()
+    return {"playing": False}
+
+
+@app.get("/api/play")
+async def play_state():
+    return {"playing": player.playing(), "player": player.available()}
 
 
 @app.get("/api/profile")

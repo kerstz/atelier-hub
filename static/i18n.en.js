@@ -79,7 +79,7 @@ const I18N_EN = {
   "GPU introuvable (sysfs amdgpu)": "GPU not found (amdgpu sysfs)", "Revérifier ": "Re-check",
   // jobs / tray
   "En file": "Queued", "Terminé": "Done", "Échec": "Failed", "Annulé": "Cancelled", "En file…": "Queued…", "En cours…": "Running…", "Annulé.": "Cancelled.",
-  "Aucune tâche": "No tasks", "Aucune tâche dans ce filtre": "No tasks in this filter", "Aucun résultat": "No results",
+  "Aucune tâche": "No tasks", "Aucune tâche dans ce filtre": "No tasks in this filter", "Aucun résultat": "No results", "pas de fichier audio": "no audio file", "aucun lecteur audio installé": "no audio player installed",
   "Les traductions et téléchargements apparaissent ici.": "Translations and downloads appear here.",
   "Ouvrir le dossier": "Open folder", "Relancer": "Retry", "Journal": "Log", "Fermer": "Close", "Supprimer": "Delete", "Exporter": "Export",
   "Enregistrer": "Save", "Résumer / retraduire": "Summarize / retranslate", "Sous-titrer": "Subtitle",

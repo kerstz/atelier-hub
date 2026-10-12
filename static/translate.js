@@ -149,14 +149,46 @@
     label($mic, "Arrêter 0 s");
   }
 
-  function stopAudio() {
+  let serverPlay = false, playPoll = null;
+
+  async function stopAudio() {
     audio?.pause();
     audio = null;
+    clearInterval(playPoll);
+    if (serverPlay) {
+      serverPlay = false;
+      await post("/api/play/stop");
+    }
     label($listen, "Écouter");
   }
 
+  // Played by the machine itself (pw-play/paplay/…): the web view's <audio> aborts WebKitGTK's web process.
+  async function playOnServer(id) {
+    let r;
+    try {
+      r = await post(`/api/jobs/${id}/play`);
+    } catch {
+      return false;
+    }
+    if (!r.ok) return false;
+    serverPlay = true;
+    label($listen, "Arrêter");
+    clearInterval(playPoll);
+    playPoll = setInterval(async () => {
+      try {
+        const s = await (await fetch("/api/play")).json();
+        if (!s.playing) {
+          serverPlay = false;
+          clearInterval(playPoll);
+          label($listen, "Écouter");
+        }
+      } catch {}
+    }, 800);
+    return true;
+  }
+
   async function speak(mode) {
-    if (mode === "listen" && audio) return stopAudio();
+    if (mode === "listen" && (audio || serverPlay)) return stopAudio();
     const text = $out.value.trim();
     if (!text || ttsJob) return;
     ttsMode = mode;
@@ -182,10 +214,13 @@
       if (j.status !== "done") return ($status.textContent = `Lecture : ${j.error || "annulée"}`);
       $status.textContent = "";
       if (ttsMode === "mp3") return ui.toast("MP3 enregistré dans ~/Atelier/audio", "ok");
-      audio = new Audio(`/api/jobs/${j.id}/download`);
-      audio.onended = audio.onerror = stopAudio;
-      label($listen, "Arrêter");
-      audio.play().catch(stopAudio);
+      playOnServer(j.id).then((ok) => {
+        if (ok) return;
+        audio = new Audio(`/api/jobs/${j.id}/download`);  // no system player: browser fallback
+        audio.onended = audio.onerror = stopAudio;
+        label($listen, "Arrêter");
+        audio.play().catch(stopAudio);
+      });
     }
   });
   $mic.onclick = toggleMic;
