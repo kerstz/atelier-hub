@@ -7,7 +7,7 @@ from .convert import need, unique
 from .jobs import Ctx, register
 from .ocr import upload_name
 from .proc import CmdError, run_cmd
-from .util import HEAVY, consume, src_file, workdir
+from .util import binpath, HEAVY, consume, src_file, workdir
 
 PCT_RE = re.compile(r"(\d{1,3})%")
 FMTS = {"mp3", "flac", "wav"}
@@ -37,7 +37,7 @@ def demucs_gpu() -> bool:
 
 async def stems(ctx: Ctx, src: Path, name: str, p: dict, work: Path) -> str:
     a = cfg["audio"]
-    need(a["demucs_bin"], hint="uv tool install demucs")
+    need(binpath(a["demucs_bin"]), hint="uv tool install demucs")
     model = p.get("model", "htdemucs")
     fmt = p.get("format", "mp3")
     if model not in MODELS or fmt not in FMTS:
@@ -45,7 +45,7 @@ async def stems(ctx: Ctx, src: Path, name: str, p: dict, work: Path) -> str:
     wav = work / "input.wav"
     ctx.set(0.02, "préparation audio…")
     await to_wav(src, wav, 44100, 2)
-    argv = [a["demucs_bin"], "-n", model, "-o", str(work / "sep")]
+    argv = [binpath(a["demucs_bin"]), "-n", model, "-o", str(work / "sep")]
     if a["demucs_device"] != "auto":
         argv += ["-d", a["demucs_device"]]
     if p.get("two_stems"):
@@ -75,7 +75,7 @@ async def stems(ctx: Ctx, src: Path, name: str, p: dict, work: Path) -> str:
 
 
 async def denoise(ctx: Ctx, src: Path, name: str, p: dict, work: Path) -> str:
-    bin_ = cfg["audio"]["deepfilter_bin"]
+    bin_ = binpath(cfg["audio"]["deepfilter_bin"])
     need(bin_, hint="binaire deep-filter: github.com/Rikorose/DeepFilterNet/releases → ~/.local/bin (ou uv tool install deepfilternet + deepfilter_bin = \"deepFilter\")")
     fmt = p.get("format", "wav")
     if fmt not in FMTS:

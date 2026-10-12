@@ -8,7 +8,7 @@ from .config import cfg, output_dir
 from .convert import need, unique
 from .jobs import Ctx, register
 from .proc import run_cmd
-from .util import consume, src_file, workdir
+from .util import binpath, consume, src_file, workdir
 
 DEFAULT_VOICES = {
     "fr": "fr_FR-siwis-medium", "en": "en_US-lessac-medium", "de": "de_DE-thorsten-medium",
@@ -39,7 +39,7 @@ async def tts(ctx: Ctx, p: dict) -> str:
         raise RuntimeError("texte vide")
     if lang not in translate.LANGS:
         raise RuntimeError("langue inconnue")
-    bin_ = cfg["tts"]["bin"]
+    bin_ = binpath(cfg["tts"]["bin"])
     need(bin_, hint="uv tool install piper-tts")
     onnx = voice_for(lang)
     work = workdir(ctx.id, "t")

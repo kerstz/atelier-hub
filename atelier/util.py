@@ -1,4 +1,5 @@
 import asyncio
+import os
 import shutil
 from pathlib import Path
 
@@ -25,3 +26,8 @@ def src_file(p: dict) -> Path:
     if not path.is_file():
         raise RuntimeError("fichier introuvable")
     return path
+
+
+def binpath(name: str) -> str:
+    """Config binary: expand ~ when it is a path, else leave to PATH lookup."""
+    return os.path.expanduser(name) if name.startswith("~") else name
