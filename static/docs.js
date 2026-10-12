@@ -69,6 +69,7 @@
   };
   jobsView($("#dc-result"), (j) => j.kind === "document" || j.kind === "ocr", {icon: "file-text", title: "Rien pour l'instant", hint: "Les documents traduits et PDF océrisés sont enregistrés dans ~/Atelier/docs.", limit: 8});
 
+  glossaryBar($gloss);
   (async () => {
     const langs = await (await fetch("/api/langs")).json();
     ui.langPicker($src, langs, {value: store.get("dc.src", "en"), prefix: "Source"});

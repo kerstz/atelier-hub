@@ -86,6 +86,15 @@
   };
   jobsView($("#st-result"), (j) => j.kind === "subtitles", {icon: "captions", title: "Rien pour l'instant", hint: "Les fichiers .srt produits sont listés ici."});
 
+  glossaryBar($gloss);
+  bus.addEventListener("prefill", (e) => {
+    const path = e.detail.tab === "soustitres" && e.detail.params.get("path");
+    if (!path) return;
+    $in.value = path;
+    picked = {name: e.detail.params.get("name") || path.split("/").pop()};
+    showChip();
+    $status.textContent = "Fichier repris de la tâche précédente.";
+  });
   (async () => {
     const langs = await (await fetch("/api/langs")).json();
     ui.langPicker($src, langs, {value: store.get("st.src", "en"), prefix: "Source"});

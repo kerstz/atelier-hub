@@ -306,15 +306,19 @@ async def run(ctx: Ctx, p: dict) -> None:
     chunks = chunk(text, int(cfg["translate"]["chunk_chars"]))
     model = cfg["ollama"]["translate_model"]
     parts = []
+    prev: list[dict] = []  # previous block + its translation: keeps terms and register consistent across blocks
     for i, c in enumerate(chunks):
         ctx.set(i / len(chunks), f"bloc {i + 1}/{len(chunks)}")
         if i:
             ctx.delta("\n\n")
+        prompt = build_prompt(src, tgt, c, glossary)
         out = ""
-        async for tok in stream_chat(model, build_prompt(src, tgt, c, glossary)):
+        async for tok in stream_chat(model, messages=prev + [{"role": "user", "content": prompt}]):
             out += tok
             ctx.delta(tok)
         parts.append(out.strip())
+        if cfg["translate"].get("context", True):
+            prev = [{"role": "user", "content": prompt}, {"role": "assistant", "content": out.strip()}]
     db.add_translation(src, tgt, text, "\n\n".join(parts))
 
 

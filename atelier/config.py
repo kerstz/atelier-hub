@@ -16,7 +16,7 @@ DEFAULTS = {
         "timeout": 300,
     },
     "summary": {"model": "", "num_ctx": 8192, "lang": "fr"},
-    "translate": {"chunk_chars": 2500},
+    "translate": {"chunk_chars": 2500, "context": True},
     "whisper": {
         "bin": "whisper-cli",
         "model": "~/.local/opt/whisper.cpp/models/ggml-large-v3-turbo.bin",

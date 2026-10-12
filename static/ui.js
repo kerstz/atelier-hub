@@ -106,6 +106,9 @@ const ui = (() => {
   function progress(value = 0) {
     const bar = h("div", "progress");
     bar.setAttribute("role", "progressbar");
+    bar.setAttribute("aria-valuemin", "0");
+    bar.setAttribute("aria-valuemax", "100");
+    bar.setAttribute("aria-label", "Progression");
     const fill = h("div");
     bar.append(fill);
     const set = (v) => {

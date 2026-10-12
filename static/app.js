@@ -32,11 +32,82 @@ function showTab(name) {
     else b.removeAttribute("aria-current");
   });
   location.hash = name;
-  if (name === "systeme") refreshSystem();
+  if (name === "systeme") {
+    refreshSystem();
+    refreshDeps();
+    refreshDisk();
+  }
   if (name === "services") bus.dispatchEvent(new Event("services"));
 }
 
 // ---- jobs (tray + per-tab result cards)
+
+// Hand a finished job's file to the next tool: Sous-titres tab with the path prefilled.
+async function chain(j) {
+  let f;
+  try {
+    const r = await fetch(`/api/jobs/${j.id}/file`);
+    if (!r.ok) throw new Error();
+    f = await r.json();
+  } catch {
+    return ui.toast("Fichier de la tâche introuvable", "bad");
+  }
+  location.hash = `soustitres?path=${encodeURIComponent(f.path)}&name=${encodeURIComponent(f.name)}`;
+}
+
+// Named glossaries stored server-side (shared by every tab and by the browser fallback window).
+function glossaryBar(ta) {
+  const label = ta.closest("label");
+  if (!label) return;
+  const bar = el("div", null, "field-row wrap gloss-bar");
+  const sel = el("select");
+  sel.setAttribute("aria-label", "Glossaires enregistrés");
+  const name = ui.h("input", "field");
+  name.type = "text";
+  name.size = 16;
+  name.maxLength = 60;
+  name.placeholder = "nom du glossaire";
+  name.setAttribute("aria-label", "Nom du glossaire");
+  let list = [];
+  const load = async (keep) => {
+    try {
+      list = await (await fetch("/api/glossaries")).json();
+    } catch {
+      list = [];
+    }
+    ui.select(sel, [["", `— glossaires enregistrés (${list.length}) —`], ...list.map((g) => [g.name, g.name])], keep ?? sel.value);
+    if (!sel.value) sel.selectedIndex = 0;
+  };
+  sel.onchange = () => {
+    const g = list.find((x) => x.name === sel.value);
+    if (!g) return;
+    ta.value = g.text;
+    name.value = g.name;
+    ta.dispatchEvent(new Event("input", {bubbles: true}));
+  };
+  const save = ui.button("Enregistrer", {size: "sm", icon: "check", onclick: async () => {
+    const n = name.value.trim();
+    if (!n) return ui.toast("Donner un nom au glossaire", "bad");
+    const r = await fetch(`/api/glossaries/${encodeURIComponent(n)}`, {
+      method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text: ta.value}),
+    });
+    if (!r.ok) return ui.toast("Nom invalide (lettres, chiffres, espaces, . ( ) - ')", "bad");
+    ui.toast(`Glossaire « ${n} » enregistré`, "ok");
+    load(n);
+  }});
+  const del = ui.button("Supprimer", {size: "sm", icon: "trash", onclick: async () => {
+    if (!sel.value) return;
+    if (!(await ui.modal({title: "Supprimer le glossaire ?", body: sel.value, confirm: "Supprimer", danger: true}))) return;
+    await fetch(`/api/glossaries/${encodeURIComponent(sel.value)}`, {method: "DELETE"});
+    load("");
+  }});
+  const exp = ui.button("Exporter", {size: "sm", icon: "download", onclick: () => {
+    if (sel.value) location.href = `/api/glossaries/${encodeURIComponent(sel.value)}/export`;
+  }});
+  bar.append(sel, name, save, del, exp);
+  label.before(bar);
+  load("");
+}
 
 async function retryJob(j) {
   const r = await post(`/api/jobs/${j.id}/retry`);
@@ -82,6 +153,9 @@ function jobCard(j) {
   }
   if (j.status === "done" && /\.[A-Za-z0-9]{2,5}$/.test(j.output || "") && j.kind !== "youtube") {
     btns.append(ui.button("Télécharger", {size: "sm", icon: "download", onclick: () => (location.href = `/api/jobs/${j.id}/download`)}));
+  }
+  if (j.status === "done" && (j.kind === "youtube" || j.kind === "subtitles")) {
+    btns.append(ui.button(j.kind === "youtube" ? "Sous-titrer" : "Résumer / retraduire", {size: "sm", icon: "captions", onclick: () => chain(j)}));
   }
   if (j.status === "failed" || j.status === "cancelled") {
     btns.append(ui.button("Relancer", {size: "sm", icon: "play", onclick: () => retryJob(j)}));
@@ -160,6 +234,11 @@ function summaryPanel(host, status) {
 
 let seen = new Set();
 const cards = new Map();
+const trayFilter = () => $("#tray-filter")?.value || "all";
+const showInTray = (j) => {
+  const f = trayFilter();
+  return f === "all" || (f === "active" ? !FINAL.includes(j.status) : j.status === "failed");
+};
 function trayBadge() {
   const active = [...jobs.values()].filter((j) => !FINAL.includes(j.status)).length;
   const badge = $("#tray-count");
@@ -171,20 +250,26 @@ function trayBadge() {
 function renderJobs() {
   const ul = $("#joblist");
   const all = [...jobs.values()].sort((a, b) => b.id - a.id);
+  const shown = all.filter(showInTray);
   cards.clear();
-  const lis = all.map((j) => {
+  const lis = shown.map((j) => {
     const li = jobCard(j);
     cards.set(j.id, li);
     return li;
   });
   ul.replaceChildren(...lis);
-  if (!all.length) ul.append(ui.empty("inbox", "Aucune tâche", "Les traductions et téléchargements apparaissent ici."));
+  if (!shown.length) ul.append(ui.empty("inbox", all.length ? "Aucune tâche dans ce filtre" : "Aucune tâche", "Les traductions et téléchargements apparaissent ici."));
   trayBadge();
 }
 
 // One event = one card touched (progress arrives several times a second).
 function upsertJob(j) {
   const ul = $("#joblist");
+  if (!showInTray(j)) {
+    cards.get(j.id)?.remove();
+    cards.delete(j.id);
+    return trayBadge();
+  }
   const li = jobCard(j);
   const old = cards.get(j.id);
   if (old?.isConnected) old.replaceWith(li);
@@ -220,12 +305,72 @@ function onJob(j, initial = false) {
       const t = j.title.slice(0, 50);
       if (j.status === "done") ui.toast(`Terminé : ${t}`, "ok");
       else if (j.status === "failed") ui.toast(`Échec : ${t}`, "bad", 7000);
+      const live = $("#sr-live");
+      if (live && j.status !== "cancelled") live.textContent = `${j.status === "done" ? "Terminé" : "Échec"} : ${t}`;
     }
   }
   seen.add(j.id);
 }
 
 // ---- système
+
+async function refreshDeps() {
+  const ul = $("#deps");
+  if (!ul.children.length) ul.replaceChildren(ui.skeleton(3));
+  let rows;
+  try {
+    rows = await (await fetch("/api/deps")).json();
+  } catch {
+    return;
+  }
+  const bad = rows.filter((r) => !r.ok).length;
+  $("#deps-sum").textContent = bad ? `${bad} élément(s) manquant(s) sur ${rows.length}.` : `Tout est en place (${rows.length}).`;
+  ul.replaceChildren(
+    ...rows.map((r) => {
+      const li = el("li");
+      li.append(ui.icon(r.ok ? "circle-check" : "circle-x"));
+      const body = el("div");
+      body.append(el("strong", r.label), el("span", ` — ${r.detail}`, "dim"), el("div", `utile pour : ${r.used_by}`, "used"));
+      li.append(body);
+      if (r.hint) {
+        const h = el("div", null, "hint");
+        h.append(el("code", r.hint));
+        const c = ui.button("Copier", {size: "sm", icon: "copy"});
+        ui.copy(c, () => r.hint);
+        h.append(c);
+        li.append(h);
+      }
+      return li;
+    })
+  );
+}
+
+const mib = (b) => (b >= 2 ** 30 ? `${(b / 2 ** 30).toFixed(1)} Go` : `${Math.round(b / 2 ** 20)} Mo`);
+async function refreshDisk() {
+  let d;
+  try {
+    d = await (await fetch("/api/disk")).json();
+  } catch {
+    return;
+  }
+  $("#disk-sum").textContent = `Libre : ${gib(d.free)} sur ${gib(d.total)}.`;
+  $("#disk").replaceChildren(
+    ...d.items.map((it) => {
+      const li = el("li");
+      const row = el("div", null, "row");
+      row.append(el("span", `${it.label} — ${mib(it.bytes)}`));
+      if (it.clean && it.bytes) {
+        row.append(ui.button("Vider", {size: "sm", icon: "trash", onclick: async () => {
+          const r = await post(`/api/disk/clean/${it.id}`);
+          if (r.ok) ui.toast(`${mib((await r.json()).freed)} libérés`, "ok");
+          refreshDisk();
+        }}));
+      }
+      li.append(row);
+      return li;
+    })
+  );
+}
 
 async function refreshSystem() {
   if ($("#tab-systeme").hidden) return;
@@ -363,6 +508,8 @@ $("#clear").onclick = async () => {
   renderJobs();
   bus.dispatchEvent(new Event("jobs"));
 };
+$("#deps-refresh").onclick = refreshDeps;
+$("#tray-filter").onchange = renderJobs;
 $("#demo-gpu").onclick = () => post("/api/jobs", {kind: "demo", title: "Test GPU", params: {gpu: true, seconds: 5}});
 $("#demo-cpu").onclick = () => post("/api/jobs", {kind: "demo", title: "Test CPU", params: {gpu: false, seconds: 5}});
 
