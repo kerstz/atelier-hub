@@ -45,7 +45,7 @@ Atelier ne télécharge ni n'installe rien lui-même.
 ## Installation
 
 ```bash
-git clone https://github.com/kerstz/atelier && cd atelier
+git clone https://github.com/kerstz/atelier-hub && cd atelier-hub
 ./install.sh --dry-run             # affiche le plan pour votre distro, ne change rien
 ./install.sh                       # niveau standard (demande confirmation avant d'agir)
 ```

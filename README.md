@@ -45,7 +45,7 @@ Nothing is downloaded or installed by Atelier itself.
 ## Install
 
 ```bash
-git clone https://github.com/kerstz/atelier && cd atelier
+git clone https://github.com/kerstz/atelier-hub && cd atelier-hub
 ./install.sh --dry-run             # print the plan for your distro, change nothing
 ./install.sh                       # standard tier (asks before doing anything)
 ```
