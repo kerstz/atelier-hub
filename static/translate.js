@@ -72,6 +72,7 @@
       showImage();
     }
     $out.value = bufs.get(current) ?? "";
+    settle(current);
   }
 
   bus.addEventListener("delta", (e) => {

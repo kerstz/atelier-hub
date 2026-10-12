@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import posixpath
 import re
@@ -302,54 +303,65 @@ def load(src: Path) -> tuple[list[Doc], zipfile.ZipFile]:
 
 
 async def translate_epub(src: Path, dest: Path, tgt: str, translate: Translate, on_stage: Callable[[str], None] | None = None) -> int:
-    """Translate EPUB `src` into `dest`. `translate` maps unique strings -> translations."""
-    docs, z = load(src)
-    runs = [r for d in docs for r in d.runs]
-    if not runs and not any(d.plain for d in docs):
-        raise RuntimeError("aucun texte à traduire")
-    texts = [r.tagged or r.plain for r in runs] + [t for d in docs for _, t in d.plain]
-    done = await translate([flat(t) for t in texts])
-    retry: list[Run] = []
-    for r, t in zip(runs, texts):
-        out = done[flat(t)]
-        ids = set(r.atoms)
-        segs = None
-        if r.tagged:
-            segs = inline.decode(out, frozenset(r.links))
-            if segs and not markers_ok("".join(s for s, _ in segs), ids):
+    """Translate EPUB `src` into `dest`. `translate` maps unique strings -> translations.
+    CPU-bound steps (parse, rebuild, serialize, zip) run in worker threads so the API stays responsive."""
+    docs, z = await asyncio.to_thread(load, src)
+    try:
+        runs = [r for d in docs for r in d.runs]
+        if not runs and not any(d.plain for d in docs):
+            raise RuntimeError("aucun texte à traduire")
+        texts = [r.tagged or r.plain for r in runs] + [t for d in docs for _, t in d.plain]
+        done = await translate([flat(t) for t in texts])
+
+        def apply() -> list[Run]:
+            retry: list[Run] = []
+            for r, t in zip(runs, texts):
+                out = done[flat(t)]
+                ids = set(r.atoms)
                 segs = None
-        elif markers_ok(out, ids):
-            segs = [(out, r.single)]
-        if segs:
-            rebuild(r, segs)
-        else:
-            retry.append(r)
-    if retry:
-        again = await translate([r.plain for r in retry])
-        for r in retry:
-            rebuild(r, [(fix_markers(again[r.plain], set(r.atoms)), Fmt())])
-    k = len(runs)
-    for d in docs:
-        for el, t in d.plain:
-            new = done[flat(texts[k])]
-            k += 1
-            for c in list(el):
-                el.remove(c)
-            el.text = new
-    for d in docs:
-        if d.kind == "opf":
-            for e in d.root.iter(f"{{{NS_DC}}}language"):
-                e.text = tgt
-        elif d.kind == "xhtml":
-            for e in d.root.iter("{*}html"):
-                for a in ("lang", XML_LANG):
-                    if e.get(a) is not None:
-                        e.set(a, tgt)
-    new = {d.name: _dump(d.root, d.data) for d in docs}
-    with zipfile.ZipFile(dest, "w") as out:
-        for info in sorted(z.infolist(), key=lambda i: i.filename != "mimetype"):
-            data = new.get(info.filename, z.read(info.filename))
-            ct = zipfile.ZIP_STORED if info.filename == "mimetype" else zipfile.ZIP_DEFLATED
-            out.writestr(zipfile.ZipInfo(info.filename, info.date_time), data, ct)
-    z.close()
-    return len(runs)
+                if r.tagged:
+                    segs = inline.decode(out, frozenset(r.links))
+                    if segs and not markers_ok("".join(s for s, _ in segs), ids):
+                        segs = None
+                elif markers_ok(out, ids):
+                    segs = [(out, r.single)]
+                if segs:
+                    rebuild(r, segs)
+                else:
+                    retry.append(r)
+            return retry
+
+        retry = await asyncio.to_thread(apply)
+        again = await translate([r.plain for r in retry]) if retry else {}
+
+        def finish() -> None:
+            for r in retry:
+                rebuild(r, [(fix_markers(again[r.plain], set(r.atoms)), Fmt())])
+            k = len(runs)
+            for d in docs:
+                for el, t in d.plain:
+                    new = done[flat(texts[k])]
+                    k += 1
+                    for c in list(el):
+                        el.remove(c)
+                    el.text = new
+            for d in docs:
+                if d.kind == "opf":
+                    for e in d.root.iter(f"{{{NS_DC}}}language"):
+                        e.text = tgt
+                elif d.kind == "xhtml":
+                    for e in d.root.iter("{*}html"):
+                        for a in ("lang", XML_LANG):
+                            if e.get(a) is not None:
+                                e.set(a, tgt)
+            new = {d.name: _dump(d.root, d.data) for d in docs}
+            with zipfile.ZipFile(dest, "w") as out:
+                for info in sorted(z.infolist(), key=lambda i: i.filename != "mimetype"):
+                    data = new.get(info.filename, z.read(info.filename))
+                    ct = zipfile.ZIP_STORED if info.filename == "mimetype" else zipfile.ZIP_DEFLATED
+                    out.writestr(zipfile.ZipInfo(info.filename, info.date_time), data, ct)
+
+        await asyncio.to_thread(finish)
+        return len(runs)
+    finally:
+        z.close()

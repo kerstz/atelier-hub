@@ -127,7 +127,7 @@ async def upload(request: Request, name: str):
     dest = data_dir() / "uploads" / f"{uuid.uuid4().hex[:8]}-{safe}"
     with open(dest, "wb") as f:
         async for chunk in request.stream():
-            f.write(chunk)
+            await asyncio.to_thread(f.write, chunk)
     return {"path": str(dest), "name": safe}
 
 
@@ -310,13 +310,14 @@ async def events():
     async def gen():
         try:
             yield "retry: 2000\n\n"
-            while True:
+            while q not in manager.dropped:
                 try:
                     event, data = await asyncio.wait_for(q.get(), 15)
                 except asyncio.TimeoutError:
                     yield ": ping\n\n"
                     continue
                 yield f"event: {event}\ndata: {data}\n\n"
+            # fell behind: end the stream; EventSource reconnects and the page reloads /api/jobs
         finally:
             manager.unsubscribe(q)
 

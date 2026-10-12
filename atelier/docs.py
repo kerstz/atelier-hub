@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import os
 import re
@@ -49,27 +50,36 @@ async def translate_texts(ctx: Ctx, texts: list[str], src, tgt, glossary, lo: fl
 
 async def do_office(ctx: Ctx, path: Path, ext: str, name: str, src, tgt, glossary, out: Path) -> Path:
     ctx.set(0.02, "lecture…")
-    slots, save = LOADERS[ext](path)
+    slots, save = await asyncio.to_thread(LOADERS[ext], path)
     if not slots:
         raise RuntimeError("aucun texte à traduire")
     texts = [s.tagged or flat(s.text) for s in slots]
     done = await translate_texts(ctx, texts, src, tgt, glossary, 0.05, 0.9)
-    retry = []
-    for s, t in zip(slots, texts):
-        segs = inline.decode(done[t], s.links) if s.tagged else None
-        if segs:
-            s.put_segs(segs)
-        elif s.tagged:
-            retry.append(s)
-        else:
-            s.put(done[t])
+
+    def apply() -> list:
+        retry = []
+        for s, t in zip(slots, texts):
+            segs = inline.decode(done[t], s.links) if s.tagged else None
+            if segs:
+                s.put_segs(segs)
+            elif s.tagged:
+                retry.append(s)
+            else:
+                s.put(done[t])
+        return retry
+
+    retry = await asyncio.to_thread(apply)
     if retry:
         plain = [flat(s.text) for s in retry]
         again = await translate_texts(ctx, plain, src, tgt, glossary, 0.9, 0.95)
-        for s, t in zip(retry, plain):
-            s.put(again[t])
+
+        def apply_plain() -> None:
+            for s, t in zip(retry, plain):
+                s.put(again[t])
+
+        await asyncio.to_thread(apply_plain)
     dest = out / f"{name}.{tgt}{ext}"
-    save(dest)
+    await asyncio.to_thread(save, dest)
     return dest
 
 

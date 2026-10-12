@@ -19,6 +19,7 @@ class Kind:
 
 
 KINDS: dict[str, Kind] = {}
+MIN_INTERVAL = 0.25  # s between progress broadcasts per job
 
 
 def register(name: str, handler, gpu=False, frees_vram: bool = False, keep_uploads: bool = False) -> None:
@@ -47,6 +48,10 @@ class Manager:
         self.gpu_lock = asyncio.Lock()
         self.tasks: dict[int, asyncio.Task] = {}
         self.subs: set[asyncio.Queue] = set()
+        self.dropped: set[asyncio.Queue] = set()  # subscribers that fell behind: their stream ends, client resyncs
+        self._last: dict[int, float] = {}
+        self._pending: dict[int, dict] = {}
+        self._timers: dict[int, asyncio.TimerHandle] = {}
 
     def subscribe(self) -> asyncio.Queue:
         q: asyncio.Queue = asyncio.Queue(maxsize=500)
@@ -55,6 +60,7 @@ class Manager:
 
     def unsubscribe(self, q: asyncio.Queue) -> None:
         self.subs.discard(q)
+        self.dropped.discard(q)
 
     def emit(self, event: str, payload: dict) -> None:
         item = (event, json.dumps(payload))
@@ -63,10 +69,30 @@ class Manager:
                 q.put_nowait(item)
             except asyncio.QueueFull:
                 self.subs.discard(q)
+                self.dropped.add(q)
 
     def update(self, jid: int, **f) -> None:
-        db.update(jid, **f)
+        """Persist + broadcast. Progress/message-only updates are coalesced to ~4/s (trailing flush);
+        status changes always go through immediately and carry any pending fields."""
+        pend = self._pending.setdefault(jid, {})
+        if f and "status" not in f and time.monotonic() - self._last.get(jid, 0) < MIN_INTERVAL:
+            pend.update(f)
+            if jid not in self._timers:
+                self._timers[jid] = asyncio.get_running_loop().call_later(MIN_INTERVAL, self._flush, jid)
+            return
+        self._write(jid, {**pend, **f})
+
+    def _write(self, jid: int, f: dict) -> None:
+        self._pending.get(jid, {}).clear()
+        self._last[jid] = time.monotonic()
+        if f:
+            db.update(jid, **f)
         self.emit("job", db.get(jid))
+
+    def _flush(self, jid: int) -> None:
+        self._timers.pop(jid, None)
+        if self._pending.get(jid):
+            self._write(jid, dict(self._pending[jid]))
 
     def submit(self, kind: str, title: str, params: dict) -> dict:
         k = KINDS[kind]
@@ -107,6 +133,10 @@ class Manager:
             if held:
                 self.gpu_lock.release()
             self.tasks.pop(jid, None)
+            self._pending.pop(jid, None)
+            self._last.pop(jid, None)
+            if t := self._timers.pop(jid, None):
+                t.cancel()
 
     def cancel(self, jid: int) -> bool:
         t = self.tasks.get(jid)
