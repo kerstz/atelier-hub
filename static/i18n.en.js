@@ -106,6 +106,7 @@ const I18N_EN = {
   "Petite machine: PDF (pdf2zh) et vision indisponibles, résumé limité.": "Small machine: PDF (pdf2zh) and vision unavailable, summaries limited.",
   "Le bureau occupe déjà une bonne part de la VRAM.": "The desktop already uses a good part of the VRAM.",
   "Peu de RAM disponible en ce moment: fermer des applications avant un gros document.": "Little RAM available right now: close applications before a big document.",
+  "traduction": "translation", "présent": "present", "Écouter, MP3": "Listen, MP3",
   "Progression": "Progress", "Tout est en place": "Everything is in place",
 };
 
@@ -176,6 +177,7 @@ const I18N_RX = [
   [/^langue non couverte par NLLB$/, "language not covered by NLLB"],
   // generic prefixes last, so specific messages above win
   [/^— (.*)$/, (m, x) => "— " + i18nTr(x)],
+  [/^(\d+(?:\.\d+)?) Go$/, "$1 GB"], [/^(\d+) Mo$/, "$1 MB"],
   [/^modèle (.*)$/, "model $1"], [/^voix (.*)$/, "voice $1"], [/^manque (.*)$/, "missing $1"],
 ];
 

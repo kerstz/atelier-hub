@@ -23,6 +23,11 @@ const i18n = (() => {
         }
       }
     }
+    if (out === undefined && core.includes(" : ")) {  // "Label : file.ext" job titles built by the tabs
+      const i = core.indexOf(" : ");
+      const head = translate(core.slice(0, i));
+      if (head !== core.slice(0, i)) out = `${head}: ${core.slice(i + 3)}`;
+    }
     if (out === undefined) {
       const sep = [" · ", " — "].find((x) => core.includes(x));
       if (sep) {
