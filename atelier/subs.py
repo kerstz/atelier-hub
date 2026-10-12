@@ -14,11 +14,6 @@ from .youtube import PCT_RE, QUALITIES, _check_url, _mode_args, _net_args
 PROG_RE = re.compile(r"progress\s*=\s*(\d+)%")
 AUDIO_EXT = {".mp3", ".m4a", ".wav", ".flac", ".ogg", ".opus", ".aac", ".wma"}
 SKIP_EXT = {".srt", ".vtt", ".part", ".ytdl", ".json", ".webp", ".jpg", ".png"}
-ISO3 = {
-    "en": "eng", "fr": "fra", "es": "spa", "de": "deu", "it": "ita", "pt": "por", "nl": "nld",
-    "pl": "pol", "ru": "rus", "uk": "ukr", "cs": "ces", "sv": "swe", "tr": "tur", "ar": "ara",
-    "hi": "hin", "vi": "vie", "ja": "jpn", "ko": "kor", "zh": "zho",
-}
 
 
 async def translate_cues(ctx: Ctx, cues: list[srt.Cue], src: str, tgt: str, glossary, lo: float, hi: float) -> list[str]:
@@ -66,7 +61,7 @@ async def fetch_url(ctx, url, src, force_whisper, want_video, quality, work, hi)
     found = None
     if not force_whisper:
         ctx.set(0, "sous-titres existants…")
-        pat = ("en" if src == "auto" else src) + ".*"
+        pat = translate.sub_langs("en" if src == "auto" else src)
         flags = ["--write-subs"] + (["--write-auto-subs"] if cfg["subtitles"]["use_auto_captions"] else [])
         await run_cmd(_ytdlp(work, url, "--skip-download", *flags, "--sub-langs", pat, "--convert-subs", "srt"))
         files = sorted(work.glob("*.srt"))
@@ -91,7 +86,8 @@ async def transcribe(ctx: Ctx, media: Path, lang: str, work: Path, lo: float, hi
     if not shutil.which(bin_) or not model.is_file():
         raise RuntimeError("whisper.cpp absent: scripts/build-whisper.sh")
     wav = work / "audio.wav"
-    ctx.set(lo, "extraction audio…")
+    wl = translate.whisper_code(lang)
+    ctx.set(lo, "extraction audio…" if wl == lang else "pas de modèle Whisper pour cette langue: détection automatique…")
     await run_cmd(
         ["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(media), "-vn", "-ar", "16000",
          "-ac", "1", "-c:a", "pcm_s16le", str(wav)]
@@ -106,7 +102,7 @@ async def transcribe(ctx: Ctx, media: Path, lang: str, work: Path, lo: float, hi
         if cfg["gpu"]["free_vram"]:
             await ollama.unload_all()
         await run_cmd(
-            [bin_, "-m", str(model), "-f", str(wav), "-l", lang, "-osrt", "-of", str(work / "whisper"),
+            [bin_, "-m", str(model), "-f", str(wav), "-l", wl, "-osrt", "-of", str(work / "whisper"),
              "-pp", "-t", str(cfg["whisper"]["threads"])],
             feed,
         )
@@ -121,7 +117,7 @@ async def mux(video: Path, sub: Path, dest: Path, lang: str) -> None:
     await run_cmd(
         ["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(video), "-i", str(sub),
          "-map", "0", "-map", "1:0", "-c", "copy",
-         f"-metadata:s:s:{n}", f"language={ISO3.get(lang, 'und')}",
+         f"-metadata:s:s:{n}", f"language={translate.iso3(lang)}",
          f"-metadata:s:s:{n}", f"title={translate.LANGS[lang][1].capitalize() if lang in translate.LANGS else 'Original'}",
          f"-disposition:s:{n}", "default", str(dest)]
     )

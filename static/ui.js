@@ -159,6 +159,31 @@ const ui = (() => {
     if (value != null) sel.value = value;
   }
 
+  // Language <select> with the explanation of the selected language shown under its row, plus its
+  // sibling variants (pt/pt-BR, zh/zh-TW, filipino/cebuano…). `prefix` labels the note ("Source", "Cible").
+  function langPicker(sel, langs, {value, auto = true, prefix = ""} = {}) {
+    const list = langs.filter((l) => auto || l.code !== "auto");
+    select(sel, list.map((l) => [l.code, l.name]), value);
+    if (!sel.value) sel.selectedIndex = 0;
+    const row = sel.closest(".lang-row, .field-row") || sel.parentElement;
+    const note = h("p", "dim lang-note");
+    note.setAttribute("aria-live", "polite");
+    let after = row;
+    while (after.nextElementSibling?.classList.contains("lang-note")) after = after.nextElementSibling;
+    after.after(note);
+    const paint = () => {
+      const l = langs.find((x) => x.code === sel.value);
+      const parts = [];
+      if (l?.note) parts.push(l.note);
+      if (l?.variants?.length) parts.push(`Autres variantes : ${l.variants.map((v) => v.name).join(", ")}.`);
+      note.textContent = parts.length ? `${prefix ? prefix + " — " : ""}${l.name} : ${parts.join(" ")}` : "";
+      note.hidden = !parts.length;
+    };
+    sel.addEventListener("change", paint);
+    paint();
+    return paint;
+  }
+
   function segmented(box, options, value, onchange) {
     let cur = value;
     box.classList.add("segmented");
@@ -244,5 +269,5 @@ const ui = (() => {
 
   const dismiss = () => (closeModal ? (closeModal(false), true) : false);
 
-  return {dismiss, h, icon, iconize, button, card, toast, modal, progress, empty, skeleton, copy, select, segmented, dropzone, chips, disclosure, viewer};
+  return {dismiss, h, icon, iconize, button, card, toast, modal, progress, empty, skeleton, copy, select, langPicker, segmented, dropzone, chips, disclosure, viewer};
 })();

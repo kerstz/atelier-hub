@@ -88,8 +88,8 @@
 
   (async () => {
     const langs = await (await fetch("/api/langs")).json();
-    ui.select($src, langs.map((l) => [l.code, l.name]), store.get("st.src", "en"));
-    ui.select($tgt, langs.filter((l) => l.code !== "auto").map((l) => [l.code, l.name]), store.get("st.tgt", "fr"));
+    ui.langPicker($src, langs, {value: store.get("st.src", "en"), prefix: "Source"});
+    ui.langPicker($tgt, langs, {value: store.get("st.tgt", "fr"), auto: false, prefix: "Cible"});
     $mux.checked = !!store.get("st.mux", "");
     $("#st-tr").checked = store.get("st.tr", "1") === "1";
     $("#st-q-wrap").hidden = !$mux.checked;

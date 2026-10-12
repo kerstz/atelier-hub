@@ -179,3 +179,13 @@ decisions:
 - Sorties: free_base() choisit "<nom> (2)" si une sortie du lot existe déjà (subs: .srt/.mkv; docs: <nom>.<tgt>.*; ocr; résumé).
 env: redémarrer le service. smoke-all (quick): 246 ok, 0 FAIL.
 next: audit entièrement traité. Idées post-audit: panneau Dépendances, contexte inter-blocs Traduire, glossaires serveur, chaînage d'outils, disque, a11y. Demande en cours: langues supplémentaires (philippin).
+
+## Phase 17 — Langues supplémentaires + explications des variantes (smoke17.sh)
+done: 16 langues ajoutées (fil, ceb, pt-BR, zh-TW, id, ms, th, he, fa, bn, el, ro, hu, bg, da, fi), META par langue (whisper, iso3, yt-dlp, family, note), ui.langPicker (explication sous les sélecteurs Traduire / Sous-titres / Documents).
+decisions (analyse Opus, lecture seule):
+- LANGS reste (EN, FR); détails dans translate.META: whisper_code() ("auto" si pas de modèle Whisper: ceb), iso3(), sub_langs() (fil -> `fil.*,tl.*`, he -> `he.*,iw.*`, pt-BR/zh-TW avec repli sur la langue de base). ISO3 de subs.py supprimé.
+- Philippin = deux langues distinctes: fil (langue nationale, base tagalog, dictée via -l tl) et ceb (Visayas/Mindanao, non intelligible avec fil, traduction expérimentale, dictée en auto).
+- Variantes affichées côte à côte avec note de différence: pt/pt-BR, zh (simplifié)/zh-TW (traditionnel), fil/ceb, id/ms; RTL signalé pour ar/he/fa. `/api/langs` expose note + variants.
+- Noms FR existants précisés: pt "portugais (Portugal)", zh "chinois simplifié". Langue pt-BR/zh-TW: prompt "Brazilian Portuguese (pt-BR)" / "Traditional Chinese (zh-TW)".
+risques non vérifiés (pas de réseau/modèle): codes attendus par translategemma pour fil/pt-BR/zh-TW (tester "Filipino (fil)" vs "Tagalog (tl)" sur 2-3 phrases), qualité ceb/ms, chunk() sur le thaï (pas de ponctuation .!?), PDF droite-gauche dégradé, OCR: tesseract-data seulement fra+eng (ocr_langs global).
+env: redémarrer le service. Voix Piper: aucune par défaut pour ces langues (ajouter [tts.voices]).

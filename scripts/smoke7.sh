@@ -70,10 +70,10 @@ subs.run_cmd, subs.shutil.which = fake, lambda _: "x"
 mdl = d / "m.bin"; mdl.write_text("x"); cfg["whisper"]["model"] = str(mdl)
 class Ctx:
     def set(self, *a, **k): pass
-for lang in ("fr", "auto"):
+for lang in ("fr", "auto", "fil", "ceb"):
     asyncio.run(subs.transcribe(Ctx(), d / "x.mp3", lang, d, 0, 1))
 wh = [a for a in seen if "-l" in a]
-check("whisper -l fr puis auto", [a[a.index("-l") + 1] for a in wh] == ["fr", "auto"])
+check("whisper -l: fr, auto, fil->tl, ceb (sans modèle)->auto", [a[a.index("-l") + 1] for a in wh] == ["fr", "auto", "tl", "auto"])
 raise SystemExit(0 if ok else 1)
 PY
 t "hors-ligne" "[ $? = 0 ]"

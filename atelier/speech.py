@@ -92,7 +92,7 @@ async def dictate(ctx: Ctx, p: dict) -> None:
         await run_cmd(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(path), "-vn", "-ar", "16000",
                        "-ac", "1", "-c:a", "pcm_s16le", str(wav)])
         ctx.set(0.3, "transcription…")
-        await run_cmd([bin_, "-m", str(model), "-f", str(wav), "-l", lang, "-nt", "-otxt", "-of", str(work / "t"),
+        await run_cmd([bin_, "-m", str(model), "-f", str(wav), "-l", translate.whisper_code(lang), "-nt", "-otxt", "-of", str(work / "t"),
                        "-t", str(cfg["whisper"]["threads"])])
         txt = (work / "t.txt").read_text(encoding="utf-8", errors="replace") if (work / "t.txt").is_file() else ""
     finally:
