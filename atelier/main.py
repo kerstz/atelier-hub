@@ -14,7 +14,7 @@ from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import convert, db, docs, gpu, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
+from . import audio, convert, db, docs, gpu, images, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
 from .config import ROOT, data_dir, output_dir
 from .jobs import KINDS, manager
 
@@ -25,8 +25,9 @@ LOCAL_HOSTS = {"127.0.0.1", "localhost"}
 async def lifespan(_: FastAPI):
     db.init()
     output_dir().mkdir(parents=True, exist_ok=True)
-    for sub in ("youtube", "subs", "docs", "convert"):
+    for sub in ("youtube", "subs", "docs", "convert", "audio", "images"):
         output_dir(sub).mkdir(exist_ok=True)
+    speech.purge_listen()
     up = data_dir() / "uploads"
     up.mkdir(exist_ok=True)
     for f in up.iterdir():

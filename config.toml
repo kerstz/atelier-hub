@@ -62,6 +62,30 @@ vaapi_device = "/dev/dri/renderD128"
 # conversions simultanées (hors file GPU)
 jobs = 2
 
+[tts]
+# uv tool install piper-tts ; voix: python -m piper.download_voices <voix> --download-dir <voices_dir>
+bin = "piper"
+voices_dir = "~/.local/share/piper"
+# langue -> voix (défauts: fr/en/de/es/it ; ajouter sous [tts.voices])
+[tts.voices]
+fr = "fr_FR-siwis-medium"
+
+[images]
+# AUR realesrgan-ncnn-vulkan ; models_dir vide = dossier models à côté du binaire
+realesrgan_bin = "realesrgan-ncnn-vulkan"
+models_dir = ""
+gpu_id = 0
+# uv tool install "rembg[cpu,cli]"
+rembg_bin = "rembg"
+rembg_model = "u2net"
+
+[audio]
+# uv tool install demucs ; device: auto | cpu | cuda (ROCm torch = cuda)
+demucs_bin = "demucs"
+demucs_device = "auto"
+# binaire deep-filter (DeepFilterNet releases) ou "deepFilter" (uv tool install deepfilternet)
+deepfilter_bin = "deep-filter"
+
 # Services externes : sonde de port + démarrage/arrêt (jamais d'installation).
 # unit = unité systemd --user ; dir = dossier docker compose (+ file optionnel).
 # Sans unit ni dir : sonde + lien seulement.

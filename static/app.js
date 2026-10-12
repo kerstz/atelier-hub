@@ -60,7 +60,7 @@ function jobCard(j) {
   if (j.status === "done" && j.output) {
     btns.append(ui.button("Ouvrir le dossier", {size: "sm", icon: "folder-open", onclick: () => post(`/api/jobs/${j.id}/open`)}));
   }
-  if (j.status === "done" && j.kind === "convert") {
+  if (j.status === "done" && /\.[A-Za-z0-9]{2,5}$/.test(j.output || "") && j.kind !== "youtube") {
     btns.append(ui.button("Télécharger", {size: "sm", icon: "download", onclick: () => (location.href = `/api/jobs/${j.id}/download`)}));
   }
   if (btns.children.length) li.append(btns);
