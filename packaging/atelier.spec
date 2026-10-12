@@ -1,4 +1,5 @@
 # PyInstaller spec (onedir). Build: scripts/build-win.ps1
+import os
 import pathlib
 import sys
 
@@ -14,7 +15,7 @@ datas = [("../static", "static"), ("../config.toml", "."), ("../atelier/voiceliv
 for pkg in ("docx", "pptx", "openpyxl"):
     datas += collect_data_files(pkg)
 
-a = Analysis(["../scripts/atelier_win.py"], pathex=[".."], datas=datas, hiddenimports=hidden, excludes=["pytest"])
+a = Analysis(["../scripts/atelier_win.py"], pathex=[os.path.abspath(os.path.join(SPECPATH, ".."))], datas=datas, hiddenimports=hidden, excludes=["pytest"])
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="Atelier", console=False, icon="atelier.ico" if sys.platform == "win32" else None)
 coll = COLLECT(exe, a.binaries, a.datas, name="Atelier")
