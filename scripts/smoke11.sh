@@ -117,9 +117,11 @@ shutil.copy(d / "in.png", d / "a.png")
 r, _ = go("image", path=str(d / "a.png"), action="upscale", factor=2)
 w = subprocess.run(["vipsheader", "-f", "width", r], capture_output=True, text=True, env={"VIPS_WARNING": "0", "PATH": "/usr/bin"}).stdout.split()[-1] if isinstance(r, str) else "0"
 check("x2 = x4 puis /2 (128)", w == "128")
-shutil.copy(d / "in.png", d / "a.png")
-r, _ = go("image", path=str(d / "a.png"), action="rembg", model="u2net")
-check("rembg -> .sans-fond.png, source consommée", isinstance(r, str) and r.endswith("sans-fond.png") and not (d / "a.png").exists())
+(d / "data" / "uploads").mkdir(exist_ok=True)
+up = d / "data" / "uploads" / "abcd1234-a.png"
+shutil.copy(d / "in.png", up)
+r, _ = go("image", path=str(up), action="rembg", model="u2net")
+check("rembg -> .sans-fond.png, upload consommé", isinstance(r, str) and r.endswith("sans-fond.png") and not up.exists())
 r, _ = go("image", path=str(d / "a.png"), action="rembg", model="evil; rm")
 check("rembg modèle invalide refusé", isinstance(r, Exception))
 
