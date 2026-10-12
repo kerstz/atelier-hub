@@ -90,8 +90,8 @@ def serve(path: Path, window, webview) -> None:
             window.show()
         except Exception:
             pass
-        try:  # GTK: ask the compositor for focus
-            window.native.window.present()
+        try:  # GTK: ask the compositor for focus (window.native is the Gtk.ApplicationWindow)
+            window.native.present()
         except Exception:
             pass
 
@@ -113,27 +113,53 @@ def serve(path: Path, window, webview) -> None:
     threading.Thread(target=loop, daemon=True).start()
 
 
+def gtk_view(window):
+    """The pywebview GTK BrowserView of `window` (window.native is only the Gtk.ApplicationWindow)."""
+    from webview.platforms.gtk import BrowserView
+
+    return BrowserView.instances.get(window.uid)
+
+
 def recover_from_crashes(window, state: dict) -> None:
     """WebKit's render process can abort (seen on WebKitGTK 2.54 / Mesa): reload the page instead of leaving a
     dead window; after 3 crashes in 2 minutes give up with exit code 2 so the launcher opens a browser."""
     def hook() -> bool:
         try:
-            view = window.native.webview
+            view = gtk_view(window).webview
             from gi.repository import GLib
-        except Exception:
+        except Exception as e:
+            state["hook_error"] = repr(e)
+            try:
+                with open(runtime_dir() / "desktop.log", "a") as f:
+                    f.write(f"{time.strftime('%F %T')} crash recovery NOT armed: {e!r}\n")
+            except OSError:
+                pass
             return False
 
-        def on_crash(wv, *_):
+        def log(msg: str) -> None:
+            try:
+                p = runtime_dir() / "desktop.log"
+                with open(p, "a") as f:
+                    f.write(f"{time.strftime('%F %T')} {msg}\n")
+            except OSError:
+                pass
+
+        def on_crash(wv, reason=None, *_):
             now = time.monotonic()
             state["crashes"] = [t for t in state.get("crashes", []) if now - t < 120] + [now]
+            log(f"web process terminated (reason={reason}), crash #{len(state['crashes'])}")
             if len(state["crashes"]) > 3:
                 state["gave_up"] = True
+                log("too many crashes: giving up (launcher falls back to a browser)")
                 GLib.idle_add(window.destroy)
             else:
-                GLib.idle_add(wv.reload)
+                # a plain reload() of a dead view can stay white: load the URL again on a fresh process
+                target = wv.get_uri() or state.get("url") or "http://127.0.0.1:7777/"
+                GLib.timeout_add(400, lambda: (wv.load_uri(target), log(f"reloaded {target}"), False)[-1])
             return False
 
         view.connect("web-process-terminated", on_crash)
+        log("crash recovery armed")
         return False
 
     try:
@@ -182,7 +208,7 @@ def main() -> int:
     window.events.resized += lambda w, h: saver.update(width=w, height=h)
     window.events.moved += lambda x, y: saver.update(x=x, y=y)
     window.events.closing += lambda: saver.flush()
-    state: dict = {}
+    state: dict = {"url": a.url}
     if a.gui == "gtk":
         recover_from_crashes(window, state)
     try:
