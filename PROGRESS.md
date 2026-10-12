@@ -119,5 +119,5 @@ decisions:
 - Upscale: realesrgan-x4plus (photo) / x4plus-anime, toujours x4 puis vips resize 0.5 pour ×2; plafond 24 MP en entrée. Sortie png. Verrou GPU. rembg: CPU, modèles u2net/isnet-general-use/u2net_human_seg/isnet-anime.
 - Audio: demucs htdemucs (4 pistes ou --two-stems vocals), entrée convertie wav 44.1k stéréo, sortie dossier "<nom> (pistes)"; deep-filter sur wav 48k mono. CPU lourd en série (Semaphore HEAVY). demucs_device auto => verrou GPU.
 - Bouton Télécharger de la tray: affiché pour toute sortie fichier (extension), sauf youtube.
-env: piper 1.8.0 (+voix fr_FR-siwis-medium) et rembg installés, flags piper vérifiés réel. ABSENTS: realesrgan-ncnn-vulkan (pas de yay: zip GitHub → ~/.local/opt/realesrgan, config realesrgan_bin avec ~), deep-filter. rembg: modèle u2net à télécharger au 1er usage.
+env: piper 1.8.0 (+voix fr_FR-siwis-medium) et rembg installés, flags piper vérifiés réel. realesrgan (~/.local/opt/realesrgan, testé RX 6900 XT) et deep-filter (~/.local/bin) installés, flags vérifiés réel. rembg: modèle u2net à télécharger au 1er usage.
 next: installer + `systemctl --user restart atelier` + smoke11; phase 12 (desktop) puis audit Opus 5.5.
