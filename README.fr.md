@@ -33,6 +33,7 @@ sans réseau.
   expliquées (portugais PT/BR, chinois simplifié/traditionnel, philippin vs cebuano…).
 - **S'adapte à votre matériel** : choisit les modèles selon votre GPU/RAM, et bascule sur **NLLB-200 en CPU**
   pour qu'un petit PC traduise quand même.
+- **Résultats dans l'app** : voir sous-titres/texte, aperçu d'images, lecture audio/vidéo (H.264/AAC préparé et mis en cache, sous-titres, repli mpv).
 - **Tout dans une file** : progression SSE, annulation, relance, journal par tâche, notifications de bureau,
   une tâche GPU à la fois (modèles déchargés avant les jobs GPU hors Ollama).
 - **Fenêtre native ou navigateur** : fenêtre pywebview optionnelle avec entrée de menu, reprise sur crash et
@@ -50,7 +51,7 @@ sans réseau.
 | **Documents** | PDF (pdf2zh-next, mono + bilingue, OCR automatique des scans) · DOCX / PPTX / XLSX avec mise en forme inline conservée · EPUB avec table des matières + métadonnées conservées |
 | **Convertir** | Vidéo/audio (ffmpeg, VAAPI h264/hevc, AV1 en CPU) · images (libvips) · documents (pandoc + LibreOffice) · e-books (calibre) · lot + zip |
 | **Images** | Agrandissement ×2 / ×4 (Real-ESRGAN, Vulkan) · détourage (rembg) |
-| **Audio** | Séparation des pistes (Demucs) · réduction du bruit de la voix (DeepFilterNet) |
+| **Audio** | Séparation des pistes (Demucs) · réduction du bruit de la voix (DeepFilterNet) · **changeur de voix**: 15 voix zéro-shot FR/EN (Seed-VC, GPU) + effets, sur fichiers ou en direct vers un micro virtuel PipeWire — voir [docs/VOICES.md](docs/VOICES.md) |
 | **Services** | Sonde, démarrage et arrêt de vos autres services locaux (Open WebUI, Jellyfin…) |
 | **Système** | VRAM, modèles chargés, profil matériel, dépendances avec commandes d'installation, espace disque et nettoyage |
 

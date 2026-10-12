@@ -33,6 +33,7 @@ down.
   variants explained (Portuguese PT/BR, Chinese simplified/traditional, Filipino vs Cebuano…).
 - **Adapts to your hardware**: picks models for your GPU/RAM, and falls back to **NLLB-200 on CPU** so a
   small PC still translates.
+- **Results inside the app**: view subtitles/text, preview images, play audio/video (H.264/AAC prepared and cached, subtitles, mpv fallback).
 - **Everything in one queue**: progress over SSE, cancel, retry, per-job logs, desktop notifications, one GPU
   job at a time (models are unloaded before non-Ollama GPU jobs).
 - **Native window or browser**: optional pywebview window with a menu entry, crash recovery and a browser
@@ -49,8 +50,8 @@ down.
 | **Subtitles** | URL or local media/SRT → existing subtitles, else whisper.cpp → translated SRT (+ soft-sub mkv) · transcript summary with timestamped chapters |
 | **Documents** | PDF (pdf2zh-next, mono + bilingual, automatic OCR for scans) · DOCX / PPTX / XLSX with inline formatting kept · EPUB with TOC + metadata kept |
 | **Convert** | Video/audio (ffmpeg, VAAPI h264/hevc, AV1 on CPU) · images (libvips) · documents (pandoc + LibreOffice) · e-books (calibre) · batch + zip |
-| **Images** | Upscale ×2 / ×4 (Real-ESRGAN, Vulkan) · background removal (rembg) |
-| **Audio** | Stem separation (Demucs) · voice denoising (DeepFilterNet) |
+| **Images** | Upscale ×2 / ×4 (Real-ESRGAN, Vulkan) · background removal (rembg) · watermark area removal (ffmpeg delogo) |
+| **Audio** | Stem separation (Demucs) · voice denoising (DeepFilterNet) · **voice changer**: 15 zero-shot voices FR/EN (Seed-VC, GPU) + effects, on files or live to a virtual PipeWire mic — see [docs/VOICES.md](docs/VOICES.md) |
 | **Services** | Probe, start and stop your other local services (Open WebUI, Jellyfin…) |
 | **System** | VRAM, loaded models, hardware profile, dependency check with install commands, disk usage and cleanup |
 
