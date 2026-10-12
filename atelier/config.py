@@ -26,6 +26,9 @@ DEFAULTS = {
         "pdf_model": "", "qps": 2, "auto_glossary": False,
         "ocr_bin": "ocrmypdf", "ocr_langs": "fra+eng", "ocr_jobs": 4,
     },
+    "tts": {"bin": "piper", "voices_dir": "~/.local/share/piper"},
+    "images": {"realesrgan_bin": "realesrgan-ncnn-vulkan", "models_dir": "", "gpu_id": 0, "rembg_bin": "rembg", "rembg_model": "u2net"},
+    "audio": {"demucs_bin": "demucs", "demucs_device": "auto", "deepfilter_bin": "deep-filter"},
     "convert": {"vaapi_device": "/dev/dri/renderD128", "jobs": 2},
     "youtube": {"sub_langs": "en", "cookies_from_browser": "", "rate_limit": ""},
 }

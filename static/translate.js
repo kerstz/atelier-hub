@@ -2,7 +2,7 @@
   const $in = $("#tr-in"), $out = $("#tr-out"), $src = $("#tr-src"), $tgt = $("#tr-tgt");
   const $go = $("#tr-go"), $cancel = $("#tr-cancel"), $status = $("#tr-status"), $gloss = $("#tr-gloss");
   const bufs = new Map();
-  let langs = [], current = null, image = null;
+  let langs = [], current = null, image = null, dictJob = null;
   const IMG = /^image\/(png|jpeg|webp)$/;
 
   function showImage() {
@@ -76,6 +76,7 @@
 
   bus.addEventListener("delta", (e) => {
     const {id, text} = e.detail;
+    if (id === dictJob) return;
     bufs.set(id, (bufs.get(id) ?? "") + text);
     if (id === current) {
       $out.value = bufs.get(id);
@@ -95,6 +96,98 @@
       if (j.status === "done") loadHistory();
     }
   });
+
+  // ---- dictée (micro -> whisper -> champ source) et lecture (Piper)
+  const $mic = $("#tr-mic"), $listen = $("#tr-listen"), $mp3 = $("#tr-mp3");
+  const label = (b, t) => (b.querySelector("span").textContent = t);
+  let rec = null, recTimer = null, audio = null, ttsJob = null, ttsMode = null;
+
+  async function toggleMic() {
+    if (rec) return rec.stop();
+    if (dictJob) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") return ui.toast("Micro indisponible", "bad");
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    } catch {
+      return ui.toast("Accès au micro refusé", "bad");
+    }
+    const chunks = [];
+    const r = (rec = new MediaRecorder(stream));
+    const t0 = Date.now();
+    r.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    r.onstop = async () => {
+      clearInterval(recTimer);
+      stream.getTracks().forEach((t) => t.stop());
+      rec = null;
+      label($mic, "Dicter");
+      $mic.classList.remove("danger");
+      if (!chunks.length) return;
+      $status.textContent = "Envoi de la dictée…";
+      try {
+        const file = new File(chunks, "dictee.webm", {type: chunks[0].type || "audio/webm"});
+        const path = await uploadFile(file);
+        const res = await post("/api/jobs", {kind: "dictate", title: "Dictée", params: {path, lang: $src.value}});
+        if (!res.ok) throw new Error();
+        dictJob = (await res.json()).id;
+        $status.textContent = "Transcription…";
+      } catch {
+        $status.textContent = "";
+        ui.toast("Dictée échouée", "bad");
+      }
+    };
+    r.start();
+    $mic.classList.add("danger");
+    recTimer = setInterval(() => {
+      const s = Math.round((Date.now() - t0) / 1000);
+      label($mic, `Arrêter ${s} s`);
+      if (s >= 300) r.stop();
+    }, 500);
+    label($mic, "Arrêter 0 s");
+  }
+
+  function stopAudio() {
+    audio?.pause();
+    audio = null;
+    label($listen, "Écouter");
+  }
+
+  async function speak(mode) {
+    if (mode === "listen" && audio) return stopAudio();
+    const text = $out.value.trim();
+    if (!text || ttsJob) return;
+    ttsMode = mode;
+    const r = await post("/api/jobs", {kind: "tts", title: `Lecture ${$tgt.value} : ${text.slice(0, 30)}`, params: {text, lang: $tgt.value, mode}});
+    if (!r.ok) return ui.toast("Erreur de lancement", "bad");
+    ttsJob = (await r.json()).id;
+    $status.textContent = mode === "mp3" ? "Export mp3…" : "Synthèse vocale…";
+  }
+
+  bus.addEventListener("delta", (e) => {
+    if (e.detail.id !== dictJob) return;
+    $in.value = ($in.value ? $in.value.trimEnd() + " " : "") + e.detail.text;
+    $in.focus();
+  });
+  bus.addEventListener("job", (e) => {
+    const j = e.detail;
+    if (!["done", "failed", "cancelled"].includes(j.status)) return;
+    if (j.id === dictJob) {
+      dictJob = null;
+      $status.textContent = j.status === "done" ? "Dictée ajoutée." : `Dictée : ${j.error || "annulée"}`;
+    } else if (j.id === ttsJob) {
+      ttsJob = null;
+      if (j.status !== "done") return ($status.textContent = `Lecture : ${j.error || "annulée"}`);
+      $status.textContent = "";
+      if (ttsMode === "mp3") return ui.toast("MP3 enregistré dans ~/Atelier/audio", "ok");
+      audio = new Audio(`/api/jobs/${j.id}/download`);
+      audio.onended = audio.onerror = stopAudio;
+      label($listen, "Arrêter");
+      audio.play().catch(stopAudio);
+    }
+  });
+  $mic.onclick = toggleMic;
+  $listen.onclick = () => speak("listen");
+  $mp3.onclick = () => speak("mp3");
 
   async function loadHistory() {
     const ul = $("#tr-hist");

@@ -110,3 +110,14 @@ decisions:
 - EPUB: runs inline (b/i/liens=<aN>, code/img/br/notes sans lettres = atomes ⟦n⟧ re-posés tels quels, pre/script ignorés). Échec balises -> texte plat + atomes. TOC nav+NCX traduits, OPF: titre/description traduits, langue=cible, reste intact. Span imbriqué: wrapper externe retiré.
 env: pandoc, calibre absents (sudo pacman -S pandoc-cli calibre). Restart: `systemctl --user restart atelier`.
 next: phase 11 (à définir), puis phase 12 (appli desktop, spec fournie par l'utilisateur), puis gros audit avec Opus 5.5.
+
+## Phase 11 — TTS, dictée, Images, Audio (smoke11.sh: plomberie hors-ligne ok avec faux binaires; modèles réels non testés)
+done: speech.py (jobs tts + dictate), images.py (upscale/rembg), audio.py (demucs/deep-filter), util.py, onglets Images + Audio (media.js), Traduire: Dicter / Écouter / MP3, icônes mic/volume/image/music, config [tts] [images] [audio].
+decisions:
+- Piper: texte via stdin, `-m <voices_dir>/<voix>.onnx -f out.wav`. Voix par langue (défauts fr/en/de/es/it, surcharge [tts.voices]). Écouter = wav ~/Atelier/audio/.listen/<id>.wav (purgé >1 j au démarrage), MP3 = ~/Atelier/audio/*.mp3.
+- Dictée: MediaRecorder -> upload -> job dictate (whisper-cli -nt, verrou GPU) -> texte renvoyé par event delta (non persisté), ajouté à #tr-in. Langue = source (auto ok). Max 5 min.
+- Upscale: realesrgan-x4plus (photo) / x4plus-anime, toujours x4 puis vips resize 0.5 pour ×2; plafond 24 MP en entrée. Sortie png. Verrou GPU. rembg: CPU, modèles u2net/isnet-general-use/u2net_human_seg/isnet-anime.
+- Audio: demucs htdemucs (4 pistes ou --two-stems vocals), entrée convertie wav 44.1k stéréo, sortie dossier "<nom> (pistes)"; deep-filter sur wav 48k mono. CPU lourd en série (Semaphore HEAVY). demucs_device auto => verrou GPU.
+- Bouton Télécharger de la tray: affiché pour toute sortie fichier (extension), sauf youtube.
+env: ABSENTS: piper, realesrgan-ncnn-vulkan, rembg, deep-filter. Présents: demucs, whisper-cli. Flags piper non vérifiés sur binaire réel (CLI piper1-gpl).
+next: installer + `systemctl --user restart atelier` + smoke11; phase 12 (desktop) puis audit Opus 5.5.
