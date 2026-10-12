@@ -1,6 +1,7 @@
 import asyncio
 import shutil
 
+from . import plat
 from .config import ROOT, cfg
 
 SILENT = {"demo", "dictate"}
@@ -9,7 +10,7 @@ SILENT = {"demo", "dictate"}
 def finished(job: dict | None, params: dict, secs: float) -> None:
     """Desktop notification at job end. Never raises: a missing notify-send must not fail a job."""
     d = cfg["desktop"]
-    if not job or not d["notify"] or job["kind"] in SILENT or (job["kind"] == "tts" and params.get("mode") != "mp3"):
+    if plat.IS_WIN or not job or not d["notify"] or job["kind"] in SILENT or (job["kind"] == "tts" and params.get("mode") != "mp3"):
         return
     failed = job["status"] == "failed"
     if not failed and secs < float(d["notify_min_seconds"]):

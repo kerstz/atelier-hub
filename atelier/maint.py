@@ -6,7 +6,7 @@ from pathlib import Path
 
 import httpx
 
-from . import db, joblog, ollama
+from . import db, joblog, ollama, plat
 from .config import cfg, data_dir, output_dir
 from .proc import run_cmd
 from .speech import DEFAULT_VOICES
@@ -19,7 +19,23 @@ def _bin(name: str) -> str | None:
     return shutil.which(binpath(name))
 
 
+WINGET = {"ffmpeg": "Gyan.FFmpeg", "yt-dlp": "yt-dlp.yt-dlp", "poppler": "oschwartz10612.Poppler",
+          "pandoc-cli": "JohnMacFarlane.Pandoc", "libreoffice-fresh": "TheDocumentFoundation.LibreOffice",
+          "calibre": "calibre.calibre", "tesseract": "UB-Mannheim.TesseractOCR"}
+
+
+def _win_hint(hint: str) -> str:
+    if hint.startswith("sudo pacman -S "):
+        pkg = hint.split()[3]
+        return f"winget install {WINGET[pkg]}" if pkg in WINGET else "installateur Windows: voir la page du projet"
+    if hint.startswith("systemctl"):
+        return "lancer Ollama (menu Démarrer)"
+    return hint.replace("scripts/build-whisper.sh", "github.com/ggml-org/whisper.cpp/releases (zip Windows)")
+
+
 def _row(id_: str, label: str, ok: bool, detail: str, hint: str, used: str) -> dict:
+    if plat.IS_WIN:
+        hint = _win_hint(hint)
     return {"id": id_, "label": label, "ok": ok, "detail": detail, "hint": "" if ok else hint, "used_by": used}
 
 
@@ -93,9 +109,10 @@ async def deps() -> list[dict]:
     which("rembg", "rembg", c["images"]["rembg_bin"], 'uv tool install "rembg[cpu,cli]"', "Images (détourage)")
     which("demucs", "Demucs", c["audio"]["demucs_bin"], "uv tool install demucs", "Audio (pistes)")
     which("deep-filter", "DeepFilterNet", c["audio"]["deepfilter_bin"], "binaire deep-filter: github.com/Rikorose/DeepFilterNet/releases", "Audio (bruit)")
-    which("notify-send", "notify-send", "notify-send", "sudo pacman -S libnotify", "notifications")
-    clip = _bin("wl-paste") or _bin("xclip")
-    rows.append(_row("clipboard", "wl-paste / xclip", bool(clip), clip or "introuvable", "sudo pacman -S wl-clipboard", "actions presse-papiers"))
+    if not plat.IS_WIN:
+        which("notify-send", "notify-send", "notify-send", "sudo pacman -S libnotify", "notifications")
+        clip = _bin("wl-paste") or _bin("xclip")
+        rows.append(_row("clipboard", "wl-paste / xclip", bool(clip), clip or "introuvable", "sudo pacman -S wl-clipboard", "actions presse-papiers"))
     return rows
 
 

@@ -15,7 +15,7 @@ from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import audio, convert, db, docs, engines, gpu, hw, images, joblog, maint, media, player, speech, ocr, ollama, services, subs, summary, translate, voice, voicelive, youtube  # noqa: F401
+from . import audio, convert, plat, db, docs, engines, gpu, hw, images, joblog, maint, media, player, speech, ocr, ollama, services, subs, summary, translate, voice, voicelive, youtube  # noqa: F401
 from .config import ROOT, cfg, data_dir, output_dir
 from .jobs import KINDS, manager
 from .util import missing_uploads, upload_paths
@@ -240,11 +240,7 @@ async def open_job(jid: int):
     folder = path if path.is_dir() else path.parent
     if not folder.is_relative_to(output_dir().resolve()):
         raise HTTPException(403, "hors dossier de sortie")
-    await asyncio.create_subprocess_exec(
-        "xdg-open", str(folder), stdin=asyncio.subprocess.DEVNULL,
-        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
-        start_new_session=True,
-    )
+    plat.open_folder(str(folder))
     return {"ok": True}
 
 

@@ -99,6 +99,14 @@ Voie manuelle (toute distro) : `bash scripts/env-check.sh`, `uv sync --frozen`, 
 puis éventuellement `bash scripts/install-desktop.sh`. Atelier ne télécharge ni n'installe rien sans l'avoir
 listé d'abord.
 
+## Windows (expérimental)
+
+Même application, empaquetée en `Atelier.exe` (PyInstaller + fenêtre WebView2, installeur Inno Setup). Build sous Windows :
+`powershell -ExecutionPolicy Bypass -File scripts\build-win.ps1` ; outils manquants via `scripts\win-setup.ps1` (winget).
+Config : `%APPDATA%\Atelier\config.toml`, données : `%LOCALAPPDATA%\Atelier`. Indisponible sous Windows : voix en direct
+(micro virtuel PipeWire), notifications, services systemd (les services docker compose marchent). Pas encore testé sur un vrai
+Windows ; la CI construit l'exe et vérifie qu'il répond.
+
 ## Adaptation au matériel
 
 Atelier profile la machine (VRAM GPU — AMD/NVIDIA —, RAM, cœurs, AVX2) et choisit les modèles par rôle :

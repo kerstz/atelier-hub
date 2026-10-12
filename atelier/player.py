@@ -2,14 +2,17 @@
 Atelier only ever runs locally, and WebKitGTK's <audio> (GStreamer) aborts its web process in the native
 window, so "Écouter" plays through a system player instead of the browser."""
 import asyncio
-import shutil
-import signal
 import os
+import shutil
+
+from . import plat
 
 PLAYERS = [
     ("pw-play", []), ("paplay", []), ("aplay", ["-q"]),
     ("ffplay", ["-nodisp", "-autoexit", "-loglevel", "quiet"]), ("mpv", ["--no-video", "--really-quiet"]),
 ]
+if plat.IS_WIN:
+    PLAYERS = PLAYERS[3:]
 _proc: asyncio.subprocess.Process | None = None
 
 
@@ -25,17 +28,11 @@ async def stop() -> None:
     global _proc
     p, _proc = _proc, None
     if p and p.returncode is None:
-        try:
-            os.killpg(p.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
+        plat.kill_tree(p)
         try:
             await asyncio.wait_for(p.wait(), 3)
         except asyncio.TimeoutError:
-            try:
-                os.killpg(p.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+            plat.kill_tree(p, force=True)
 
 
 async def play(path: str) -> str:
@@ -49,7 +46,7 @@ async def play(path: str) -> str:
     _proc = await asyncio.create_subprocess_exec(
         shutil.which(name), *args, path,
         stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
-        start_new_session=True,
+        **plat.spawn_kw(),
     )
     return name
 
@@ -66,5 +63,5 @@ async def play_video(path: str, sub: str | None = None) -> str:
     if sub:
         argv.append(f"--sub-file={sub}")
     _proc = await asyncio.create_subprocess_exec(*argv, path, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL,
-                                                 stderr=asyncio.subprocess.DEVNULL, start_new_session=True)
+                                                 stderr=asyncio.subprocess.DEVNULL, **plat.spawn_kw())
     return "mpv"

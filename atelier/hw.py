@@ -7,6 +7,7 @@ import subprocess
 from functools import lru_cache
 from pathlib import Path
 
+from . import plat
 from .config import cfg, data_dir
 
 GIB = 1 << 30
@@ -33,6 +34,10 @@ def _gpus(sysfs: str) -> list[dict]:
             continue
         out.append({"vendor": vendor, "card": os.path.basename(os.path.dirname(dev)), "vram_total": total,
                     "vram_free": max(total - (used or 0), 0), "igpu": total < IGPU_MAX})
+    if plat.NT:
+        out.extend({"vendor": g["vendor"], "card": g["card"], "vram_total": g["total"],
+                    "vram_free": max(g["total"] - g["used"], 0), "igpu": g["total"] < IGPU_MAX}
+                   for g in plat.win_gpus() if g["vendor"] != "nvidia" or not shutil.which("nvidia-smi"))
     exe = os.environ.get("ATELIER_NVSMI") or shutil.which("nvidia-smi")
     if exe:
         try:
@@ -73,8 +78,8 @@ def _flags(proc: str) -> set[str]:
 
 def detect() -> dict:
     sysfs, proc = os.environ.get("ATELIER_SYSFS_ROOT", "/sys"), os.environ.get("ATELIER_PROC_ROOT", "/proc")
-    ram_total, ram_avail = _meminfo(proc)
-    flags = _flags(proc)
+    ram_total, ram_avail = plat.win_mem() if plat.NT else _meminfo(proc)
+    flags = plat.win_cpu_flags() if plat.NT else _flags(proc)
     gpus = _gpus(sysfs)
     real = [g for g in gpus if not g["igpu"]]
     best = max(real, key=lambda g: g["vram_total"], default=None)

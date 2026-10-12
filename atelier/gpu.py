@@ -1,6 +1,7 @@
 import glob
 import os
 
+from . import plat
 from .config import cfg
 
 
@@ -24,7 +25,20 @@ def _device() -> str | None:
     return best
 
 
+def _win_vram() -> dict | None:
+    cards = plat.win_gpus()
+    want = cfg["gpu"]["card"]
+    if want != "auto":
+        cards = [c for c in cards if want.lower() in c["card"].lower()] or cards
+    if not cards:
+        return None
+    c = max(cards, key=lambda g: g["total"])
+    return {"card": c["card"], "used": c["used"], "total": c["total"], "busy": None}
+
+
 def vram() -> dict | None:
+    if plat.IS_WIN:
+        return _win_vram()
     dev = _device()
     if not dev:
         return None

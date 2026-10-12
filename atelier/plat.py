@@ -1,0 +1,143 @@
+"""Platform layer: everything that differs between Linux and Windows lives here.
+ATELIER_FAKE_WIN=1 flips argv/kwargs decisions on Linux for tests (real Windows APIs stay guarded by os.name)."""
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+NT = os.name == "nt"
+IS_WIN = NT or os.environ.get("ATELIER_FAKE_WIN") == "1"
+FROZEN = bool(getattr(sys, "frozen", False))
+CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW = 0x200, 0x08000000
+
+
+def spawn_kw() -> dict:
+    """Extra create_subprocess_exec kwargs: own process group (Linux) / own group, no console (Windows)."""
+    if IS_WIN:
+        return {"creationflags": CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW}
+    return {"start_new_session": True}
+
+
+def kill_tree(proc, force: bool = False) -> None:
+    """Kill a child and its descendants. Never raises on an already-dead process."""
+    if proc is None or proc.returncode is not None:
+        return
+    if NT:
+        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, creationflags=CREATE_NO_WINDOW)
+        return
+    try:
+        os.killpg(proc.pid, signal.SIGKILL if force else signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+
+
+def open_folder_argv(folder: str) -> list[str]:
+    return ["explorer", folder] if IS_WIN else ["xdg-open", folder]
+
+
+def open_folder(folder: str) -> None:
+    if NT:
+        os.startfile(folder)  # noqa: S606 — local path already checked against the output dir
+        return
+    subprocess.Popen(open_folder_argv(folder), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def venv_python(venv: str) -> str:
+    return f"{venv}/Scripts/python.exe" if IS_WIN else f"{venv}/bin/python"
+
+
+# Linux default location -> Windows location (applied to every string setting; only the prefix changes)
+WIN_PATHS = (("~/.local/share/atelier", "~/AppData/Local/Atelier"), ("~/.local/share/piper", "~/AppData/Local/Atelier/piper"),
+             ("~/.local/opt", "~/AppData/Local/Atelier/opt"), ("/dev/dri/renderD128", ""))
+
+
+def remap(value, table=WIN_PATHS):
+    if isinstance(value, dict):
+        return {k: remap(v, table) for k, v in value.items()}
+    if isinstance(value, str):
+        for old, new in table:
+            if value == old or value.startswith(old + "/"):
+                return new + value[len(old):]
+    return value
+
+
+def config_dir() -> Path:
+    base = os.environ.get("APPDATA") if NT else None
+    return Path(base or Path.home() / ".config") / "Atelier"
+
+
+# ---- hardware (Windows) ---------------------------------------------------------------------------
+
+_PS_GPU = r"""
+$k='HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0*'
+$cards=@(Get-ItemProperty $k -ErrorAction SilentlyContinue | Where-Object {$_.'HardwareInformation.qwMemorySize'} | ForEach-Object {
+  [pscustomobject]@{name=$_.DriverDesc; total=[uint64]$_.'HardwareInformation.qwMemorySize'; dev=$_.MatchingDeviceId}})
+$used=0
+try { $used=[uint64](Get-Counter '\GPU Adapter Memory(*)\Dedicated Usage' -ErrorAction Stop).CounterSamples |
+  Measure-Object CookedValue -Maximum | ForEach-Object {$_.Maximum} } catch {}
+[pscustomobject]@{cards=$cards; used=$used} | ConvertTo-Json -Compress -Depth 4
+"""
+_VEN = {"1002": "amd", "10de": "nvidia", "8086": "intel"}
+_gpu_cache: tuple[float, list[dict]] = (0.0, [])
+
+
+def win_gpus(ttl: float = 5.0) -> list[dict]:
+    """[{vendor, card, total, used}] from the registry + perf counters. Approximate: `used` is the busiest adapter's
+    dedicated usage, attributed to the largest card. Cached: PowerShell costs ~0.5 s."""
+    global _gpu_cache
+    if time.monotonic() - _gpu_cache[0] < ttl:
+        return _gpu_cache[1]
+    out: list[dict] = []
+    ps = shutil.which("powershell") or shutil.which("pwsh")
+    if ps:
+        try:
+            r = subprocess.run([ps, "-NoProfile", "-NonInteractive", "-Command", _PS_GPU], capture_output=True, text=True,
+                               timeout=15, creationflags=CREATE_NO_WINDOW if NT else 0)
+            out = parse_win_gpus(r.stdout)
+        except (OSError, subprocess.SubprocessError):
+            pass
+    _gpu_cache = (time.monotonic(), out)
+    return out
+
+
+def parse_win_gpus(raw: str) -> list[dict]:
+    try:
+        d = json.loads(raw)
+    except ValueError:
+        return []
+    cards = d.get("cards") or []
+    if isinstance(cards, dict):
+        cards = [cards]
+    out = []
+    for c in cards:
+        dev = str(c.get("dev") or "").upper()
+        ven = dev.split("VEN_")[1][:4].lower() if "VEN_" in dev else ""
+        out.append({"vendor": _VEN.get(ven, "other"), "card": c.get("name") or "gpu", "total": int(c.get("total") or 0), "used": 0})
+    if out:
+        max(out, key=lambda g: g["total"])["used"] = min(int(d.get("used") or 0), max(g["total"] for g in out))
+    return out
+
+
+def win_mem() -> tuple[int, int]:
+    """(total, available) bytes via GlobalMemoryStatusEx."""
+    import ctypes
+
+    class MS(ctypes.Structure):
+        _fields_ = [("l", ctypes.c_ulong), ("load", ctypes.c_ulong), ("tot", ctypes.c_ulonglong), ("avail", ctypes.c_ulonglong),
+                    ("tp", ctypes.c_ulonglong), ("ap", ctypes.c_ulonglong), ("tv", ctypes.c_ulonglong), ("av", ctypes.c_ulonglong),
+                    ("ext", ctypes.c_ulonglong)]
+    m = MS()
+    m.l = ctypes.sizeof(MS)
+    ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
+    return int(m.tot), int(m.avail)
+
+
+def win_cpu_flags() -> set[str]:
+    import ctypes
+    f = ctypes.windll.kernel32.IsProcessorFeaturePresent
+    return {n for n, pf in (("avx2", 40), ("avx512f", 41)) if f(pf)}

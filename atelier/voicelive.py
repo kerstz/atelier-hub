@@ -5,13 +5,13 @@ import asyncio
 import json
 import os
 import shutil
-import signal
 import time
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from . import plat
 from .config import cfg
 from .jobs import Ctx, manager, register
 from .voice import engine_for, find, seedvc_dir, seedvc_python, seedvc_ready
@@ -26,14 +26,11 @@ _ctl: asyncio.Queue | None = None
 
 def _kill(p: asyncio.subprocess.Process | None) -> None:
     if p and p.returncode is None:
-        try:
-            os.killpg(p.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        plat.kill_tree(p, force=True)
 
 
 async def _spawn(argv: list[str], **kw) -> asyncio.subprocess.Process:
-    return await asyncio.create_subprocess_exec(*argv, start_new_session=True, stdin=kw.pop("stdin", asyncio.subprocess.DEVNULL),
+    return await asyncio.create_subprocess_exec(*argv, **plat.spawn_kw(), stdin=kw.pop("stdin", asyncio.subprocess.DEVNULL),
                                                 stderr=asyncio.subprocess.DEVNULL, **kw)
 
 
@@ -60,6 +57,8 @@ def _worker_argv(source: str, ref: str) -> list[str]:
 
 async def live(ctx: Ctx, p: dict) -> None:
     global _ctl
+    if plat.IS_WIN:
+        raise RuntimeError("voix en direct indisponible sous Windows (micro virtuel PipeWire); conversion de fichiers: ok")
     voice = find(p.get("voice", ""))
     eng = engine_for(voice)
     if eng == "seedvc" and not seedvc_ready(live=True):

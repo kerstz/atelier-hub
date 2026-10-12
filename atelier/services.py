@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 
+from . import plat
 from .config import cfg
 from .proc import CmdError, run_cmd
 
@@ -10,7 +11,7 @@ def _defs() -> dict[str, dict]:
 
 
 def _control(s: dict) -> str | None:
-    if s.get("unit"):
+    if s.get("unit") and not plat.IS_WIN:
         return "systemd"
     if s.get("dir"):
         return "compose"

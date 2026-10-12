@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .config import cfg, output_dir
 from .convert import need, unique
-from . import ollama
+from . import ollama, plat
 from .jobs import Ctx, manager, register
 from .ocr import upload_name
 from .proc import CmdError, run_cmd
@@ -34,7 +34,7 @@ async def to_wav(src: Path, wav: Path, rate: int, channels: int) -> None:
 
 def demucs_bin() -> str:
     """demucs du venv Seed-VC (torch ROCm, GPU) s'il existe, sinon [audio] demucs_bin."""
-    own = Path(cfg["voice"]["python"]).expanduser().with_name("demucs")
+    own = Path(cfg["voice"]["python"]).expanduser().with_name("demucs.exe" if plat.IS_WIN else "demucs")
     return str(own) if own.is_file() else binpath(cfg["audio"]["demucs_bin"])
 
 

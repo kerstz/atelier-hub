@@ -65,6 +65,13 @@ installed, never downloading anything. Explicit values in `config.toml` always w
   non-translatable atoms (images, line breaks, footnote refs, code); invalid output falls back to plain text.
 - PDF: delegated to pdf2zh-next (BabelDOC) with Ollama as backend.
 
+## Windows
+
+`atelier/plat.py` is the only place that knows the OS: process groups vs `taskkill /T`, `explorer`/`os.startfile`, VRAM and RAM
+via PowerShell registry/perf counters + ctypes, Linux→Windows path remap applied to the whole config at load.
+`atelier/winlaunch.py` is the exe entry point (uvicorn in a thread + pywebview, browser/Tk box fallback, `ATELIER_NO_WINDOW=1`
+for CI). `ATELIER_FAKE_WIN=1` flips the argv/kwargs decisions on Linux so smoke23 can test them.
+
 ## Security
 
 Loopback only; `Host` must be local and `Origin` must equal the request's own origin; `/api/*` refuses

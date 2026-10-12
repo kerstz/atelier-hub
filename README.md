@@ -99,6 +99,14 @@ Manual route (any distro): `bash scripts/env-check.sh`, `uv sync --frozen`, `bas
 optionally `bash scripts/install-desktop.sh`. Nothing is downloaded or installed by Atelier itself without
 being listed first.
 
+## Windows (experimental)
+
+Same app, packaged as `Atelier.exe` (PyInstaller + WebView2 window, Inno Setup installer). Build on Windows:
+`powershell -ExecutionPolicy Bypass -File scripts\build-win.ps1`; missing tools via `scripts\win-setup.ps1` (winget).
+Config: `%APPDATA%\Atelier\config.toml`, data: `%LOCALAPPDATA%\Atelier`. Not available on Windows: live voice changer
+(PipeWire virtual mic), desktop notifications, systemd services (docker compose services work). Not tested on real
+Windows yet; CI builds the exe and checks that it serves.
+
 ## Hardware adaptation
 
 Atelier profiles the machine (GPU VRAM — AMD/NVIDIA —, RAM, cores, AVX2) and picks models per role:

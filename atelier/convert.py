@@ -4,6 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
+from . import plat
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, manager, register
 from .ocr import upload_name
@@ -149,7 +150,8 @@ def need(*bins: str, hint: str) -> None:
 # ---- ffmpeg
 
 def vaapi_ok() -> bool:
-    return Path(cfg["convert"]["vaapi_device"]).exists()
+    dev = cfg["convert"]["vaapi_device"]
+    return bool(dev) and not plat.IS_WIN and Path(dev).exists()
 
 
 def is_gpu_target(target: str) -> bool:

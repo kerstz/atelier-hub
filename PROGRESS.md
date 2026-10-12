@@ -265,3 +265,12 @@ non testé en réel: lecture dans WebKitGTK 2.54 (le smoke teste le serveur, pas
 env: smoke22 ok. Installer gst-plugins-good, redémarrer le service et la fenêtre.
 
 - Voix vérifiées par Opus (2026-10-12): homme-jeune -> mls 82 +1 dt (gilles était une voix basse), voix-aigue +3 dt, anonyme -> mls 42; licences: docs/VOICES.md (lessac/ryan NC, alan douteux).
+
+## Phase 23 — Windows (.exe) (smoke23.sh)
+done: atelier/plat.py (spawn/kill arbre, open folder, remap chemins, VRAM/RAM/AVX Windows), winlaunch.py + scripts/atelier_win.py (serveur en thread + pywebview WebView2, repli navigateur+boîte Quitter, ATELIER_NO_WINDOW=1), packaging/atelier.spec (onedir) + atelier.iss (Inno Setup), scripts/build-win.ps1 + win-setup.ps1 (winget), job CI windows-latest (build + l'exe répond + artefact), maint: conseils winget.
+decisions (Opus non lancé: CLAUDE.md interdit les sous-agents, choix pris ici):
+- Pas de .exe monolithique: onedir + installeur (démarrage rapide, moins de faux positifs antivirus). Outils lourds (ffmpeg, yt-dlp, Ollama, whisper) restent externes, installés par winget/à la main.
+- Windows: config %APPDATA%\Atelier\config.toml (sinon config.toml embarqué), données %LOCALAPPDATA%\Atelier; remap automatique des chemins ~/.local/*.
+- Hors périmètre sous Windows: voix en direct (pw-loopback), notifications, unités systemd. Conversion de fichiers/voix IA, YouTube, sous-titres, docs: mêmes CLI.
+non testé en réel: TOUT le côté Windows (aucune machine): PowerShell GPU/VRAM (compteur "used" approximatif), WebView2, taskkill, build PyInstaller (hiddenimports), installeur, icône = carré bleu provisoire.
+env: smoke23 ok (Linux). Prochain: lancer le job CI windows, corriger ce qui casse, tester sur un vrai Windows.

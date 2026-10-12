@@ -1,8 +1,11 @@
 import os
+import sys
 import tomllib
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+from . import plat
+
+ROOT = Path(getattr(sys, "_MEIPASS", None) or Path(__file__).resolve().parent.parent)
 
 DEFAULTS = {
     "server": {"port": 7777, "max_upload_mb": 16384, "min_free_gb": 2},
@@ -33,7 +36,7 @@ DEFAULTS = {
     "audio": {"demucs_bin": "demucs", "demucs_device": "auto", "deepfilter_bin": "deep-filter"},
     "voice": {
         "engine": "auto",
-        "python": "~/.local/share/atelier/seedvc-venv/bin/python",
+        "python": plat.venv_python("~/.local/share/atelier/seedvc-venv"),
         "seedvc_dir": "~/.local/opt/seed-vc",
         "voices_dir": "~/.local/share/atelier/voices",
         "live_block": 0.18, "live_steps": 6, "live_cfg": 0.0, "live_gate_db": -50.0, "live_max_minutes": 120,
@@ -49,10 +52,13 @@ DEFAULTS = {
 
 def _load() -> dict:
     path = Path(os.environ.get("ATELIER_CONFIG", ROOT / "config.toml"))
-    user = tomllib.loads(path.read_text()) if path.exists() else {}
-    return {k: {**v, **user.get(k, {})} for k, v in DEFAULTS.items()} | {
+    if "ATELIER_CONFIG" not in os.environ and plat.IS_WIN and (plat.config_dir() / "config.toml").exists():
+        path = plat.config_dir() / "config.toml"
+    user = tomllib.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    out = {k: {**v, **user.get(k, {})} for k, v in DEFAULTS.items()} | {
         k: v for k, v in user.items() if k not in DEFAULTS
     }
+    return plat.remap(out) if plat.IS_WIN else out
 
 
 cfg = _load()

@@ -1,25 +1,16 @@
 import asyncio
-import os
 import re
-import signal
 from collections import deque
 import shlex
 from typing import Callable
 
-from . import joblog
+from . import joblog, plat
 
 
 class CmdError(RuntimeError):
     def __init__(self, msg: str, rc: int):
         super().__init__(msg)
         self.rc = rc
-
-
-def _killpg(proc: asyncio.subprocess.Process, sig: int) -> None:
-    try:
-        os.killpg(proc.pid, sig)
-    except ProcessLookupError:
-        pass
 
 
 def _emit(raw: bytes, tail: deque, on_line, log=None) -> None:
@@ -44,8 +35,8 @@ async def run_cmd(argv: list[str], on_line: Callable[[str], None] | None = None,
             *argv,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
-            start_new_session=True,
             limit=1 << 20,
+            **plat.spawn_kw(),
             **kw,
         )
         buf = b""
@@ -58,11 +49,11 @@ async def run_cmd(argv: list[str], on_line: Callable[[str], None] | None = None,
     except BaseException:
         # cancel, or a callback/log error: never leave the child running unsupervised
         if proc is not None and proc.returncode is None:
-            _killpg(proc, signal.SIGTERM)
+            plat.kill_tree(proc)
             try:
                 await asyncio.wait_for(proc.wait(), 5)
             except (asyncio.TimeoutError, asyncio.CancelledError):
-                _killpg(proc, signal.SIGKILL)
+                plat.kill_tree(proc, force=True)
                 await proc.wait()
         raise
     finally:
