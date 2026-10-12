@@ -169,6 +169,14 @@ async def do_pdf(ctx: Ctx, path: Path, name: str, src, tgt, glossary, pages: str
     return dests
 
 
+def output_base(out: Path, name: str, ext: str, tgt: str) -> str:
+    """Base name shared by every output of one job, unused by a file of the SAME kind
+    (a docx and a pptx of the same stem don't collide; mono/dual pdf are one family)."""
+    kind = ext.lstrip(".") if ext in LOADERS else "pdf" if ext == ".pdf" else "epub" if ext == ".epub" else CONVERT.get(ext, ext.lstrip("."))
+    pat = "*pdf" if kind == "pdf" else kind
+    return free_base(name, lambda b: any(out.glob(f"{glob.escape(b)}.{tgt}.{pat}")))
+
+
 async def run(ctx: Ctx, p: dict) -> str:
     path = Path(p.get("path") or "")
     src, tgt = p.get("src", "en"), p.get("tgt", "fr")
@@ -182,8 +190,7 @@ async def run(ctx: Ctx, p: dict) -> str:
     glossary = translate.parse_glossary(p.get("glossary") or "")
     out = output_dir("docs")
     out.mkdir(parents=True, exist_ok=True)
-    # every output of this job ("<name>.<tgt>.*": mono/dual pdf, docx, epub…) shares one unused base name
-    name = free_base(ocr.upload_name(path), lambda b: any(out.glob(f"{glob.escape(b)}.{tgt}.*")))
+    name = output_base(out, ocr.upload_name(path), ext, tgt)
     work = data_dir() / "tmp" / str(ctx.id)
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
