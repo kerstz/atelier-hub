@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/.."
 quick=0; only=()
 for a in "$@"; do case $a in --quick) quick=1 ;; [0-9]*) only+=("$a") ;; *) echo "option inconnue: $a" >&2; exit 64 ;; esac; done
-scripts=(smoke.sh smoke2.sh smoke3.sh smoke4.sh smoke5.sh smoke6.sh smoke7.sh smoke9.sh smoke10.sh smoke11.sh smoke12.sh smoke13.sh smoke14.sh smoke15.sh)
+scripts=(smoke.sh smoke2.sh smoke3.sh smoke4.sh smoke5.sh smoke6.sh smoke7.sh smoke9.sh smoke10.sh smoke11.sh smoke12.sh smoke13.sh smoke14.sh smoke15.sh smoke16.sh)
 slow=" 3 4 5 "
 tot_ok=0; tot_fail=0; tot_skip=0; bad=()
 printf '%-12s %5s %5s %5s  %s\n' script ok FAIL skip temps

@@ -167,3 +167,15 @@ decisions:
 - GPU: convert (VAAPI) et audio (demucs GPU) ne passent plus gpu=True au gestionnaire: slot CPU (_sem / HEAVY) d'abord, puis gpu_lock dans le handler; demucs décharge Ollama lui-même.
 env: redémarrer le service. smoke-all inclut maintenant 14 et 15.
 next: lot 5 de l'audit: M7 (segments longs), B1 (taille upload/disque), B4 (timeout Ollama), B5 (notify --), B6 (plafond EPUB), B7 (socket /tmp), B8 (unique sorties), B9 (lxml, fastapi).
+
+## Phase 16 — Correctifs audit, lot 5 (smoke16.sh)
+done: M7 segments longs découpés, B1 limites d'upload, B4 timeout Ollama, B5 `--` notify-send, B6 plafonds EPUB, B7 dossier privé + port depuis config.toml, B8 noms de sortie uniques, B9 lxml/fastapi déclarés (uv.lock à jour).
+decisions:
+- translate_texts: tout segment > [translate] chunk_chars est découpé (translate.chunk) puis rejoint par espace; pièces dédoublonnées.
+- Upload: [server] max_upload_mb=16384, min_free_gb=2; 413 (taille, Content-Length ou flux), 507 (disque, revérifié tous les 64 Mo); fichier partiel supprimé sur toute exception.
+- Ollama: [ollama] timeout=300 s entre octets (chargement modèle compris) -> "Ollama ne répond plus".
+- EPUB: total ≤3 Go, entrée parsée ≤64 Mo, ratio >200 au-dessus de 8 Mo refusé; zip fermé en cas d'erreur.
+- Lanceur/fenêtre: socket + lock dans $XDG_RUNTIME_DIR sinon ~/.cache/atelier (0700), jamais /tmp; boucle de contrôle ne meurt plus sur client invalide.
+- Sorties: free_base() choisit "<nom> (2)" si une sortie du lot existe déjà (subs: .srt/.mkv; docs: <nom>.<tgt>.*; ocr; résumé).
+env: redémarrer le service. smoke-all (quick): 246 ok, 0 FAIL.
+next: audit entièrement traité. Idées post-audit: panneau Dépendances, contexte inter-blocs Traduire, glossaires serveur, chaînage d'outils, disque, a11y. Demande en cours: langues supplémentaires (philippin).

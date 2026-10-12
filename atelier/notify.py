@@ -20,7 +20,7 @@ def finished(job: dict | None, params: dict, secs: float) -> None:
     title = ("Échec : " if failed else "Terminé : ") + (job["title"] or job["kind"])
     body = (job.get("error") or job.get("message") or "")[:200]
     icon = ROOT / "static" / "icon.svg"
-    argv = [bin_, "-a", "Atelier", "-i", str(icon), "-u", "critical" if failed else "normal", title[:100]]
+    argv = [bin_, "-a", "Atelier", "-i", str(icon), "-u", "critical" if failed else "normal", "--", title[:100]]
     if body:
         argv.append(body)
 

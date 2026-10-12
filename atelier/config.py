@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 DEFAULTS = {
-    "server": {"port": 7777},
+    "server": {"port": 7777, "max_upload_mb": 16384, "min_free_gb": 2},
     "paths": {"output": "~/Atelier", "data": "~/.local/share/atelier"},
     "gpu": {"card": "auto", "free_vram": True},
     "ollama": {
@@ -13,6 +13,7 @@ DEFAULTS = {
         "translate_model": "translategemma:12b",
         "second_model": "gemma3:12b",
         "vision_model": "gemma3:12b",
+        "timeout": 300,
     },
     "summary": {"model": "", "num_ctx": 8192, "lang": "fr"},
     "translate": {"chunk_chars": 2500},

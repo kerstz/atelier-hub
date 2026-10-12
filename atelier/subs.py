@@ -8,6 +8,7 @@ from .batch import Translator, numbered
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, manager, register
 from .proc import run_cmd
+from .util import free_base
 from .youtube import PCT_RE, QUALITIES, _check_url, _mode_args, _net_args
 
 PROG_RE = re.compile(r"progress\s*=\s*(\d+)%")
@@ -188,6 +189,9 @@ async def run(ctx: Ctx, p: dict) -> str:
         if not cues:
             raise RuntimeError("aucune réplique dans le SRT")
         src_tag = "orig" if src == "auto" else src
+        end_tag = tgt if do_tr else src_tag
+        suffixes = [f".{src_tag}.srt"] + ([f".{tgt}.srt"] if do_tr else []) + ([f".{end_tag}.mkv"] if want_mux else [])
+        name_base = free_base(name_base, lambda b: any((out / f"{b}{s}").exists() for s in suffixes))
         shutil.copy(sub, out / f"{name_base}.{src_tag}.srt")
         final = out / f"{name_base}.{src_tag}.srt"
         if do_tr:

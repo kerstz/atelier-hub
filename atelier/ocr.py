@@ -5,6 +5,7 @@ from pathlib import Path
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, register
 from .proc import run_cmd
+from .util import free_base
 
 MIN_CHARS = 50
 
@@ -58,7 +59,8 @@ async def run(ctx: Ctx, p: dict) -> str:
         raise RuntimeError("PDF introuvable")
     out = output_dir("docs")
     out.mkdir(parents=True, exist_ok=True)
-    dest = out / f"{upload_name(path)}.ocr.pdf"
+    base = free_base(upload_name(path), lambda b: (out / f"{b}.ocr.pdf").exists())
+    dest = out / f"{base}.ocr.pdf"
     await ocr_pdf(ctx, path, dest, bool(p.get("force")))
     ctx.set(1.0, dest.name)
     return str(out)

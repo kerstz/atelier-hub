@@ -3,11 +3,21 @@
 #   atelier-desktop [--translate-clipboard | --download-clipboard] [--browser] [--dry-run]
 set -u
 root="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
-port="${ATELIER_PORT:-7777}"
+port="${ATELIER_PORT:-$(python3 - "${ATELIER_CONFIG:-$root/config.toml}" <<'PY' 2>/dev/null
+import sys, tomllib
+try:
+    print(tomllib.load(open(sys.argv[1], "rb")).get("server", {}).get("port", 7777))
+except Exception:
+    print(7777)
+PY
+)}"
+case $port in ''|*[!0-9]*) port=7777 ;; esac
 url="http://127.0.0.1:$port/"
 unit=atelier.service
 venv="${ATELIER_DESKTOP_VENV:-${XDG_DATA_HOME:-$HOME/.local/share}/atelier/desktop-venv}"
-run="${XDG_RUNTIME_DIR:-/tmp}"
+# socket + lock live in a private dir: never a shared /tmp (another user could drive the window)
+run="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/atelier}"
+mkdir -p -m 700 "$run"
 sock="$run/atelier-desktop.sock"
 action="" force_browser=0 dry=0
 for a in "$@"; do

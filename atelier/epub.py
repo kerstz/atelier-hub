@@ -256,17 +256,46 @@ class Doc:
     plain: list[tuple[object, str]] = field(default_factory=list)   # (element, text) translated flat
 
 
+MAX_PART = 64 << 20        # one XHTML/OPF/NCX entry
+MAX_TOTAL = 3 << 30        # whole archive, uncompressed
+MAX_RATIO = 200            # uncompressed / compressed, for entries above 8 MB
+
+
+def check_archive(z: zipfile.ZipFile) -> None:
+    infos = z.infolist()
+    if sum(i.file_size for i in infos) > MAX_TOTAL:
+        raise RuntimeError("EPUB trop volumineux (archive suspecte)")
+    for i in infos:
+        if i.file_size > (8 << 20) and i.file_size > MAX_RATIO * max(i.compress_size, 1):
+            raise RuntimeError(f"EPUB suspect: {i.filename} (taux de compression anormal)")
+
+
+def read_part(z: zipfile.ZipFile, name: str) -> bytes:
+    if z.getinfo(name).file_size > MAX_PART:
+        raise RuntimeError(f"EPUB: {name} trop volumineux")
+    return z.read(name)
+
+
 def package(z: zipfile.ZipFile) -> tuple[str, object]:
-    cont = _parse(z.read("META-INF/container.xml"))
+    cont = _parse(read_part(z, "META-INF/container.xml"))
     rf = cont.find(f".//{{{NS_CONT}}}rootfile")
     if rf is None:
         raise RuntimeError("EPUB invalide: container.xml")
     path = rf.get("full-path")
-    return path, _parse(z.read(path))
+    return path, _parse(read_part(z, path))
 
 
 def load(src: Path) -> tuple[list[Doc], zipfile.ZipFile]:
     z = zipfile.ZipFile(src)
+    try:
+        return _load(z)
+    except BaseException:
+        z.close()
+        raise
+
+
+def _load(z: zipfile.ZipFile) -> tuple[list[Doc], zipfile.ZipFile]:
+    check_archive(z)
     opf_path, opf = package(z)
     base = posixpath.dirname(opf_path)
     items = {i.get("id"): i for i in opf.iter(f"{{{NS_OPF}}}item")}
@@ -281,7 +310,7 @@ def load(src: Path) -> tuple[list[Doc], zipfile.ZipFile]:
         if href in seen or href not in names or mt not in ("application/xhtml+xml", "application/x-dtbncx+xml", "text/html"):
             continue
         seen.add(href)
-        data = z.read(href)
+        data = read_part(z, href)
         root = _parse(data)
         if mt == "application/x-dtbncx+xml":
             d = Doc(href, data, root, "ncx")

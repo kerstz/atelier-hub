@@ -119,7 +119,8 @@ async def stream_chat(
         "options": {"temperature": 0, **(options or {})},
     }
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(None, connect=5)) as c:
+        wait = float(cfg["ollama"]["timeout"])
+        async with httpx.AsyncClient(timeout=httpx.Timeout(wait, connect=5)) as c:
             async with c.stream("POST", url, json=body) as r:
                 if r.status_code == 404:
                     raise RuntimeError(f"modèle introuvable: {model} (ollama pull {model})")
@@ -137,6 +138,8 @@ async def stream_chat(
                         return
     except httpx.ConnectError:
         raise RuntimeError("Ollama injoignable")
+    except httpx.ReadTimeout:
+        raise RuntimeError(f"Ollama ne répond plus (aucun retour depuis {wait:.0f} s)")
 
 
 async def complete(model: str, messages: list[dict], **options) -> str:
