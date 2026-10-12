@@ -1,5 +1,8 @@
 [server]
 port = 7777
+# upload max (Mo) et espace disque libre à garder (Go) sur le dossier de données
+max_upload_mb = 16384
+min_free_gb = 2
 
 [paths]
 output = "~/Atelier"
@@ -15,6 +18,8 @@ free_vram = true
 url = "http://127.0.0.1:11434"
 translate_model = "translategemma:12b"
 second_model = "gemma3:12b"
+# secondes sans réponse d'Ollama avant abandon (chargement du modèle compris)
+timeout = 300
 # modèle vision pour Traduire > image
 vision_model = "gemma3:12b"
 

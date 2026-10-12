@@ -39,6 +39,15 @@ def missing_uploads(params: dict) -> list[Path]:
     return [p for p in upload_paths(params) if not p.is_file()]
 
 
+def free_base(base: str, taken) -> str:
+    """First of `base`, `base (2)`, … that `taken(candidate)` says is unused: outputs of one job share a base name."""
+    for n in range(1, 1000):
+        cand = base if n == 1 else f"{base} ({n})"
+        if not taken(cand):
+            return cand
+    raise RuntimeError("trop de fichiers du même nom")
+
+
 def workdir(ctx_id: int, tag: str) -> Path:
     work = data_dir() / "tmp" / f"{tag}{ctx_id}"
     shutil.rmtree(work, ignore_errors=True)

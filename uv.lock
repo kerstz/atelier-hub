@@ -40,6 +40,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "lxml" },
     { name = "openpyxl" },
     { name = "python-docx" },
     { name = "python-pptx" },
@@ -54,8 +55,9 @@ desktop = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastapi", specifier = ">=0.115" },
+    { name = "fastapi", specifier = ">=0.143" },
     { name = "httpx", specifier = ">=0.27" },
+    { name = "lxml", specifier = ">=5.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "python-docx", specifier = ">=1.2.0" },
     { name = "python-pptx", specifier = ">=1.0.2" },

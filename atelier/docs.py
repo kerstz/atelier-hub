@@ -1,5 +1,6 @@
 import asyncio
 import csv
+import glob
 import os
 import re
 import shutil
@@ -12,6 +13,7 @@ from .jobs import Ctx, manager, register
 from .office import LOADERS
 from .proc import run_cmd
 from .srt import flat
+from .util import free_base
 
 PAGES_RE = re.compile(r"^[0-9,\- ]{1,60}$")
 CONVERT = {".doc": "docx", ".odt": "docx", ".rtf": "docx", ".ppt": "pptx", ".odp": "pptx", ".xls": "xlsx", ".ods": "xlsx"}
@@ -21,8 +23,10 @@ BAR_RE = re.compile(r"^\s*(.+?)\s+[━╸╺╾╼─\-]*\s*(\d+)/(\d+)\s+\d+:\d
 
 async def translate_texts(ctx: Ctx, texts: list[str], src, tgt, glossary, lo: float, hi: float) -> dict[str, str]:
     uniq = list(dict.fromkeys(texts))
-    items = list(enumerate(uniq, 1))
     limit = int(cfg["translate"]["chunk_chars"])
+    # a single segment longer than the context would be truncated silently: translate it in pieces, rejoin
+    split = {t: translate.chunk(t, limit) if len(t) > limit else [t] for t in uniq}
+    items = list(enumerate(dict.fromkeys(p for ps in split.values() for p in ps), 1))
     batches: list[list[tuple[int, str]]] = []
     cur: list[tuple[int, str]] = []
     size = 0
@@ -45,7 +49,8 @@ async def translate_texts(ctx: Ctx, texts: list[str], src, tgt, glossary, lo: fl
                 {"role": "assistant", "content": numbered([(n, got[n]) for n, _ in b])},
             ]
             ctx.set(lo + (hi - lo) * (bi + 1) / len(batches), f"traduction {bi + 1}/{len(batches)}")
-    return {t: res[n] for n, t in items}
+    by_piece = {t: res[n] for n, t in items}
+    return {t: " ".join(by_piece[p] for p in split[t]) for t in uniq}
 
 
 async def do_office(ctx: Ctx, path: Path, ext: str, name: str, src, tgt, glossary, out: Path) -> Path:
@@ -175,12 +180,13 @@ async def run(ctx: Ctx, p: dict) -> str:
     if ext not in (".pdf", ".epub") and ext not in LOADERS and ext not in CONVERT:
         raise RuntimeError(f"format non supporté: {ext}")
     glossary = translate.parse_glossary(p.get("glossary") or "")
-    name = ocr.upload_name(path)
+    out = output_dir("docs")
+    out.mkdir(parents=True, exist_ok=True)
+    # every output of this job ("<name>.<tgt>.*": mono/dual pdf, docx, epub…) shares one unused base name
+    name = free_base(ocr.upload_name(path), lambda b: any(out.glob(f"{glob.escape(b)}.{tgt}.*")))
     work = data_dir() / "tmp" / str(ctx.id)
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
-    out = output_dir("docs")
-    out.mkdir(parents=True, exist_ok=True)
     try:
         if ext == ".pdf":
             dests = await do_pdf(ctx, path, name, src, tgt, glossary, (p.get("pages") or "").strip(), work, out, p.get("ocr", True) is not False)

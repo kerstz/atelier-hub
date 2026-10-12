@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import audio, convert, db, docs, gpu, images, joblog, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
-from .config import ROOT, data_dir, output_dir
+from .config import ROOT, cfg, data_dir, output_dir
 from .jobs import KINDS, manager
 from .util import missing_uploads, upload_paths
 
@@ -125,9 +125,26 @@ async def unload(body: UnloadIn):
 async def upload(request: Request, name: str):
     safe = re.sub(r"[^\w.\- ]", "_", Path(name).name)[:120] or "file"
     dest = data_dir() / "uploads" / f"{uuid.uuid4().hex[:8]}-{safe}"
-    with open(dest, "wb") as f:
-        async for chunk in request.stream():
-            await asyncio.to_thread(f.write, chunk)
+    s = cfg["server"]
+    limit, reserve = int(s["max_upload_mb"]) << 20, int(s["min_free_gb"]) << 30
+    declared = int(request.headers.get("content-length") or 0) if (request.headers.get("content-length") or "").isdigit() else 0
+    if declared > limit:
+        raise HTTPException(413, f"fichier trop gros (max {s['max_upload_mb']} Mo)")
+    if shutil.disk_usage(dest.parent).free - declared < reserve:
+        raise HTTPException(507, "espace disque insuffisant")
+    written = 0
+    try:
+        with open(dest, "wb") as f:
+            async for chunk in request.stream():
+                written += len(chunk)
+                if written > limit:
+                    raise HTTPException(413, f"fichier trop gros (max {s['max_upload_mb']} Mo)")
+                if written // (64 << 20) != (written - len(chunk)) // (64 << 20) and shutil.disk_usage(dest.parent).free < reserve:
+                    raise HTTPException(507, "espace disque insuffisant")
+                await asyncio.to_thread(f.write, chunk)
+    except BaseException:
+        dest.unlink(missing_ok=True)  # never leave a partial upload behind
+        raise
     return {"path": str(dest), "name": safe}
 
 

@@ -17,7 +17,13 @@ ICON = Path(__file__).resolve().parent.parent / "static" / "icon.svg"
 
 
 def runtime_dir() -> Path:
-    return Path(os.environ.get("XDG_RUNTIME_DIR") or "/tmp")
+    """Private dir for the control socket (same rule as the launcher): never a shared /tmp."""
+    d = os.environ.get("XDG_RUNTIME_DIR")
+    if d:
+        return Path(d)
+    p = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / NAME
+    p.mkdir(mode=0o700, parents=True, exist_ok=True)
+    return p
 
 
 def sock_path() -> Path:
@@ -90,14 +96,18 @@ def serve(path: Path, window, webview) -> None:
 
     def loop() -> None:
         while True:
-            conn, _ = srv.accept()
-            with conn:
-                data = conn.makefile("r", encoding="utf-8").readline().strip()
-            cmd, _, arg = data.partition(" ")
-            if cmd == "open" and arg:
-                window.evaluate_js(f"location.hash = {json.dumps(arg)}")
-            if cmd in ("open", "focus"):
-                present()
+            try:
+                conn, _ = srv.accept()
+                with conn:
+                    conn.settimeout(2)
+                    data = conn.makefile("r", encoding="utf-8", errors="replace").readline().strip()
+                cmd, _, arg = data.partition(" ")
+                if cmd == "open" and arg:
+                    window.evaluate_js(f"location.hash = {json.dumps(arg)}")
+                if cmd in ("open", "focus"):
+                    present()
+            except Exception:
+                continue  # a bad client must never kill the control thread
 
     threading.Thread(target=loop, daemon=True).start()
 

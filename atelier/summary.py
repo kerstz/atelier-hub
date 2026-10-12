@@ -6,6 +6,7 @@ from . import ollama, srt, translate
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, manager, register
 from .subs import acquire
+from .util import free_base
 from .youtube import _check_url
 
 CHARS_PER_TOKEN = 3  # conservative: timestamps and non-English text tokenize densely
@@ -151,7 +152,7 @@ async def run(ctx: Ctx, p: dict) -> str:
         if not (not is_url and Path(source).suffix.lower() == ".srt"):
             shutil.copy(sub, out / f"{name}.{tag}.srt")  # reusable: summarize/translate again without whisper
         md = await summarize(ctx, lines, name, lang, t_lo, 0.98)
-        dest = out / f"{name}.resume.md"
+        dest = out / f"{free_base(name, lambda b: (out / f'{b}.resume.md').exists())}.resume.md"
         dest.write_text(md + "\n", encoding="utf-8")
         ctx.set(1.0, dest.name)
         return str(dest)
