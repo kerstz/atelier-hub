@@ -1,0 +1,11 @@
+[Unit]
+Description=Atelier (hub local)
+
+[Service]
+Environment=ATELIER_NO_WINDOW=1
+ExecStart=/opt/atelier/Atelier
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

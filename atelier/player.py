@@ -56,7 +56,7 @@ async def play_video(path: str, sub: str | None = None) -> str:
     from .config import cfg
     mpv = shutil.which(os.path.expanduser(cfg["player"]["mpv_bin"]))
     if not mpv:
-        raise RuntimeError("mpv introuvable (sudo pacman -S mpv)")
+        raise RuntimeError("mpv introuvable (winget install mpv, ou pacman -S mpv)")
     global _proc
     await stop()
     argv = [mpv, "--force-window=yes", "--title=Atelier — lecture", "--really-quiet"]

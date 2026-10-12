@@ -2,6 +2,7 @@
 ATELIER_FAKE_WIN=1 flips argv/kwargs decisions on Linux for tests (real Windows APIs stay guarded by os.name)."""
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -47,6 +48,35 @@ def open_folder(folder: str) -> None:
                      stderr=subprocess.DEVNULL, start_new_session=True)
 
 
+def localize(msg: str) -> str:
+    """User-facing text show the Windows equivalent there."""
+    if not IS_WIN:
+        return msg
+    return re.sub(r"scripts/([\w-]+)\.sh", lambda m: "scripts\\" + m.group(1).replace("build-whisper", "win-setup") + ".ps1", msg)
+
+
+def audio_cmd() -> list[str]:
+    """argv prefix of the PortAudio helper (atelier/winaudio.py): the exe itself when frozen."""
+    if FROZEN:
+        return [sys.executable, "--winaudio"]
+    return [sys.executable, str(Path(__file__).with_name("winaudio.py"))]
+
+
+def toast_argv(title: str, body: str) -> tuple[list[str], dict]:
+    """PowerShell toast (no module needed). Text goes through the environment: no quoting/injection issue."""
+    ps = r"""
+$null=[Windows.UI.Notifications.ToastNotificationManager,Windows.UI.Notifications,ContentType=WindowsRuntime]
+$null=[Windows.Data.Xml.Dom.XmlDocument,Windows.Data.Xml.Dom.XmlDocument,ContentType=WindowsRuntime]
+$x=[Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent(1)
+$t=$x.GetElementsByTagName('text')
+$null=$t.Item(0).AppendChild($x.CreateTextNode($env:ATELIER_T))
+$null=$t.Item(1).AppendChild($x.CreateTextNode($env:ATELIER_B))
+$app='{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe'
+[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($app).Show([Windows.UI.Notifications.ToastNotification]::new($x))
+"""
+    return ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps], {"ATELIER_T": title, "ATELIER_B": body}
+
+
 def venv_python(venv: str) -> str:
     return f"{venv}/Scripts/python.exe" if IS_WIN else f"{venv}/bin/python"
 
@@ -69,6 +99,63 @@ def remap(value, table=WIN_PATHS):
 def config_dir() -> Path:
     base = os.environ.get("APPDATA") if NT else None
     return Path(base or Path.home() / ".config") / "Atelier"
+
+
+# Where Windows installers put the tools Atelier wraps (appended to PATH at startup, after the user's own PATH)
+WIN_DIRS = (r"%ProgramFiles%\LibreOffice\program", r"%ProgramFiles%\Calibre2", r"%ProgramFiles%\Tesseract-OCR",
+            r"%ProgramFiles%\Pandoc", r"%LOCALAPPDATA%\Pandoc", r"%LOCALAPPDATA%\Programs\Ollama",
+            r"%LOCALAPPDATA%\Microsoft\WinGet\Links", r"%USERPROFILE%\.local\bin", r"%ProgramFiles%\mpv",
+            r"%LOCALAPPDATA%\Atelier\bin")
+
+
+def path_candidates() -> list[str]:
+    dirs = list(WIN_DIRS)
+    base = os.path.expandvars(r"%LOCALAPPDATA%\Atelier\opt")
+    if os.path.isdir(base):
+        for d in sorted(os.listdir(base)):
+            dirs += [os.path.join(base, d), os.path.join(base, d, "bin")]
+    return [os.path.expandvars(d) for d in dirs]
+
+
+def _registry_path() -> list[str]:
+    out: list[str] = []
+    try:
+        import winreg
+        for hive, key in ((winreg.HKEY_CURRENT_USER, "Environment"),
+                          (winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")):
+            try:
+                with winreg.OpenKey(hive, key) as k:
+                    out += os.path.expandvars(winreg.QueryValueEx(k, "Path")[0]).split(os.pathsep)
+            except OSError:
+                pass
+    except ImportError:
+        pass
+    return out
+
+
+def extend_path() -> None:
+    """Make freshly installed tools visible (winget edits the registry PATH, not our inherited one)."""
+    if not NT:
+        return
+    cur = os.environ.get("PATH", "").split(os.pathsep)
+    add = [d for d in dict.fromkeys(_registry_path() + path_candidates()) if d and d not in cur and os.path.isdir(d)]
+    os.environ["PATH"] = os.pathsep.join(cur + add)
+
+
+def force_utf8() -> None:
+    """Windows opens text files in the ANSI code page by default; every file we write or read is UTF-8."""
+    import builtins
+    import io
+    if not NT or sys.flags.utf8_mode or getattr(builtins.open, "_atelier", False):
+        return
+    real = io.open
+
+    def utf8_open(file, mode="r", buffering=-1, encoding=None, *a, **k):
+        if encoding is None and "b" not in mode:
+            encoding = "utf-8"
+        return real(file, mode, buffering, encoding, *a, **k)
+    utf8_open._atelier = True
+    builtins.open = io.open = utf8_open
 
 
 # ---- hardware (Windows) ---------------------------------------------------------------------------

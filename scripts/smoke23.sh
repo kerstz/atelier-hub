@@ -66,6 +66,43 @@ async def main():
 asyncio.run(main())
 PY"
 
+t "winaudio: choix de périphérique et liste (faux sounddevice)" "py - <<'PY'
+from atelier import winaudio
+devs = [{'name': 'Microphone (Realtek)', 'max_input_channels': 1, 'max_output_channels': 0, 'index': 0},
+        {'name': 'CABLE Input (VB-Audio Virtual Cable)', 'max_input_channels': 0, 'max_output_channels': 2, 'index': 1},
+        {'name': 'CABLE Output (VB-Audio Virtual Cable)', 'max_input_channels': 2, 'max_output_channels': 0, 'index': 2}]
+assert winaudio.pick(devs, 'cable input', 'output') == 1 and winaudio.pick(devs, 'realtek', 'input') == 0
+assert winaudio.pick(devs, '', 'input') is None and winaudio.pick(devs, 'default', 'output') is None
+try: winaudio.pick(devs, 'nope', 'input'); raise SystemExit(1)
+except RuntimeError: pass
+l = winaudio.listing(devs); assert l['inputs'] == ['Microphone (Realtek)', 'CABLE Output (VB-Audio Virtual Cable)'] and len(l['outputs']) == 1
+PY"
+t "winaudio: sans sounddevice -> code 2 propre" "py -c \"
+import sys; sys.modules['sounddevice'] = None
+from atelier import winaudio; assert winaudio.main(['list']) == 2\""
+t "Windows simulé: toast PowerShell, texte via env" "ATELIER_FAKE_WIN=1 py -c \"
+from atelier import plat
+argv, env = plat.toast_argv('Terminé : x', 'a \\\"b\\\" \$(rm)')
+assert argv[0]=='powershell' and env['ATELIER_T']=='Terminé : x' and 'rm' not in argv[-1]\""
+t "Windows simulé: services winexe/winsvc" "ATELIER_FAKE_WIN=1 py -c \"
+from atelier import services as s
+e={'win_exe':'C:/x/App.exe','win_args':'--port 1'}
+assert s._control(e)=='winexe' and s._win_argv(e,'start')==['C:/x/App.exe','--port','1']
+assert s._win_argv(e,'stop')==['taskkill','/IM','App.exe','/T','/F']
+assert s._control({'winsvc':'Jellyfin'})=='winsvc' and s._win_argv({'winsvc':'J'},'start')==['sc','start','J']\""
+t "Encodage matériel: nvenc / amf / qsv / vaapi / CPU" "py - <<'PY'
+from atelier import convert as c
+for kind, enc in (('nvenc','h264_nvenc'), ('amf','h264_amf'), ('qsv','h264_qsv')):
+    a = c.video_args('v:mp4-h264', 1, 720, 1080, kind); assert enc in a and 'scale=-2:720' in a[a.index('-vf')+1], a
+assert 'hevc_nvenc' in c.video_args('v:mkv-hevc', 1, 0, 0, 'nvenc') and 'hvc1' in c.video_args('v:mkv-hevc', 1, 0, 0, 'amf')
+assert 'h264_vaapi' in c.video_args('v:mp4-h264', 1, 0, 0, True) and 'libx264' in c.video_args('v:mp4-h264', 1, 0, 0, False)
+PY"
+t "Messages: scripts/*.sh -> .ps1 sous Windows" "ATELIER_FAKE_WIN=1 py -c \"
+from atelier import plat
+assert plat.localize('x: scripts/voice-setup.sh')=='x: scripts'+chr(92)+'voice-setup.ps1'\""
+t "Scripts PowerShell: présents" "for f in win-setup build-win voice-setup voice-refs fix-pdf2zh; do test -s scripts/\$f.ps1 || exit 1; done; test -s .github/workflows/release.yml"
+t "Spec: winaudio et sounddevice embarqués" "grep -q winaudio.py packaging/atelier.spec && grep -q sounddevice packaging/atelier.spec"
+
 # lanceur: serveur dans un thread, mode sans fenêtre, config isolée
 cat > "$tmp/c.toml" <<T
 [server]

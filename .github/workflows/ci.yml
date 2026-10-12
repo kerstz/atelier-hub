@@ -22,7 +22,7 @@ jobs:
           for f in install.sh scripts/*.sh scripts/atelier-desktop; do bash -n "$f"; done
       - name: Offline smoke tests
         run: |
-          for n in 16 17 18 19 20 21 22 23; do
+          for n in 16 17 18 19 20 21 22 23 24; do
             echo "== smoke$n"; bash scripts/smoke$n.sh 2>&1 | grep -v Deprecat | tee /tmp/s$n.log
             ! grep -q '^FAIL' /tmp/s$n.log
           done
@@ -32,13 +32,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      - name: PowerShell scripts parse
+        shell: pwsh
+        run: |
+          $bad = 0
+          Get-ChildItem scripts/*.ps1 | ForEach-Object {
+            $e = $null; [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$e)
+            if ($e) { $e | ForEach-Object { Write-Host "$($_.Extent.File):$($_.Extent.StartLineNumber) $($_.Message)" }; $bad = 1 }
+          }
+          exit $bad
       - name: Build the exe (PyInstaller, onedir)
         shell: pwsh
         run: |
           uv sync --frozen
           uv run --frozen python -m compileall -q atelier
-          uv run --with pyinstaller --with pywebview --with pillow python -c "from PIL import Image; Image.new('RGBA',(256,256),(37,99,235,255)).save('packaging/atelier.ico')"
-          uv run --with pyinstaller --with pywebview pyinstaller --noconfirm --distpath dist --workpath build packaging/atelier.spec
+          uv run --with pillow python packaging/make_icon.py
+          uv run --with pyinstaller --with pywebview --with sounddevice pyinstaller --noconfirm --distpath dist --workpath build packaging/atelier.spec
       - name: The exe starts and serves (no window)
         shell: pwsh
         run: |

@@ -30,7 +30,7 @@ def _win_hint(hint: str) -> str:
         return f"winget install {WINGET[pkg]}" if pkg in WINGET else "installateur Windows: voir la page du projet"
     if hint.startswith("systemctl"):
         return "lancer Ollama (menu Démarrer)"
-    return hint.replace("scripts/build-whisper.sh", "github.com/ggml-org/whisper.cpp/releases (zip Windows)")
+    return plat.localize(hint)
 
 
 def _row(id_: str, label: str, ok: bool, detail: str, hint: str, used: str) -> dict:

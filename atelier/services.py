@@ -1,4 +1,7 @@
 import asyncio
+import os
+import shlex
+import subprocess
 from pathlib import Path
 
 from . import plat
@@ -11,7 +14,12 @@ def _defs() -> dict[str, dict]:
 
 
 def _control(s: dict) -> str | None:
-    if s.get("unit") and not plat.IS_WIN:
+    if plat.IS_WIN:
+        if s.get("winsvc"):
+            return "winsvc"
+        if s.get("win_exe"):
+            return "winexe"
+    elif s.get("unit"):
         return "systemd"
     if s.get("dir"):
         return "compose"
@@ -43,6 +51,15 @@ async def status() -> list[dict]:
     ]
 
 
+def _win_argv(s: dict, action: str) -> list[str]:
+    if s.get("winsvc"):
+        return ["sc", action, s["winsvc"]]
+    exe = os.path.expandvars(os.path.expanduser(s["win_exe"]))
+    if action == "start":
+        return [exe, *shlex.split(s.get("win_args", ""), posix=False)]
+    return ["taskkill", "/IM", os.path.basename(exe), "/T", "/F"]
+
+
 def _argv(s: dict, action: str) -> list[str]:
     if s.get("unit"):
         return ["systemctl", "--user", action, s["unit"]]
@@ -65,7 +82,12 @@ async def act(sid: str, action: str) -> None:
     if not _control(s):
         raise ValueError("pas de commande configurée (unit ou dir)")
     try:
-        await asyncio.wait_for(run_cmd(_argv(s, action)), 120)
+        ctl = _control(s)
+        if ctl == "winexe" and action == "start":  # a long-running app: detach, don't wait for it
+            subprocess.Popen(_win_argv(s, action), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             creationflags=0x00000008 | plat.CREATE_NEW_PROCESS_GROUP | plat.CREATE_NO_WINDOW if plat.NT else 0)
+            return
+        await asyncio.wait_for(run_cmd(_win_argv(s, action) if ctl in ("winsvc", "winexe") else _argv(s, action)), 120)
     except asyncio.TimeoutError:
         raise RuntimeError("délai dépassé (120 s)")
     except (CmdError, FileNotFoundError) as e:

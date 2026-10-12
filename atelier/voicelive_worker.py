@@ -10,6 +10,7 @@ import argparse
 import importlib.util
 import json
 import math
+import os
 import subprocess
 import sys
 import threading
@@ -104,8 +105,14 @@ def main() -> None:
     silent = np.zeros(block, dtype=np.float32)
     bytes_block = block * 4
     rate = ["--raw", "--format=float32le", f"--rate={sr}", "--channels=1", "--latency-msec=20"]
-    rec = subprocess.Popen(["parec", "-d", a.source, *rate], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    play = subprocess.Popen(["pacat", "-d", a.sink, *rate], stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    if os.environ.get("ATELIER_AUDIO_CMD"):  # Windows: [exe, ...] helper speaking raw float32 mono via PortAudio
+        base = json.loads(os.environ["ATELIER_AUDIO_CMD"])
+        wa = ["--rate", str(sr), "--format", "float32"]
+        rec = subprocess.Popen([*base, "rec", "--device", a.source, *wa], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        play = subprocess.Popen([*base, "play", "--device", a.sink, *wa], stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    else:
+        rec = subprocess.Popen(["parec", "-d", a.source, *rate], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        play = subprocess.Popen(["pacat", "-d", a.sink, *rate], stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
     threading.Thread(target=stdin_loop, daemon=True).start()
 
     # warm-up: first MIOpen/kernel compile happens here, not on the first words

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Atelier
+GenericName=Traduction, médias et documents
+Comment=Hub local : traduction, YouTube, sous-titres, documents, conversion
+Exec=/usr/bin/atelier
+Icon=atelier
+Terminal=false
+Categories=Utility;AudioVideo;Office;

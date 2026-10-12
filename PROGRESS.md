@@ -274,3 +274,10 @@ decisions (Opus non lancé: CLAUDE.md interdit les sous-agents, choix pris ici):
 - Hors périmètre sous Windows: voix en direct (pw-loopback), notifications, unités systemd. Conversion de fichiers/voix IA, YouTube, sous-titres, docs: mêmes CLI.
 non testé en réel: TOUT le côté Windows (aucune machine): PowerShell GPU/VRAM (compteur "used" approximatif), WebView2, taskkill, build PyInstaller (hiddenimports), installeur, icône = carré bleu provisoire.
 env: smoke23 ok (Linux). Prochain: lancer le job CI windows, corriger ce qui casse, tester sur un vrai Windows.
+
+## Phase 24 — Releases .exe + .deb (smoke24.sh)
+done: job `deb` dans release.yml (ubuntu-22.04, PyInstaller onedir Linux, binaire répond, scripts/build-deb.sh -> atelier_<tag>_amd64.deb, test dpkg -i), publication sur tag v* avec le .exe/zip Windows; paquet: /opt/atelier, /usr/bin/atelier (lance service systemd --user ou processus détaché, ouvre navigateur), unité user, .desktop, icône. winlaunch: Linux = serveur + navigateur (pas de pywebview), LD_LIBRARY_PATH restauré pour ffmpeg/yt-dlp. config: binaire gelé lit ~/.config/Atelier/config.toml. spec multi-plateforme.
+decisions (Opus non lancé: CLAUDE.md interdit sous-agents): binaire PyInstaller dans le .deb (python 3.12 absent de Debian 12/13), outils lourds en Recommends (ffmpeg, yt-dlp). Pas de pywebview dans le .deb: simplicité.
+non testé en réel: build PyInstaller Linux, dpkg -i, systemd unit (Arch sans dpkg-deb). smoke23: test quoting corrigé.
+env: smoke24 ok. Release: `git tag v0.1.0 && git push --tags`.
+next: pousser un tag, regarder le job CI, corriger.

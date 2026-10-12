@@ -13,15 +13,17 @@ UninstallDisplayIcon={app}\Atelier.exe
 
 [Files]
 Source: "..\dist\Atelier\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
-Source: "..\scripts\win-setup.ps1"; DestDir: "{app}"
+Source: "..\scripts\*.ps1"; DestDir: "{app}\scripts"
 
 [Icons]
+Name: "{userstartup}\Atelier"; Filename: "{app}\Atelier.exe"; Tasks: startup
 Name: "{group}\Atelier"; Filename: "{app}\Atelier.exe"
 Name: "{autodesktop}\Atelier"; Filename: "{app}\Atelier.exe"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "Icône sur le bureau"
+Name: "startup"; Description: "Lancer Atelier à l'ouverture de session"; Flags: unchecked
 
 [Run]
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\win-setup.ps1"""; Description: "Installer les outils manquants (ffmpeg, yt-dlp, Ollama) avec winget"; Flags: postinstall skipifsilent unchecked
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\win-setup.ps1"" -Tier standard"; Description: "Installer les outils manquants (ffmpeg, yt-dlp, Ollama, whisper.cpp, OCR…)"; Flags: postinstall skipifsilent unchecked
 Filename: "{app}\Atelier.exe"; Description: "Lancer Atelier"; Flags: postinstall nowait skipifsilent

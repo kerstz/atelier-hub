@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import shutil
+import subprocess
 from pathlib import Path
 
 from . import plat
@@ -149,13 +150,41 @@ def need(*bins: str, hint: str) -> None:
 
 # ---- ffmpeg
 
+HW_BY_VENDOR = {"nvidia": "nvenc", "amd": "amf", "intel": "qsv"}
+_encoders: set[str] | None = None
+
+
+def _ffmpeg_encoders() -> set[str]:
+    global _encoders
+    if _encoders is None:
+        try:
+            out = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=10,
+                                 encoding="utf-8", errors="replace").stdout
+        except (OSError, subprocess.SubprocessError):
+            out = ""
+        _encoders = {w for line in out.splitlines() for w in line.split()[1:2]}
+    return _encoders
+
+
+def win_hw() -> str | None:
+    """Windows hardware encoder family (nvenc/amf/qsv) matching the best GPU, if this ffmpeg build has it."""
+    from . import hw
+    g = hw.profile().get("gpu")
+    kind = HW_BY_VENDOR.get(g["vendor"]) if g else None
+    return kind if kind and f"h264_{kind}" in _ffmpeg_encoders() else None
+
+
+def hw_kind() -> str | None:
+    return win_hw() if plat.IS_WIN else ("vaapi" if vaapi_ok() else None)
+
+
 def vaapi_ok() -> bool:
     dev = cfg["convert"]["vaapi_device"]
     return bool(dev) and not plat.IS_WIN and Path(dev).exists()
 
 
 def is_gpu_target(target: str) -> bool:
-    return target in ("v:mp4-h264", "v:mp4-hevc", "v:mkv-h264", "v:mkv-hevc") and vaapi_ok()
+    return target in ("v:mp4-h264", "v:mp4-hevc", "v:mkv-h264", "v:mkv-hevc") and hw_kind() is not None
 
 
 async def ffmpeg(ctx: Ctx, argv: list[str], duration: float, lo: float = 0.0, hi: float = 1.0) -> None:
@@ -174,13 +203,23 @@ async def ffmpeg(ctx: Ctx, argv: list[str], duration: float, lo: float = 0.0, hi
         raise RuntimeError(f"ffmpeg code {e.rc}: " + " | ".join(errs[-3:])) from None
 
 
-def video_args(target: str, q: int, height: int, src_h: int, vaapi: bool) -> list[str]:
+def video_args(target: str, q: int, height: int, src_h: int, vaapi: bool | str) -> list[str]:
     _, codec = target.split(":")[1].split("-")
     scale = height and src_h and src_h > height
     if codec == "av1":
         vf = [f"scale=-2:{height}"] if scale else []
         return [*(["-vf", ",".join(vf)] if vf else []), "-c:v", "libsvtav1", "-crf", str(Q_AV1[q]), "-preset", "8", "-pix_fmt", "yuv420p"]
-    if vaapi:
+    kind = "vaapi" if vaapi is True else (vaapi or None)
+    if kind in ("nvenc", "amf", "qsv"):
+        vf = [f"scale=-2:{height}"] if scale else []
+        vf.append("format=yuv420p")
+        enc = f"{codec}_{kind}"
+        qp = str(Q_VAAPI[q])
+        extra = {"nvenc": ["-rc", "vbr", "-cq", qp, "-b:v", "0", "-preset", "p5"],
+                 "amf": ["-rc", "cqp", "-qp_i", qp, "-qp_p", qp, "-quality", "quality"],
+                 "qsv": ["-global_quality", qp, "-preset", "medium"]}[kind]
+        return ["-vf", ",".join(vf), "-c:v", enc, *extra, *(["-tag:v", "hvc1"] if codec == "hevc" else [])]
+    if kind == "vaapi":
         vf = "format=nv12,hwupload" + (f",scale_vaapi=w=-2:h={height}" if scale else "")
         enc = "h264_vaapi" if codec == "h264" else "hevc_vaapi"
         return ["-vf", vf, "-c:v", enc, "-qp", str(Q_VAAPI[q])]
@@ -200,14 +239,14 @@ async def do_video(ctx: Ctx, src: Path, target: str, dest: Path, q: int, height:
     mp4 = dest.suffix == ".mp4"
     mux = ["-f", "mp4" if mp4 else "matroska", str(dest)]
 
-    async def encode(vaapi: bool, subs: bool) -> None:
+    async def encode(vaapi: bool | str, subs: bool) -> None:
         keep = subs and not mp4
         tail = ["-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"] if mp4 else ["-c:a", "copy"]
         maps = ["-map", "0:v:0", "-map", "0:a?"] + (["-map", "0:s?", "-c:s", "copy"] if keep else [])
-        dev = ["-vaapi_device", cfg["convert"]["vaapi_device"]] if vaapi else []
+        dev = ["-vaapi_device", cfg["convert"]["vaapi_device"]] if vaapi is True else []
         await ffmpeg(ctx, [*dev, "-i", str(src), *maps, *video_args(target, q, height, src_h, vaapi), *tail, *mux], dur)
 
-    async def attempt(vaapi: bool) -> None:
+    async def attempt(vaapi: bool | str) -> None:
         try:
             await encode(vaapi, True)
         except RuntimeError as e:
@@ -217,11 +256,12 @@ async def do_video(ctx: Ctx, src: Path, target: str, dest: Path, q: int, height:
             await encode(vaapi, False)
 
     if is_gpu_target(target):
-        ctx.set(0, "encodage VAAPI…")
+        kind = hw_kind()
+        ctx.set(0, f"encodage {kind.upper()}…")
         try:
-            return await attempt(True)
+            return await attempt(True if kind == "vaapi" else kind)
         except RuntimeError:
-            ctx.set(0, "VAAPI échoué → CPU…")
+            ctx.set(0, f"{kind.upper()} échoué → CPU…")
     else:
         ctx.set(0, "encodage AV1 (CPU)…" if target.endswith("av1") else "encodage CPU…")
     await attempt(False)

@@ -5,7 +5,7 @@ import traceback
 from dataclasses import dataclass
 from typing import Awaitable, Callable
 
-from . import db, joblog, notify, ollama
+from . import db, joblog, notify, ollama, plat
 from .config import cfg
 from .util import consume_uploads, upload_paths
 
@@ -127,7 +127,7 @@ class Manager:
             self.update(jid, status="cancelled", finished=time.time())
         except Exception as e:
             joblog.append(jid, "== échec ==\n" + traceback.format_exc())
-            self.update(jid, status="failed", error=str(e), finished=time.time())
+            self.update(jid, status="failed", error=plat.localize(str(e)), finished=time.time())
             notify.finished(db.get(jid), params, time.time() - t0)
         finally:
             if held:

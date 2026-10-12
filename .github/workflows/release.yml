@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deb:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Build Atelier (PyInstaller, onedir)
+        run: |
+          uv sync --frozen
+          uv run --with pyinstaller pyinstaller --noconfirm --clean --distpath dist --workpath build packaging/atelier.spec
+      - name: The binary starts and serves
+        run: |
+          ATELIER_NO_WINDOW=1 dist/Atelier/Atelier &
+          pid=$!
+          ok=0
+          for i in $(seq 60); do curl -fsS -o /dev/null http://127.0.0.1:7777/api/system && ok=1 && break; sleep 1; done
+          kill $pid
+          [ $ok = 1 ] || { cat ~/.config/Atelier/atelier.log 2>/dev/null; exit 1; }
+      - name: Build .deb
+        run: bash scripts/build-deb.sh "${GITHUB_REF_NAME:-0.0.0}"
+      - name: Package installs
+        run: |
+          sudo dpkg -i dist/atelier_*_amd64.deb || sudo apt-get install -f -y
+          test -x /usr/bin/atelier && test -x /opt/atelier/Atelier
+      - name: Publish release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/atelier_*_amd64.deb
+          generate_release_notes: true
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Build Atelier.exe (PyInstaller, onedir)
+        shell: pwsh
+        run: |
+          uv sync --frozen
+          uv run --with pillow python packaging/make_icon.py
+          uv run --with pyinstaller --with pywebview --with sounddevice pyinstaller --noconfirm --clean --distpath dist --workpath build packaging/atelier.spec
+      - name: The exe starts and serves (no window)
+        shell: pwsh
+        run: |
+          $env:ATELIER_NO_WINDOW = "1"
+          $p = Start-Process dist\Atelier\Atelier.exe -PassThru
+          $ok = $false
+          foreach ($i in 1..60) {
+            try { if ((Invoke-WebRequest http://127.0.0.1:7777/api/system -UseBasicParsing).StatusCode -eq 200) { $ok = $true; break } } catch {}
+            Start-Sleep 1
+          }
+          Stop-Process $p -Force
+          if (-not $ok) { Get-Content "$env:APPDATA\Atelier\atelier.log" -ErrorAction SilentlyContinue; throw "exe did not answer" }
+      - name: Installer (Inno Setup) and portable zip
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" packaging\atelier.iss
+          Compress-Archive -Path dist\Atelier\* -DestinationPath dist\Atelier-windows-portable.zip
+      - name: Publish release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Atelier-Setup.exe
+            dist/Atelier-windows-portable.zip
+          generate_release_notes: true

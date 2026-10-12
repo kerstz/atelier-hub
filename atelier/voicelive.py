@@ -34,6 +34,11 @@ async def _spawn(argv: list[str], **kw) -> asyncio.subprocess.Process:
                                                 stderr=asyncio.subprocess.DEVNULL, **kw)
 
 
+def _win_mic() -> str:
+    from . import winaudio
+    return winaudio.VIRTUAL_MIC
+
+
 def _loopback_argv() -> list[str]:
     return ["pw-loopback",
             f"--capture-props=media.class=Audio/Sink node.name={SINK} node.description=\"Atelier (entrée voix)\"",
@@ -41,13 +46,19 @@ def _loopback_argv() -> list[str]:
 
 
 def _dsp_argv(source: str, fx: str) -> list[str]:
+    if plat.IS_WIN:
+        from .winaudio import VIRTUAL_SINK
+        return [*plat.audio_cmd(), "dsp", "--source", "" if source == "default" else source, "--sink", VIRTUAL_SINK,
+                "--af", chain(fx), "--ffmpeg", shutil.which("ffmpeg") or "ffmpeg"]
     return ["ffmpeg", "-nostdin", "-loglevel", "error", "-fflags", "nobuffer", "-flags", "low_delay", "-f", "pulse", "-i", source,
             "-af", chain(fx), "-ar", "48000", "-ac", "1", "-f", "pulse", "-buffer_duration", "20", SINK]
 
 
 def _worker_argv(source: str, ref: str) -> list[str]:
     v = cfg["voice"]
-    argv = [str(seedvc_python()), str(WORKER), "--source", source, "--sink", SINK, "--voice", ref, "--block", str(v["live_block"]),
+    from .winaudio import VIRTUAL_SINK
+    argv = [str(seedvc_python()), str(WORKER), "--source", "" if source in ("default", "@DEFAULT_SOURCE@") else source,
+            "--sink", VIRTUAL_SINK if plat.IS_WIN else SINK, "--voice", ref, "--block", str(v["live_block"]),
             "--steps", str(int(v["live_steps"])), "--cfg", str(v["live_cfg"]), "--gate-db", str(v["live_gate_db"]),
             "--extra-right", str(v["live_extra_right"])]
     if v["live_checkpoint"]:
@@ -55,35 +66,53 @@ def _worker_argv(source: str, ref: str) -> list[str]:
     return argv
 
 
+def _win_check(eng: str) -> None:
+    """Fail early with the fix when the virtual cable or PortAudio is missing."""
+    try:
+        import sounddevice as sd
+    except Exception as e:
+        raise RuntimeError(f"sounddevice indisponible: {e}") from None
+    from . import winaudio
+    devs = winaudio._devices(sd)
+    try:
+        winaudio.pick(devs, winaudio.VIRTUAL_SINK, "output")
+    except RuntimeError:
+        raise RuntimeError("micro virtuel absent: installer VB-Audio Cable (vb-audio.com/Cable), puis relancer") from None
+
+
 async def live(ctx: Ctx, p: dict) -> None:
     global _ctl
-    if plat.IS_WIN:
-        raise RuntimeError("voix en direct indisponible sous Windows (micro virtuel PipeWire); conversion de fichiers: ok")
     voice = find(p.get("voice", ""))
     eng = engine_for(voice)
     if eng == "seedvc" and not seedvc_ready(live=True):
         raise RuntimeError("Seed-VC absent ou incomplet: scripts/voice-setup.sh")
-    for b in ("pw-loopback", "ffmpeg" if eng == "dsp" else "parec"):
-        if not shutil.which(b):
-            raise RuntimeError(f"{b} introuvable")
+    if plat.IS_WIN:
+        _win_check(eng)
+    else:
+        for b in ("pw-loopback", "ffmpeg" if eng == "dsp" else "parec"):
+            if not shutil.which(b):
+                raise RuntimeError(f"{b} introuvable")
     source = p.get("source") or ("default" if eng == "dsp" else "@DEFAULT_SOURCE@")
     deadline = time.monotonic() + float(cfg["voice"]["live_max_minutes"]) * 60
     _ctl = asyncio.Queue()
     STATE.clear()
     STATE.update(running=True, job=ctx.id, voice=voice["id"], engine=eng, source=source, ready=False, stats={}, bypass=False,
-                 mute=False, mic=MIC)
+                 mute=False, mic=_win_mic() if plat.IS_WIN else MIC)
     loop = proc = reader = None
     try:
-        loop = await _spawn(_loopback_argv())
-        await asyncio.sleep(0.4)
-        if loop.returncode is not None:
-            raise RuntimeError("pw-loopback a quitté: PipeWire actif ?")
+        if not plat.IS_WIN:
+            loop = await _spawn(_loopback_argv())
+            await asyncio.sleep(0.4)
+            if loop.returncode is not None:
+                raise RuntimeError("pw-loopback a quitté: PipeWire actif ?")
         cur = voice
         while True:
             if eng == "seedvc":
                 ctx.set(0.05, "chargement du modèle…")
+                env = {**os.environ, **({"HF_HUB_OFFLINE": "1"} if cfg["voice"]["offline"] else {}),
+                       **({"ATELIER_AUDIO_CMD": json.dumps(plat.audio_cmd())} if plat.IS_WIN else {})}
                 proc = await _spawn(_worker_argv(source, cur["ref"]), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
-                                    cwd=str(seedvc_dir()), env={**os.environ, **({"HF_HUB_OFFLINE": "1"} if cfg["voice"]["offline"] else {})})
+                                    cwd=str(seedvc_dir()), env=env)
                 reader = asyncio.create_task(_read_stats(ctx, proc))
             else:
                 proc = await _spawn(_dsp_argv(source, cur["post"]))
@@ -171,6 +200,16 @@ class SetIn(BaseModel):
 @router.get("/api/voice/inputs")
 async def inputs():
     out = []
+    if plat.IS_WIN:
+        try:
+            p = await asyncio.create_subprocess_exec(*plat.audio_cmd(), "list", stdout=asyncio.subprocess.PIPE,
+                                                     stderr=asyncio.subprocess.DEVNULL, **plat.spawn_kw())
+            data, _ = await asyncio.wait_for(p.communicate(), 10)
+            names = json.loads(data or b"{}").get("inputs", [])
+            out = [{"name": n, "desc": n} for n in names if "cable" not in n.lower()]
+        except (OSError, ValueError, asyncio.TimeoutError):
+            pass
+        return {"inputs": out}
     try:
         p = await asyncio.create_subprocess_exec("pactl", "-f", "json", "list", "sources", stdout=asyncio.subprocess.PIPE,
                                                  stderr=asyncio.subprocess.DEVNULL)

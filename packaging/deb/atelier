@@ -1,0 +1,9 @@
+#!/bin/bash
+# Lance le service Atelier (systemd --user, sinon processus détaché) puis ouvre le navigateur.
+url=http://127.0.0.1:7777/
+up() { (exec 3<>/dev/tcp/127.0.0.1/7777) 2>/dev/null; }
+if ! up; then
+  systemctl --user start atelier.service 2>/dev/null || ATELIER_NO_WINDOW=1 setsid nohup /opt/atelier/Atelier >/dev/null 2>&1 &
+  for _ in $(seq 60); do up && break; sleep 0.5; done
+fi
+exec xdg-open "$url"

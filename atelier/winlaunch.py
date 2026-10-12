@@ -1,4 +1,4 @@
-"""Windows entry point (PyInstaller exe): server in a thread + native WebView2 window, browser as fallback."""
+"""PyInstaller entry point. Windows: server in a thread + WebView2 window (browser fallback). Linux (.deb): server + browser."""
 import os
 import socket
 import sys
@@ -61,8 +61,29 @@ def _quit_box(url: str) -> None:
         threading.Event().wait()
 
 
+def _cli(argv: list[str]) -> int | None:
+    """Helper modes of the same exe (a windowed exe has no console: results go to a file or a pipe)."""
+    if argv[:1] == ["--winaudio"]:
+        from . import winaudio
+        return winaudio.main(argv[1:])
+    if argv[:1] == ["--hw-models"] and len(argv) > 1:  # Atelier.exe --hw-models out.txt: models recommended for this PC
+        from . import hw, tiers
+        models = sorted({m for m in tiers.recommend(hw.profile())["models"].values() if m})
+        open(argv[1], "w", encoding="utf-8").write("\n".join(models) + "\n")
+        return 0
+    return None
+
+
 def main() -> int:
+    rc = _cli(sys.argv[1:])
+    if rc is not None:
+        return rc
     _log_streams()
+    if not plat.NT:  # frozen Linux: the bootloader's LD_LIBRARY_PATH would break system ffmpeg/yt-dlp children
+        orig = os.environ.pop("LD_LIBRARY_PATH_ORIG", None)
+        os.environ.pop("LD_LIBRARY_PATH", None)
+        if orig:
+            os.environ["LD_LIBRARY_PATH"] = orig
     from .config import cfg
     port = int(cfg["server"]["port"])
     url = f"http://127.0.0.1:{port}/"
@@ -79,6 +100,9 @@ def main() -> int:
         print("serveur non démarré", file=sys.stderr)
         return 1
     if os.environ.get("ATELIER_NO_WINDOW") == "1":  # CI / service mode: serve until killed
+        t.join()
+    elif not plat.NT:
+        webbrowser.open(url)
         t.join()
     elif not _window(url):
         _quit_box(url)
