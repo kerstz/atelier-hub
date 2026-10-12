@@ -160,7 +160,7 @@ function jobCard(j) {
     btns.append(ui.button(j.kind === "youtube" ? "Sous-titrer" : "Résumer / retraduire", {size: "sm", icon: "captions", onclick: () => chain(j)}));
   }
   const ext = ((j.output || "").match(/\.([A-Za-z0-9]{2,5})$/) || [])[1]?.toLowerCase();
-  const name = (j.output || "").split("/").pop();
+  const name = (j.output || "").split(/[\\/]/).pop();
   if (j.status === "done" && ["srt", "vtt", "txt", "md", "json", "csv"].includes(ext)) {
     btns.append(ui.button("Voir", {size: "sm", icon: "file-text", onclick: async () => {
       const r = await fetch(`/api/jobs/${j.id}/view`);

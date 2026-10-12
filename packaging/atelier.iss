@@ -1,7 +1,14 @@
+#ifndef AppVersion
+#define AppVersion "0.0.0"
+#endif
 ; Inno Setup 6 — builds dist\Atelier-Setup.exe from dist\Atelier
 [Setup]
 AppName=Atelier
-AppVersion=0.1.0
+AppId={{6C1D2E7A-5B1F-4C0A-9E4A-A7E1B0D3F2C8}
+AppVersion={#AppVersion}
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+CloseApplications=yes
 DefaultDirName={autopf}\Atelier
 DefaultGroupName=Atelier
 OutputDir=..\dist
@@ -10,6 +17,9 @@ Compression=lzma2
 SolidCompression=yes
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\Atelier.exe
+
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\_internal"
 
 [Files]
 Source: "..\dist\Atelier\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion

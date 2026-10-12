@@ -66,7 +66,9 @@ jobs:
         shell: pwsh
         run: |
           choco install innosetup -y --no-progress
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" packaging\atelier.iss
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$("${{ github.ref_name }}".TrimStart("v"))" packaging\atelier.iss
+          New-Item -ItemType Directory dist\Atelier\scripts | Out-Null
+          Copy-Item scripts\*.ps1 dist\Atelier\scripts
           Compress-Archive -Path dist\Atelier\* -DestinationPath dist\Atelier-windows-portable.zip
       - name: Publish release assets
         if: startsWith(github.ref, 'refs/tags/')

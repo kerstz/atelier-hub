@@ -57,7 +57,13 @@ def localize(msg: str) -> str:
     """User-facing text show the Windows equivalent there."""
     if not IS_WIN:
         return msg
-    return re.sub(r"scripts/([\w-]+)\.sh", lambda m: "scripts\\" + m.group(1).replace("build-whisper", "win-setup") + ".ps1", msg)
+    base = str(Path(sys.executable).parent) + "\\" if FROZEN else ""
+    run = 'powershell -ExecutionPolicy Bypass -File ' if FROZEN else ""
+
+    def one(m):
+        path = base + "scripts\\" + m.group(1).replace("build-whisper", "win-setup") + ".ps1"
+        return f'{run}"{path}"' if FROZEN else path
+    return re.sub(r"scripts/([\w-]+)\.sh", one, msg)
 
 
 def audio_cmd() -> list[str]:

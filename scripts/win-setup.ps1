@@ -46,6 +46,16 @@ $todo | ForEach-Object { Write-Host "  winget install $($winget[$_])" }
 $uvtools | ForEach-Object { Write-Host "  uv tool install $_" }
 if ($Tier -ne "minimal" -and -not $NoWhisper -and -not (Test-Path "$whisperDir\bin\whisper-cli.exe")) { Write-Host "  whisper.cpp ($(if ($nvidia) {'CUDA'} else {'CPU'})) + modèle large-v3-turbo (~1,6 Go)" }
 if ($Tier -eq "full") { Write-Host "  Real-ESRGAN (ncnn-vulkan), DeepFilterNet (deep-filter.exe)" }
+if ($Tier -ne "minimal") {
+  # le paquet Tesseract winget n'embarque que l'anglais: langues OCR dans un dossier à nous (TESSDATA_PREFIX)
+  $td = Join-Path $env:LOCALAPPDATA "Atelier\tessdata"
+  New-Item -ItemType Directory -Force $td | Out-Null
+  foreach ($l in "eng", "fra", "osd") {
+    $f = Join-Path $td "$l.traineddata"
+    if (-not (Test-Path $f)) { Invoke-WebRequest "https://github.com/tesseract-ocr/tessdata_fast/raw/main/$l.traineddata" -OutFile "$f.part"; Move-Item "$f.part" $f }
+  }
+  [Environment]::SetEnvironmentVariable("TESSDATA_PREFIX", $td, "User")
+}
 if ($Models) { Write-Host "  modèles Ollama recommandés (python -m atelier.hw --models)" }
 if (-not $todo -and -not $uvtools -and -not $Models) { Write-Host "  rien à faire" }
 if (-not $Yes -and (Read-Host "Continuer ? [o/N]") -notmatch '^[oOyY]') { exit 0 }
@@ -66,7 +76,7 @@ if ($Tier -ne "minimal" -and -not $NoWhisper -and -not (Test-Path "$whisperDir\b
   } catch { Write-Warning "whisper.cpp: $_" }
   $model = "$whisperDir\models\ggml-large-v3-turbo.bin"
   New-Item -ItemType Directory -Force (Split-Path $model) | Out-Null
-  if (-not (Test-Path $model)) { Invoke-WebRequest "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin" -OutFile $model }
+  if (-not (Test-Path $model)) { Invoke-WebRequest "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin" -OutFile "$model.part"; Move-Item "$model.part" $model }
 }
 if ($Tier -eq "full") {
   try { if (-not (Test-Path "$opt\realesrgan\realesrgan-ncnn-vulkan.exe")) { Fetch-Zip "xinntao/Real-ESRGAN" 'realesrgan-ncnn-vulkan.*windows\.zip$' "$opt\realesrgan" } } catch { Write-Warning "Real-ESRGAN: $_" }

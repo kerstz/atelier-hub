@@ -38,7 +38,7 @@
     $status.textContent = "En file…";
     const r = await post("/api/jobs", {
       kind: "subtitles",
-      title: `Sous-titres : ${(picked?.name || source.split("/").pop()).slice(0, 40)}`,
+      title: `Sous-titres : ${(picked?.name || source.split(/[\\/]/).pop()).slice(0, 40)}`,
       params: {
         source, src: $src.value, tgt: $tgt.value, translate: bool("#st-tr"), mux: $mux.checked,
         force_whisper: bool("#st-force"), quality: $("#st-q").value, glossary: $gloss.value,
@@ -81,7 +81,7 @@
     store.set("st.tgt", $tgt.value);
     summarize(
       {source, src: $src.value, lang: $tgt.value, force_whisper: bool("#st-force")},
-      `Résumé : ${(picked?.name || source.split("/").pop()).slice(0, 40)}`
+      `Résumé : ${(picked?.name || source.split(/[\\/]/).pop()).slice(0, 40)}`
     );
   };
   jobsView($("#st-result"), (j) => j.kind === "subtitles", {icon: "captions", title: "Rien pour l'instant", hint: "Les fichiers .srt produits sont listés ici."});
@@ -91,7 +91,7 @@
     const path = e.detail.tab === "soustitres" && e.detail.params.get("path");
     if (!path) return;
     $in.value = path;
-    picked = {name: e.detail.params.get("name") || path.split("/").pop()};
+    picked = {name: e.detail.params.get("name") || path.split(/[\\/]/).pop()};
     showChip();
     $status.textContent = "Fichier repris de la tâche précédente.";
   });
