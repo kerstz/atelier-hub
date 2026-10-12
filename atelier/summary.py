@@ -159,4 +159,4 @@ async def run(ctx: Ctx, p: dict) -> str:
         shutil.rmtree(work, ignore_errors=True)
 
 
-register("summary", run)
+register("summary", run, keep_uploads=True)

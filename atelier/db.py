@@ -64,6 +64,11 @@ def recent(limit: int = 100) -> list[dict]:
     return [_row(r) for r in _db.execute("select * from jobs order by id desc limit ?", (limit,))]
 
 
+def active_params(exclude: int | None = None) -> list[dict]:
+    rows = _db.execute("select id, params from jobs where status in ('queued','running')")
+    return [json.loads(r["params"]) for r in rows if r["id"] != exclude]
+
+
 def clear_finished() -> None:
     _db.execute("delete from jobs where status in ('done','failed','cancelled')")
     _db.commit()

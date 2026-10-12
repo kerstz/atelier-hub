@@ -263,9 +263,17 @@ async def do_image(ctx: Ctx, src: Path, target: str, dest: Path, q: int, side: i
 
 # ---- documents
 
+STRIP_IMAGES = Path(__file__).with_name("strip_images.lua")
+
+
 async def pandoc(src: Path, dst: Path, work: Path) -> None:
+    """Two steps so untrusted input can't read local files: reader runs --sandbox (no \\input, no includes,
+    no image fetch) into pandoc's JSON AST; the writer (which needs its data files, so no sandbox)
+    only sees the AST, with images replaced by their alt text."""
     need("pandoc", hint="sudo pacman -S pandoc-cli")
-    argv = ["pandoc", "-f", PANDOC_FMT[ext_of(src)], "-t", PANDOC_OUT[dst.suffix], "-o", str(dst), str(src)]
+    ast = work / "ast.json"
+    await run_cmd(["pandoc", "--sandbox", "-f", PANDOC_FMT[ext_of(src)], "-t", "json", "-o", str(ast), str(src)], cwd=work)
+    argv = ["pandoc", "--lua-filter", str(STRIP_IMAGES), "-f", "json", "-t", PANDOC_OUT[dst.suffix], "-o", str(dst), str(ast)]
     if dst.suffix in (".html", ".md", ".txt"):
         argv[1:1] = ["--wrap=none"]
     if dst.suffix == ".html":
