@@ -29,6 +29,7 @@ DEFAULTS = {
     "tts": {"bin": "piper", "voices_dir": "~/.local/share/piper"},
     "images": {"realesrgan_bin": "realesrgan-ncnn-vulkan", "models_dir": "", "gpu_id": 0, "rembg_bin": "rembg", "rembg_model": "u2net"},
     "audio": {"demucs_bin": "demucs", "demucs_device": "auto", "deepfilter_bin": "deep-filter"},
+    "desktop": {"notify": True, "notify_min_seconds": 5},
     "convert": {"vaapi_device": "/dev/dri/renderD128", "jobs": 2},
     "youtube": {"sub_langs": "en", "cookies_from_browser": "", "rate_limit": ""},
 }

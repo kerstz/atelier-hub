@@ -284,7 +284,18 @@ $("#clear").onclick = async () => {
 $("#demo-gpu").onclick = () => post("/api/jobs", {kind: "demo", title: "Test GPU", params: {gpu: true, seconds: 5}});
 $("#demo-cpu").onclick = () => post("/api/jobs", {kind: "demo", title: "Test CPU", params: {gpu: false, seconds: 5}});
 
-showTab(location.hash.slice(1) || "traduire");
+// #tab ou #tab?text=…&url=… (lanceur desktop, actions du presse-papiers) -> prefill des onglets
+function route() {
+  const [name, qs] = location.hash.slice(1).split("?");
+  const params = new URLSearchParams(qs || "");
+  showTab(name || "traduire");
+  if (![...params].length) return;
+  const fire = () => bus.dispatchEvent(new CustomEvent("prefill", {detail: {tab: name, params}}));
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fire, {once: true});
+  else fire();
+}
+window.addEventListener("hashchange", route);
+route();
 (async () => {
   $("#joblist").append(ui.skeleton(2));
   try {

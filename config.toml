@@ -86,6 +86,12 @@ demucs_device = "auto"
 # binaire deep-filter (DeepFilterNet releases) ou "deepFilter" (uv tool install deepfilternet)
 deepfilter_bin = "deep-filter"
 
+[desktop]
+# notification bureau (notify-send) à la fin d'une tâche
+notify = true
+# jobs plus courts que ça: pas de notification (les échecs notifient toujours)
+notify_min_seconds = 5
+
 # Services externes : sonde de port + démarrage/arrêt (jamais d'installation).
 # unit = unité systemd --user ; dir = dossier docker compose (+ file optionnel).
 # Sans unit ni dir : sonde + lien seulement.

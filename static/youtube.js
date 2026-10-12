@@ -78,6 +78,12 @@
   $langs.value = store.get("yt.langs", "en");
   $q.onchange = $langs.onchange = sync;
   $("#yt-probe").onclick = probe;
+  bus.addEventListener("prefill", (e) => {
+    const url = e.detail.tab === "youtube" && e.detail.params.get("url");
+    if (!url) return;
+    $url.value = url;
+    $url.focus();
+  });
   $url.addEventListener("keydown", (e) => e.key === "Enter" && !e.ctrlKey && probe());
   $url.addEventListener("change", probe);
   $go.onclick = go;

@@ -1,0 +1,26 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=Atelier
+GenericName=Traduction, médias et documents
+Comment=Hub local : traduction, YouTube, sous-titres, documents, conversion
+Comment[fr]=Hub local : traduction, YouTube, sous-titres, documents, conversion
+Keywords=traduction;traduire;sous-titres;youtube;pdf;documents;convertir;conversion;audio;image;transcription;résumé;
+Keywords[fr]=traduction;traduire;sous-titres;youtube;pdf;documents;convertir;conversion;audio;image;transcription;résumé;
+Exec="@ROOT@/scripts/atelier-desktop"
+TryExec=@ROOT@/scripts/atelier-desktop
+Icon=atelier
+Terminal=false
+Categories=Utility;AudioVideo;Office;
+StartupWMClass=@WMCLASS@
+Actions=translate-clipboard;download-clipboard;
+
+[Desktop Action translate-clipboard]
+Name=Traduire le presse-papiers
+Exec="@ROOT@/scripts/atelier-desktop" --translate-clipboard
+Icon=atelier
+
+[Desktop Action download-clipboard]
+Name=Télécharger l'URL du presse-papiers
+Exec="@ROOT@/scripts/atelier-desktop" --download-clipboard
+Icon=atelier
