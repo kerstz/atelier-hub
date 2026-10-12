@@ -185,6 +185,8 @@ def main() -> int:
     # Mesa + WebKitGTK >= 2.42: the DMABUF renderer is the usual cause of render-process aborts
     if os.environ.get("ATELIER_WEBKIT_SAFE", "1") != "0":
         os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+        # décodage logiciel: évite le chemin VA/GL de GStreamer dans le processus de rendu
+        os.environ.setdefault("GST_PLUGIN_FEATURE_RANK", "vah264dec:NONE,vah265dec:NONE,vavp9dec:NONE,vaav1dec:NONE")
     sys.argv[0] = NAME  # Qt app_id / GTK program name -> window class "atelier"
     try:
         if a.gui == "gtk":

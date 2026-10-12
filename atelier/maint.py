@@ -120,6 +120,7 @@ def _disk() -> dict:
         {"id": "uploads", "label": "envois en attente (uploads)", "bytes": _size(d / "uploads"), "clean": True},
         {"id": "logs", "label": "journaux des tâches", "bytes": _size(d / "logs"), "clean": True},
         {"id": "listen", "label": "lectures vocales temporaires", "bytes": _size(base / "audio" / ".listen"), "clean": True},
+        {"id": "playercache", "label": "cache du lecteur (vidéos converties)", "bytes": _size(d / "player-cache"), "clean": True},
         {"id": "tmp", "label": "dossiers de travail", "bytes": _size(d / "tmp"), "clean": False},
         {"id": "db", "label": "base de données", "bytes": _size(d / "atelier.db"), "clean": False},
     ]
@@ -153,6 +154,9 @@ def _clean(target: str) -> int:
             if f.is_file():
                 freed += f.stat().st_size
                 f.unlink(missing_ok=True)
+    elif target == "playercache":
+        from . import media
+        freed += media.clear_cache()
     else:
         raise KeyError(target)
     return freed

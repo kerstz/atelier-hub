@@ -132,3 +132,30 @@ port = 2283
 [services.stirling]
 name = "Stirling-PDF"
 port = 8080
+
+[voice]
+# auto | seedvc | dsp. seedvc = Seed-VC zéro-shot (GPU, scripts/voice-setup.sh); dsp = effets ffmpeg seuls
+engine = "auto"
+python = "~/.local/share/atelier/seedvc-venv/bin/python"
+seedvc_dir = "~/.local/opt/seed-vc"
+voices_dir = "~/.local/share/atelier/voices"
+# direct: bloc (s, plus petit = moins de latence mais plus de charge), étapes de diffusion, cfg (0 = plus rapide)
+live_block = 0.18
+live_steps = 6
+live_cfg = 0.0
+live_gate_db = -50
+live_max_minutes = 120
+# fichiers: étapes de diffusion (plus = plus propre, plus lent)
+file_steps = 30
+# poids déjà en cache: aucun accès réseau pendant l'usage
+offline = true
+
+[player]
+# lecteur intégré: auto = lit tel quel si le format est sûr pour la vue, sinon prépare un mp4 H.264/AAC (mis en cache)
+# transcode = auto | always | never
+transcode = "auto"
+cache_days = 7
+cache_max_gb = 5
+# fenêtre native: décodage logiciel (évite le chemin VA/GL de GStreamer). ATELIER_WEBKIT_SAFE=0 pour l'enlever.
+safe_gst = true
+mpv_bin = "mpv"

@@ -15,7 +15,7 @@ from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import audio, convert, db, docs, engines, gpu, hw, images, joblog, maint, player, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
+from . import audio, convert, db, docs, engines, gpu, hw, images, joblog, maint, media, player, speech, ocr, ollama, services, subs, summary, translate, voice, voicelive, youtube  # noqa: F401
 from .config import ROOT, cfg, data_dir, output_dir
 from .jobs import KINDS, manager
 from .util import missing_uploads, upload_paths
@@ -43,6 +43,7 @@ async def _janitor() -> None:
         try:
             purge_uploads()
             speech.purge_listen()
+            media.purge_cache()
             joblog.purge()
         except Exception:
             pass
@@ -55,6 +56,7 @@ async def lifespan(_: FastAPI):
     for sub in ("youtube", "subs", "docs", "convert", "audio", "images"):
         output_dir(sub).mkdir(exist_ok=True)
     speech.purge_listen()
+    media.purge_cache()
     joblog.purge()
     (data_dir() / "uploads").mkdir(exist_ok=True)
     shutil.rmtree(data_dir() / "tmp", ignore_errors=True)  # no job survives a restart: leftovers are garbage
@@ -302,9 +304,29 @@ async def convert_zip(ids: str):
                         background=BackgroundTask(dest.unlink, missing_ok=True))
 
 
+app.include_router(voice.router)
+app.include_router(media.router)
+app.include_router(voicelive.router)
+
+
 @app.get("/api/deps")
 async def deps():
     return await maint.deps()
+
+
+TEXT_EXT = {".srt", ".vtt", ".txt", ".md", ".json", ".csv"}
+VIEW_MAX = 2 << 20
+
+
+@app.get("/api/jobs/{jid}/view")
+async def job_view(jid: int):
+    """Text result (subtitles, transcript, summary…) for the in-app viewer."""
+    p = _job_file(jid)
+    if not p or p.suffix.lower() not in TEXT_EXT:
+        raise HTTPException(404, "pas de résultat texte")
+    if p.stat().st_size > VIEW_MAX:
+        raise HTTPException(413, "fichier trop gros pour l'aperçu: le télécharger")
+    return PlainTextResponse(p.read_text(encoding="utf-8", errors="replace"))
 
 
 AUDIO_EXT = {".wav", ".mp3", ".flac", ".ogg", ".opus", ".m4a"}

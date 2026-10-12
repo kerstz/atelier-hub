@@ -159,6 +159,21 @@ function jobCard(j) {
   if (j.status === "done" && (j.kind === "youtube" || j.kind === "subtitles")) {
     btns.append(ui.button(j.kind === "youtube" ? "Sous-titrer" : "Résumer / retraduire", {size: "sm", icon: "captions", onclick: () => chain(j)}));
   }
+  const ext = ((j.output || "").match(/\.([A-Za-z0-9]{2,5})$/) || [])[1]?.toLowerCase();
+  const name = (j.output || "").split("/").pop();
+  if (j.status === "done" && ["srt", "vtt", "txt", "md", "json", "csv"].includes(ext)) {
+    btns.append(ui.button("Voir", {size: "sm", icon: "file-text", onclick: async () => {
+      const r = await fetch(`/api/jobs/${j.id}/view`);
+      if (!r.ok) return ui.toast((await r.json().catch(() => ({}))).detail || "Aperçu impossible", "bad");
+      ui.viewer({title: name, text: await r.text()});
+    }}));
+  }
+  if (j.status === "done" && ["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) {
+    btns.append(ui.button("Aperçu", {size: "sm", icon: "image", onclick: () => ui.preview({title: name, src: `/api/jobs/${j.id}/download`})}));
+  }
+  if (j.status === "done" && ["wav", "mp3", "flac", "ogg", "opus", "m4a", "mp4", "mkv", "webm", "mov", "m4v", "avi"].includes(ext)) {
+    btns.append(ui.button("Lire", {size: "sm", icon: "play", onclick: () => openPlayer(j)}));
+  }
   if (j.status === "failed" || j.status === "cancelled") {
     btns.append(ui.button("Relancer", {size: "sm", icon: "play", onclick: () => retryJob(j)}));
   }

@@ -74,6 +74,7 @@
     actions: [
       {id: "upscale2", label: "Agrandir ×2", params: {action: "upscale", factor: 2}, options: [["photo", "Photo"], ["anime", "Illustration / anime"]], optKey: "style"},
       {id: "upscale4", label: "Agrandir ×4", params: {action: "upscale", factor: 4}, options: [["photo", "Photo"], ["anime", "Illustration / anime"]], optKey: "style"},
+      {id: "watermark", label: "Effacer un filigrane (zone)", params: {action: "watermark"}, options: [["br", "Coin bas-droite"], ["bl", "Coin bas-gauche"], ["tr", "Coin haut-droite"], ["tl", "Coin haut-gauche"], ["c", "Centre"]], optKey: "zone"},
       {id: "rembg", label: "Détourer (fond transparent)", params: {action: "rembg"}, options: [["u2net", "Général"], ["isnet-general-use", "Général (précis)"], ["u2net_human_seg", "Personnes"], ["isnet-anime", "Anime"]], optKey: "model"},
     ],
   });

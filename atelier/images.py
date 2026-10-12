@@ -72,6 +72,25 @@ async def rembg(ctx: Ctx, src: Path, dest: Path, model: str) -> None:
             raise RuntimeError(f"{e} (1er lancement: le modèle {model} se télécharge, réseau requis)") from None
 
 
+ZONES = {"br": (1, 1), "bl": (0, 1), "tr": (1, 0), "tl": (0, 0), "c": (0.5, 0.5)}
+
+
+async def watermark(ctx: Ctx, src: Path, dest: Path, zone: str, w_pct: float, h_pct: float) -> None:
+    """Efface un filigrane rectangulaire par interpolation (ffmpeg delogo): net sur un logo discret, flou sur
+    une grande zone ou un motif en travers de l'image."""
+    if zone not in ZONES:
+        raise RuntimeError("zone inconnue")
+    w, h = await size(src)
+    bw = max(8, min(int(w * w_pct / 100), w - 4))
+    bh = max(8, min(int(h * h_pct / 100), h - 4))
+    fx, fy = ZONES[zone]
+    x = max(2, min(int((w - bw) * fx), w - bw - 2))
+    y = max(2, min(int((h - bh) * fy), h - bh - 2))
+    ctx.set(0.3, "effacement du filigrane…")
+    await run_cmd(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(src), "-vf", f"delogo=x={x}:y={y}:w={bw}:h={bh}",
+                   "-frames:v", "1", str(dest)])
+
+
 async def run(ctx: Ctx, p: dict) -> str:
     path = src_file(p)
     action = p.get("action", "upscale")
@@ -88,6 +107,13 @@ async def run(ctx: Ctx, p: dict) -> str:
             raise RuntimeError("modèle inconnu")
         dest = unique(out, f"{name}.sans-fond", ".png")
         run_ = rembg(ctx, path, dest, model)
+    elif action == "watermark":
+        try:
+            wp, hp = (min(60.0, max(2.0, float(p.get(k, d)))) for k, d in (("w_pct", 25), ("h_pct", 14)))
+        except (TypeError, ValueError):
+            raise RuntimeError("paramètre invalide")
+        dest = unique(out, f"{name}.sans-filigrane", ".png")
+        run_ = watermark(ctx, path, dest, p.get("zone", "br"), wp, hp)
     else:
         raise RuntimeError("action inconnue")
     try:

@@ -52,3 +52,19 @@ async def play(path: str) -> str:
         start_new_session=True,
     )
     return name
+
+
+async def play_video(path: str, sub: str | None = None) -> str:
+    """Open a video/audio file in an external mpv window (fallback when the web view can't play it)."""
+    from .config import cfg
+    mpv = shutil.which(os.path.expanduser(cfg["player"]["mpv_bin"]))
+    if not mpv:
+        raise RuntimeError("mpv introuvable (sudo pacman -S mpv)")
+    global _proc
+    await stop()
+    argv = [mpv, "--force-window=yes", "--title=Atelier — lecture", "--really-quiet"]
+    if sub:
+        argv.append(f"--sub-file={sub}")
+    _proc = await asyncio.create_subprocess_exec(*argv, path, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL,
+                                                 stderr=asyncio.subprocess.DEVNULL, start_new_session=True)
+    return "mpv"

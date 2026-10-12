@@ -32,13 +32,19 @@ async def to_wav(src: Path, wav: Path, rate: int, channels: int) -> None:
                    "-ac", str(channels), "-c:a", "pcm_s16le", str(wav)])
 
 
+def demucs_bin() -> str:
+    """demucs du venv Seed-VC (torch ROCm, GPU) s'il existe, sinon [audio] demucs_bin."""
+    own = Path(cfg["voice"]["python"]).expanduser().with_name("demucs")
+    return str(own) if own.is_file() else binpath(cfg["audio"]["demucs_bin"])
+
+
 def demucs_gpu() -> bool:
     return cfg["audio"]["demucs_device"] != "cpu"
 
 
 async def stems(ctx: Ctx, src: Path, name: str, p: dict, work: Path) -> str:
     a = cfg["audio"]
-    need(binpath(a["demucs_bin"]), hint="uv tool install demucs")
+    need(demucs_bin(), hint="uv tool install demucs (ou scripts/voice-setup.sh)")
     model = p.get("model", "htdemucs")
     fmt = p.get("format", "mp3")
     if model not in MODELS or fmt not in FMTS:
@@ -46,7 +52,7 @@ async def stems(ctx: Ctx, src: Path, name: str, p: dict, work: Path) -> str:
     wav = work / "input.wav"
     ctx.set(0.02, "préparation audio…")
     await to_wav(src, wav, 44100, 2)
-    argv = [binpath(a["demucs_bin"]), "-n", model, "-o", str(work / "sep")]
+    argv = [demucs_bin(), "-n", model, "-o", str(work / "sep")]
     if a["demucs_device"] != "auto":
         argv += ["-d", a["demucs_device"]]
     if p.get("two_stems"):

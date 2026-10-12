@@ -243,3 +243,25 @@ env: smoke-all quick 407 ok. Redémarrer le service.
 - Auteur de tous les commits réécrit en kerstz (noreply GitHub) pour apparaître dans les contributeurs; tag local `pre-authorship-rewrite` = ancien historique. Ancien dépôt privé `kerstz/atelier` (remote old-private) bloqué par GitHub: à supprimer depuis le web.
 - Captures: pour les refaire, lancer une instance avec ATELIER_CONFIG pointant un config.toml à données vierges (port 7790, paths dans /tmp), créer quelques tâches via l'API, capturer 1440x900.
 - Prochain: phase 21 TTS naturel (rapport Opus: Kokoro-82M par défaut + Piper en repli, catalogue de voix, aperçu, réglages, découpage par phrases).
+
+## Phase 21 — Voix: changeur de voix + filigrane (smoke21.sh, tout hors-ligne avec faux binaires)
+done: voice.py (catalogue 10 voix IA + 7 effets, job `voice` fichiers, voix perso avec case de droits, aperçu), voicelive.py (job `voice_live`, micro virtuel pw-loopback "Micro Atelier (voix)", changement de voix à chaud), voicelive_worker.py (GPL, boucle temps réel Seed-VC portée de real-time-gui.py, lu dans le vrai dépôt), voicedsp.py, UI carte Voix (onglet Audio, static/voice.js), scripts/voice-setup.sh + voice-refs.sh, Images: "Effacer un filigrane (zone)" (ffmpeg delogo).
+decisions (analyse Opus):
+- Moteur unique Seed-VC zéro-shot (pas de RVC: un modèle entraîné par voix, risque célébrités). Fichiers: inference.py par subprocess (cwd seedvc_dir, HF offline). Direct: modèle tiny 22 kHz, bloc 0,18 s, 6 étapes, cfg 0, porte RMS à la place du VAD funasr.
+- Voix = échantillons Piper générés localement (voice-refs.sh); grave/aigu = référence décalée par rubberband. Pas de hauteur live en mode IA (pas de f0).
+- Pas de repli DSP pour une voix IA (erreur explicite avec la commande); effets DSP marchent sans modèle, en direct (ffmpeg pulse) et en fichier.
+- Direct = job GPU long: refusé tout de suite (409) si GPU occupé; arrêt auto à live_max_minutes.
+non testé en réel: Seed-VC sur RDNA2 (ROCm torch 2.4.0 + rocm6.1), latence réelle (annoncée 300-480 ms), noms des voix Piper de voice-refs.sh (non vérifiés), pw-loopback/pacat réels. Filigrane: flou sur grande zone; pas d'inpainting IA (LaMa/IOPaint non installé), images seulement.
+env: smoke21 ok. Redémarrer le service.
+next: user lance scripts/voice-setup.sh puis scripts/voice-refs.sh --piper, teste le direct, mesure infer_ms.
+
+## Phase 22 — Lecteur intégré audio/vidéo (smoke22.sh, vrai ffmpeg)
+done: media.py (probe ffprobe, décision lisible-tel-quel / à préparer, job `preview` -> mp4 H.264+AAC / m4a faststart en cache, VTT depuis .srt voisin ou pistes mkv, purge cache), routes /api/jobs/{id}/media|stream|prepare|subs/{n}.vtt, /api/player/mpv; static/player.js (modal: barre maison, sous-titres, vitesse, volume, plein écran, clavier), bouton "Lire" sur les cartes de tâches; maint: cache du lecteur nettoyable; [player] dans config.toml; fenêtre native: GST_PLUGIN_FEATURE_RANK va*:NONE.
+decisions (analyse Opus):
+- Cause du crash <audio>: gst-plugins-good absent (autoaudiosink/qtdemux/matroskademux manquants), confiance ~85 %. Correctif réel = `sudo pacman -S --needed gst-plugins-good` (non fait par l'agent).
+- Client détecté par UA: chromium (+webm/mkv natifs) vs webkitgtk (mp4/m4a/mp3/wav/ogg/opus/flac sûrs, reste préparé). Copie de flux si H.264+AAC/MP3, sinon x264 veryfast crf20.
+- Garde anti-crash: sessionStorage; si la page recharge <60 s après un play(), repli mpv (fenêtre séparée) pour la session. mpv sans IPC (fenêtre à OSC); pas de pw-play pour la vidéo.
+non testé en réel: lecture dans WebKitGTK 2.54 (le smoke teste le serveur, pas la vue), <track> en plein écran, sessionStorage conservé après le rechargement de la vue.
+env: smoke22 ok. Installer gst-plugins-good, redémarrer le service et la fenêtre.
+
+- Voix vérifiées par Opus (2026-10-12): homme-jeune -> mls 82 +1 dt (gilles était une voix basse), voix-aigue +3 dt, anonyme -> mls 42; licences: docs/VOICES.md (lessac/ryan NC, alan douteux).

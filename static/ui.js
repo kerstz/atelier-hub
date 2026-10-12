@@ -76,6 +76,53 @@ const ui = (() => {
   }
 
   // Read-only text viewer (job journal): monospace, copy + close.
+  function panel({title, node, onClose}) {
+    closeModal?.(false);
+    const back = h("div", "modal-back");
+    const m = h("div", "modal card wide");
+    m.setAttribute("role", "dialog");
+    m.setAttribute("aria-modal", "true");
+    const close = () => {
+      closeModal = null;
+      back.remove();
+      onClose?.();
+      prev?.focus?.();
+    };
+    const acts = h("div", "actions");
+    acts.append(button("Fermer", {variant: "primary", onclick: close}));
+    m.append(h("h3", "clip", title), node, acts);
+    back.append(m);
+    back.onclick = (e) => e.target === back && close();
+    const prev = document.activeElement;
+    document.body.append(back);
+    closeModal = close;
+    return close;
+  }
+
+  function preview({title, src}) {
+    closeModal?.(false);
+    const back = h("div", "modal-back");
+    const m = h("div", "modal card wide");
+    m.setAttribute("role", "dialog");
+    m.setAttribute("aria-modal", "true");
+    const img = h("img", "preview-img");
+    img.src = src;
+    img.alt = title;
+    const close = () => {
+      closeModal = null;
+      back.remove();
+      prev?.focus?.();
+    };
+    const acts = h("div", "actions");
+    acts.append(button("Fermer", {variant: "primary", onclick: close}));
+    m.append(h("h3", null, title), img, acts);
+    back.append(m);
+    back.onclick = (e) => e.target === back && close();
+    const prev = document.activeElement;
+    document.body.append(back);
+    closeModal = close;
+  }
+
   function viewer({title, text}) {
     closeModal?.(false);
     const back = h("div", "modal-back");
@@ -273,5 +320,5 @@ const ui = (() => {
 
   const dismiss = () => (closeModal ? (closeModal(false), true) : false);
 
-  return {dismiss, h, icon, iconize, button, card, toast, modal, progress, empty, skeleton, copy, select, langPicker, segmented, dropzone, chips, disclosure, viewer};
+  return {dismiss, h, icon, iconize, button, card, toast, modal, progress, empty, skeleton, copy, select, langPicker, segmented, dropzone, chips, disclosure, viewer, preview, panel};
 })();
