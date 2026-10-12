@@ -1,23 +1,27 @@
 import asyncio
 import json
 import time
+import traceback
 from dataclasses import dataclass
 from typing import Awaitable, Callable
 
-from . import db, notify
+from . import db, joblog, notify, ollama
+from .config import cfg
+from .util import consume_uploads
 
 
 @dataclass
 class Kind:
     handler: Callable[["Ctx", dict], Awaitable[str | None]]
     gpu: bool | Callable[[dict], bool] = False
+    frees_vram: bool = False  # GPU job that never uses Ollama: unload models first
 
 
 KINDS: dict[str, Kind] = {}
 
 
-def register(name: str, handler, gpu=False) -> None:
-    KINDS[name] = Kind(handler, gpu)
+def register(name: str, handler, gpu=False, frees_vram: bool = False) -> None:
+    KINDS[name] = Kind(handler, gpu, frees_vram)
 
 
 class Ctx:
@@ -74,17 +78,26 @@ class Manager:
     async def _run(self, jid: int, k: Kind, params: dict, gpu: bool) -> None:
         held = False
         t0 = time.time()
+        joblog.JOB.set(jid)
         try:
             if gpu:
                 await self.gpu_lock.acquire()
                 held = True
             self.update(jid, status="running", started=time.time())
+            if gpu and k.frees_vram and cfg["gpu"]["free_vram"]:
+                self.update(jid, message="libération de la VRAM…")
+                gone = await ollama.unload_all()
+                if gone:
+                    joblog.append(jid, "VRAM libérée: " + ", ".join(gone))
             out = await k.handler(Ctx(self, jid), params)
             self.update(jid, status="done", progress=1.0, output=out, finished=time.time())
+            consume_uploads(params)
             notify.finished(db.get(jid), params, time.time() - t0)
         except asyncio.CancelledError:
+            joblog.append(jid, "== annulé ==")
             self.update(jid, status="cancelled", finished=time.time())
         except Exception as e:
+            joblog.append(jid, "== échec ==\n" + traceback.format_exc())
             self.update(jid, status="failed", error=str(e), finished=time.time())
             notify.finished(db.get(jid), params, time.time() - t0)
         finally:

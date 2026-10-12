@@ -34,6 +34,18 @@ async def unload(model: str) -> None:
         r.raise_for_status()
 
 
+async def unload_all() -> list[str]:
+    """Best-effort: free VRAM before a non-Ollama GPU job. Never raises (Ollama may be down)."""
+    gone = []
+    for m in (await loaded())["models"]:
+        try:
+            await unload(m["name"])
+            gone.append(m["name"])
+        except httpx.HTTPError:
+            pass
+    return gone
+
+
 async def exclusive(model: str) -> None:
     """Free VRAM: unload every loaded model except `model`."""
     want = model if ":" in model else f"{model}:latest"

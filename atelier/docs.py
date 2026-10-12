@@ -165,7 +165,6 @@ async def run(ctx: Ctx, p: dict) -> str:
     if ext not in (".pdf", ".epub") and ext not in LOADERS and ext not in CONVERT:
         raise RuntimeError(f"format non supporté: {ext}")
     glossary = translate.parse_glossary(p.get("glossary") or "")
-    uploads = (data_dir() / "uploads").resolve()
     name = ocr.upload_name(path)
     work = data_dir() / "tmp" / str(ctx.id)
     shutil.rmtree(work, ignore_errors=True)
@@ -195,9 +194,6 @@ async def run(ctx: Ctx, p: dict) -> str:
         return str(out)
     finally:
         shutil.rmtree(work, ignore_errors=True)
-        orig = Path(p["path"])
-        if orig.resolve().is_relative_to(uploads):
-            orig.unlink(missing_ok=True)
 
 
 register("document", run)

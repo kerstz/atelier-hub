@@ -192,3 +192,6 @@ details.adv[open] summary{margin-bottom:var(--s3)}
 .cv-groups{display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s3)}
 .cv-group{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s3);padding:var(--s3);border:1px solid var(--line);border-radius:var(--radius)}
 .cv-group strong{min-width:9em;font-weight:500}
+
+.modal.wide{width:min(900px,92vw);max-width:none}
+.logview{margin:var(--s3) 0;max-height:60vh;overflow:auto;padding:var(--s3);border:1px solid var(--line);border-radius:var(--radius);background:var(--bg);font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word;user-select:text}

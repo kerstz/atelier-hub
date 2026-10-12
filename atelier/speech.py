@@ -8,7 +8,7 @@ from .config import cfg, output_dir
 from .convert import need, unique
 from .jobs import Ctx, register
 from .proc import run_cmd
-from .util import binpath, consume, src_file, workdir
+from .util import binpath, src_file, workdir
 
 DEFAULT_VOICES = {
     "fr": "fr_FR-siwis-medium", "en": "en_US-lessac-medium", "de": "de_DE-thorsten-medium",
@@ -97,7 +97,6 @@ async def dictate(ctx: Ctx, p: dict) -> None:
         txt = (work / "t.txt").read_text(encoding="utf-8", errors="replace") if (work / "t.txt").is_file() else ""
     finally:
         shutil.rmtree(work, ignore_errors=True)
-        consume(path)
     text = " ".join(BLANK_RE.sub(" ", txt).split())
     if not text:
         raise RuntimeError("aucune parole détectée")
@@ -106,4 +105,4 @@ async def dictate(ctx: Ctx, p: dict) -> None:
 
 
 register("tts", tts)
-register("dictate", dictate, gpu=True)
+register("dictate", dictate, gpu=True, frees_vram=True)

@@ -165,15 +165,12 @@ async def run_image(ctx: Ctx, p: dict, src: str, tgt: str) -> None:
     path = Path(p["image"]).resolve()
     if not path.is_relative_to((data_dir() / "uploads").resolve()) or not path.is_file():
         raise RuntimeError("image introuvable")
-    try:
-        if path.suffix.lower() not in IMAGE_EXT:
-            raise RuntimeError("image: png, jpg ou webp")
-        if path.stat().st_size > MAX_IMAGE:
-            raise RuntimeError("image trop lourde (> 20 Mo)")
-        b64 = base64.b64encode(path.read_bytes()).decode()
-        name = re.sub(r"^[0-9a-f]{8}-", "", path.name)
-    finally:
-        path.unlink(missing_ok=True)
+    if path.suffix.lower() not in IMAGE_EXT:
+        raise RuntimeError("image: png, jpg ou webp")
+    if path.stat().st_size > MAX_IMAGE:
+        raise RuntimeError("image trop lourde (> 20 Mo)")
+    b64 = base64.b64encode(path.read_bytes()).decode()
+    name = re.sub(r"^[0-9a-f]{8}-", "", path.name)
     model = cfg["ollama"]["vision_model"]
     ctx.set(0.05, "libération de la VRAM…")
     await ollama.exclusive(model)

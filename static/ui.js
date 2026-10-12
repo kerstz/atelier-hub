@@ -75,6 +75,34 @@ const ui = (() => {
     });
   }
 
+  // Read-only text viewer (job journal): monospace, copy + close.
+  function viewer({title, text}) {
+    closeModal?.(false);
+    const back = h("div", "modal-back");
+    const m = h("div", "modal card wide");
+    m.setAttribute("role", "dialog");
+    m.setAttribute("aria-modal", "true");
+    const pre = h("pre", "logview", text);
+    const acts = h("div", "actions");
+    const copyBtn = button("Copier", {icon: "copy"});
+    const close = () => {
+      closeModal = null;
+      back.remove();
+      prev?.focus?.();
+    };
+    const closeBtn = button("Fermer", {variant: "primary", onclick: close});
+    acts.append(copyBtn, closeBtn);
+    m.append(h("h3", null, title), pre, acts);
+    back.append(m);
+    back.onclick = (e) => e.target === back && close();
+    const prev = document.activeElement;
+    document.body.append(back);
+    closeModal = close;
+    copy(copyBtn, () => text);
+    pre.scrollTop = pre.scrollHeight;
+    closeBtn.focus();
+  }
+
   function progress(value = 0) {
     const bar = h("div", "progress");
     bar.setAttribute("role", "progressbar");
@@ -216,5 +244,5 @@ const ui = (() => {
 
   const dismiss = () => (closeModal ? (closeModal(false), true) : false);
 
-  return {dismiss, h, icon, iconize, button, card, toast, modal, progress, empty, skeleton, copy, select, segmented, dropzone, chips, disclosure};
+  return {dismiss, h, icon, iconize, button, card, toast, modal, progress, empty, skeleton, copy, select, segmented, dropzone, chips, disclosure, viewer};
 })();

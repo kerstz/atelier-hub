@@ -9,9 +9,23 @@ from .config import data_dir
 HEAVY = asyncio.Semaphore(1)
 
 
-def consume(path: Path) -> None:
-    if path.resolve().is_relative_to((data_dir() / "uploads").resolve()):
-        path.unlink(missing_ok=True)
+def upload_paths(params: dict) -> list[Path]:
+    """Params values (str, or list of str) that point inside the uploads dir."""
+    root = str((data_dir() / "uploads").resolve()) + os.sep
+    vals: list = []
+    for v in params.values():
+        vals += v if isinstance(v, list) else [v]
+    return [Path(v) for v in vals if isinstance(v, str) and v.startswith(root)]
+
+
+def consume_uploads(params: dict) -> None:
+    """Delete a finished job's uploaded inputs. Only called on success so failed/cancelled jobs can be retried."""
+    for p in upload_paths(params):
+        p.unlink(missing_ok=True)
+
+
+def missing_uploads(params: dict) -> list[Path]:
+    return [p for p in upload_paths(params) if not p.is_file()]
 
 
 def workdir(ctx_id: int, tag: str) -> Path:

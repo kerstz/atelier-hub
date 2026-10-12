@@ -139,7 +139,6 @@ async def run(ctx: Ctx, p: dict) -> str:
     work.mkdir(parents=True)
     out = output_dir("subs")
     out.mkdir(parents=True, exist_ok=True)
-    uploads = (data_dir() / "uploads").resolve()
     try:
         sub, _, name, t_lo = await acquire(
             ctx, source, is_url, src, bool(p.get("force_whisper")), False, "1080", work, 0.5
@@ -158,8 +157,6 @@ async def run(ctx: Ctx, p: dict) -> str:
         return str(dest)
     finally:
         shutil.rmtree(work, ignore_errors=True)
-        if not is_url and Path(source).resolve().is_relative_to(uploads):
-            Path(source).unlink(missing_ok=True)
 
 
 register("summary", run)

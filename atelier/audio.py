@@ -7,7 +7,7 @@ from .convert import need, unique
 from .jobs import Ctx, register
 from .ocr import upload_name
 from .proc import CmdError, run_cmd
-from .util import binpath, HEAVY, consume, src_file, workdir
+from .util import binpath, HEAVY, src_file, workdir
 
 PCT_RE = re.compile(r"(\d{1,3})%")
 FMTS = {"mp3", "flac", "wav"}
@@ -113,9 +113,8 @@ async def run(ctx: Ctx, p: dict) -> str:
         res = await (stems if action == "stems" else denoise)(ctx, path, upload_name(path), p, work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
-        consume(path)
     ctx.set(1.0, Path(res).name)
     return res
 
 
-register("audio", run, gpu=lambda p: p.get("action", "stems") == "stems" and demucs_gpu())
+register("audio", run, gpu=lambda p: p.get("action", "stems") == "stems" and demucs_gpu(), frees_vram=True)
