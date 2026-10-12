@@ -8,6 +8,7 @@ import os
 import socket
 import sys
 import threading
+import time
 from pathlib import Path
 
 NAME = "atelier"
@@ -112,6 +113,36 @@ def serve(path: Path, window, webview) -> None:
     threading.Thread(target=loop, daemon=True).start()
 
 
+def recover_from_crashes(window, state: dict) -> None:
+    """WebKit's render process can abort (seen on WebKitGTK 2.54 / Mesa): reload the page instead of leaving a
+    dead window; after 3 crashes in 2 minutes give up with exit code 2 so the launcher opens a browser."""
+    def hook() -> bool:
+        try:
+            view = window.native.webview
+            from gi.repository import GLib
+        except Exception:
+            return False
+
+        def on_crash(wv, *_):
+            now = time.monotonic()
+            state["crashes"] = [t for t in state.get("crashes", []) if now - t < 120] + [now]
+            if len(state["crashes"]) > 3:
+                state["gave_up"] = True
+                GLib.idle_add(window.destroy)
+            else:
+                GLib.idle_add(wv.reload)
+            return False
+
+        view.connect("web-process-terminated", on_crash)
+        return False
+
+    try:
+        from gi.repository import GLib
+        window.events.shown += lambda: GLib.idle_add(hook)
+    except Exception:
+        pass
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default="http://127.0.0.1:7777/")
@@ -125,6 +156,9 @@ def main() -> int:
             return 0
         sp.unlink(missing_ok=True)
 
+    # Mesa + WebKitGTK >= 2.42: the DMABUF renderer is the usual cause of render-process aborts
+    if os.environ.get("ATELIER_WEBKIT_SAFE", "1") != "0":
+        os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
     sys.argv[0] = NAME  # Qt app_id / GTK program name -> window class "atelier"
     try:
         if a.gui == "gtk":
@@ -148,6 +182,9 @@ def main() -> int:
     window.events.resized += lambda w, h: saver.update(width=w, height=h)
     window.events.moved += lambda x, y: saver.update(x=x, y=y)
     window.events.closing += lambda: saver.flush()
+    state: dict = {}
+    if a.gui == "gtk":
+        recover_from_crashes(window, state)
     try:
         serve(sp, window, webview)
         webview.start(gui=a.gui, icon=str(ICON) if ICON.is_file() else None)
@@ -156,7 +193,7 @@ def main() -> int:
         return 2
     finally:
         sp.unlink(missing_ok=True)
-    return 0
+    return 2 if state.get("gave_up") else 0
 
 
 if __name__ == "__main__":

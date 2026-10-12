@@ -130,8 +130,8 @@ if [ "$mode" = pywebview ]; then
   t0=$(date +%s)
   "$venv/bin/python" "$root/scripts/atelier_desktop.py" --url "$url" --hash "$hash" --gui "$gui"
   rc=$?
-  # échec rapide = pywebview inutilisable -> navigateur
-  if [ $rc -ne 0 ] && [ $(( $(date +%s) - t0 )) -lt 10 ]; then mode=chromium; open_browser; fi
+  # code 2 (moteur web instable / inutilisable) ou échec rapide -> navigateur
+  if [ $rc -eq 2 ] || { [ $rc -ne 0 ] && [ $(( $(date +%s) - t0 )) -lt 10 ]; }; then mode=chromium; open_browser; fi
 else
   open_browser
 fi
