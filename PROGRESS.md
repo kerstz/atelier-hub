@@ -237,3 +237,9 @@ env: smoke-all quick 407 ok. Redémarrer le service.
 ## Correctif — "Écouter" faisait crasher la fenêtre (2026-10-12)
 - Cause: chaque `audio.play()` (<audio> + GStreamer) dans WebKitGTK abortait le processus de rendu; les 4 coredumps coïncident à la seconde avec la fin des jobs tts #289/#291/#293.
 - Correctif: Écouter lit le wav sur la machine (atelier/player.py: pw-play > paplay > aplay > ffplay > mpv); POST /api/jobs/{id}/play, /api/play/stop, GET /api/play; le bouton bascule Écouter/Arrêter par sondage. Repli <audio> uniquement si aucun lecteur système. Fichiers limités au dossier de sortie, Origin/Sec-Fetch comme le reste de l'API.
+
+## Dépôt public (2026-10-12)
+- https://github.com/kerstz/atelier-hub (MIT, EN/FR, CI verte): README avec galerie (docs/screenshots/*.png, instance de démo vierge sur le port 7790, thème sombre EN), docs/ARCHITECTURE.md, CONTRIBUTING, SECURITY, modèles d'issues/PR, workflow CI (syntaxe + smoke 16-20), topics.
+- Auteur de tous les commits réécrit en kerstz (noreply GitHub) pour apparaître dans les contributeurs; tag local `pre-authorship-rewrite` = ancien historique. Ancien dépôt privé `kerstz/atelier` (remote old-private) bloqué par GitHub: à supprimer depuis le web.
+- Captures: pour les refaire, lancer une instance avec ATELIER_CONFIG pointant un config.toml à données vierges (port 7790, paths dans /tmp), créer quelques tâches via l'API, capturer 1440x900.
+- Prochain: phase 21 TTS naturel (rapport Opus: Kokoro-82M par défaut + Piper en repli, catalogue de voix, aperçu, réglages, découpage par phrases).
