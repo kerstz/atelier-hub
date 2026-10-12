@@ -23,6 +23,11 @@ def spawn_kw() -> dict:
     return {"start_new_session": True}
 
 
+def run_kw() -> dict:
+    """subprocess.run/Popen kwargs: no console window flash from the windowed exe."""
+    return {"creationflags": CREATE_NO_WINDOW} if NT else {}
+
+
 def kill_tree(proc, force: bool = False) -> None:
     """Kill a child and its descendants. Never raises on an already-dead process."""
     if proc is None or proc.returncode is not None:
@@ -146,7 +151,11 @@ def force_utf8() -> None:
     """Windows opens text files in the ANSI code page by default; every file we write or read is UTF-8."""
     import builtins
     import io
-    if not NT or sys.flags.utf8_mode or getattr(builtins.open, "_atelier", False):
+    if not NT:
+        return
+    os.environ.setdefault("PYTHONUTF8", "1")  # python CLIs we spawn (piper, ocrmypdf, demucs)
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    if sys.flags.utf8_mode or getattr(builtins.open, "_atelier", False):
         return
     real = io.open
 

@@ -1,4 +1,4 @@
-# Fabrique les échantillons de référence des voix du catalogue avec Piper (local). Une voix introuvable est sautée.
+﻿# Fabrique les échantillons de référence des voix du catalogue avec Piper (local). Une voix introuvable est sautée.
 # Licences: docs/VOICES.md. Options: -Only ID, -DryRun
 param([string]$Only = "", [switch]$DryRun)
 $ErrorActionPreference = "Continue"

@@ -159,7 +159,7 @@ def _ffmpeg_encoders() -> set[str]:
     if _encoders is None:
         try:
             out = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=10,
-                                 encoding="utf-8", errors="replace").stdout
+                                 encoding="utf-8", errors="replace", **plat.run_kw()).stdout
         except (OSError, subprocess.SubprocessError):
             out = ""
         _encoders = {w for line in out.splitlines() for w in line.split()[1:2]}
@@ -328,7 +328,7 @@ async def lo(src: Path, dst: Path, work: Path) -> None:
     sub = work / "lo"
     sub.mkdir(exist_ok=True)
     flt = LO_FILTER[dst.suffix]
-    argv = ["soffice", f"-env:UserInstallation=file://{work}/profile", "--headless", "--convert-to", flt, "--outdir", str(sub), str(src)]
+    argv = ["soffice", f"-env:UserInstallation={(Path(work) / 'profile').as_uri()}", "--headless", "--convert-to", flt, "--outdir", str(sub), str(src)]
     await run_cmd(argv)
     got = sub / f"{src.stem}{dst.suffix}"
     if not got.is_file():

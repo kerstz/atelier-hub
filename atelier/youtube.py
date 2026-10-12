@@ -4,6 +4,7 @@ import os
 import re
 
 from .config import cfg, output_dir
+from . import plat
 from .jobs import Ctx, register
 from .proc import CmdError, run_cmd
 
@@ -41,8 +42,8 @@ def _check_url(url: str) -> str:
 async def probe(url: str) -> dict:
     url = _check_url(url)
     proc = await asyncio.create_subprocess_exec(
-        "yt-dlp", "-J", "--flat-playlist", "--no-warnings", *_net_args(), "--", url,
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        "yt-dlp", "-J", "--encoding", "utf-8", "--flat-playlist", "--no-warnings", *_net_args(), "--", url,
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, **plat.spawn_kw(),
     )
     try:
         out, err = await asyncio.wait_for(proc.communicate(), 90)
@@ -133,7 +134,7 @@ async def run(ctx: Ctx, p: dict) -> str:
     out = output_dir("youtube")
     out.mkdir(parents=True, exist_ok=True)
     argv = [
-        "yt-dlp", "--newline", "--windows-filenames", "--no-mtime",
+        "yt-dlp", "--newline", "--encoding", "utf-8", "--windows-filenames", "--no-mtime", "--trim-filenames", "150",
         "--yes-playlist" if is_playlist else "--no-playlist",
         "-P", str(out), "-o", template,
         *_net_args(), *mode_args, "--", url,

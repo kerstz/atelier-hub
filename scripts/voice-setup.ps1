@@ -1,4 +1,4 @@
-# Installe Seed-VC (changeur de voix IA, GPL-3.0). Poids ~3-4 Go au préchauffage. -DryRun pour afficher seulement.
+﻿# Installe Seed-VC (changeur de voix IA, GPL-3.0). Poids ~3-4 Go au préchauffage. -DryRun pour afficher seulement.
 # torch: CUDA 12.1 si une carte NVIDIA est présente, sinon CPU (lent; pas de ROCm sous Windows).
 param([switch]$DryRun, [switch]$NoWarmup, [string]$TorchIndex = "")
 $ErrorActionPreference = "Stop"

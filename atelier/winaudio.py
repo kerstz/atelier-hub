@@ -6,6 +6,7 @@
 Standalone on purpose (stdlib + sounddevice): also runs inside the Seed-VC venv. The virtual mic is VB-Audio Cable."""
 import argparse
 import json
+import os
 import subprocess
 import sys
 import threading
@@ -71,7 +72,8 @@ def dsp(sd, a) -> None:
     ff = subprocess.Popen([a.ffmpeg, "-hide_banner", "-loglevel", "error", "-fflags", "nobuffer",
                            "-flags", "low_delay", "-f", "s16le", "-ar", "48000", "-ac", "1", "-i", "pipe:0", "-af", a.af,
                            "-ar", "48000", "-ac", "1", "-f", "s16le", "pipe:1"],
-                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                          creationflags=0x08000000 if os.name == "nt" else 0)
 
     def feed() -> None:
         try:

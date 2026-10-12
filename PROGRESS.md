@@ -282,3 +282,4 @@ non testé en réel: build PyInstaller Linux, dpkg -i, systemd unit (Arch sans d
 env: smoke24 ok. Release: `git tag v0.1.0 && git push --tags`.
 next: pousser un tag, regarder le job CI, corriger.
 - Release v0.1.0 publiée (CI verte): .exe, zip, .deb. Bug corrigé: pathex relatif + collect_submodules vide dans atelier.spec.
+- v0.1.1: correctifs audit Opus Windows (venv voix, chemins upload, consoles, UTF-8, LibreOffice URI, téléchargements WebView2, ps1 BOM/TLS). Restent: signature, OCR fra, VRAM FR, WASAPI, Inno AppId.

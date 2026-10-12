@@ -136,7 +136,6 @@ port = 8080
 [voice]
 # auto | seedvc | dsp. seedvc = Seed-VC zéro-shot (GPU, scripts/voice-setup.sh); dsp = effets ffmpeg seuls
 engine = "auto"
-python = "~/.local/share/atelier/seedvc-venv/bin/python"
 seedvc_dir = "~/.local/opt/seed-vc"
 voices_dir = "~/.local/share/atelier/voices"
 # direct: bloc (s, plus petit = moins de latence mais plus de charge), étapes de diffusion, cfg (0 = plus rapide)

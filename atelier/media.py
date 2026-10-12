@@ -12,8 +12,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 
-from . import db, player
+from . import db, player, plat
 from .config import cfg, data_dir, output_dir
+from . import plat
 from .jobs import Ctx, manager, register
 from .proc import run_cmd
 from .util import HEAVY
@@ -51,7 +52,7 @@ async def probe(p: Path) -> dict:
     if key in _probes:
         return _probes[key]
     proc = await asyncio.create_subprocess_exec("ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", str(p),
-                                                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+                                                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, **plat.spawn_kw())
     data, _ = await asyncio.wait_for(proc.communicate(), 30)
     try:
         j = json.loads(data or b"{}")
@@ -228,7 +229,7 @@ async def media_sub(jid: int, sid: str):
         return PlainTextResponse(srt_to_vtt(subs[n].read_text(encoding="utf-8", errors="replace")), media_type="text/vtt")
     if sid.startswith("e") and sid[1:].isdigit():
         proc = await asyncio.create_subprocess_exec("ffmpeg", "-nostdin", "-loglevel", "error", "-i", str(p), "-map", f"0:s:{int(sid[1:])}",
-                                                    "-f", "webvtt", "-", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+                                                    "-f", "webvtt", "-", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, **plat.spawn_kw())
         data, _ = await asyncio.wait_for(proc.communicate(), 60)
         if proc.returncode or not data:
             raise HTTPException(404, "piste illisible")

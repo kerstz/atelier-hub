@@ -1,4 +1,4 @@
-# Installe les outils externes d'Atelier sous Windows (winget + téléchargements GitHub). Affiche le plan, demande confirmation.
+﻿# Installe les outils externes d'Atelier sous Windows (winget + téléchargements GitHub). Affiche le plan, demande confirmation.
 #   powershell -ExecutionPolicy Bypass -File scripts\win-setup.ps1 [-Tier minimal|standard|full] [-Yes] [-Models] [-NoWhisper]
 # minimal  = ffmpeg, yt-dlp, Ollama, uv                      (traduire, YouTube, sous-titres existants)
 # standard = + poppler, tesseract, pandoc, LibreOffice, whisper.cpp, pdf2zh-next, ocrmypdf   (défaut)
@@ -6,6 +6,8 @@
 # -Models  = télécharge aussi les modèles Ollama recommandés pour cette machine
 param([ValidateSet("minimal","standard","full")][string]$Tier = "standard", [switch]$Yes, [switch]$Models, [switch]$NoWhisper)
 $ErrorActionPreference = "Continue"
+$ProgressPreference = 'SilentlyContinue'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $opt = Join-Path $env:LOCALAPPDATA "Atelier\opt"
 $bin = Join-Path $env:LOCALAPPDATA "Atelier\bin"
 New-Item -ItemType Directory -Force $opt, $bin | Out-Null
@@ -76,7 +78,7 @@ if ($Models) {
   $exe = @("$PSScriptRoot\..\Atelier.exe", "$PSScriptRoot\Atelier.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($exe -and (Has ollama)) {
     $out = Join-Path $env:TEMP "atelier-models.txt"
-    Start-Process $exe -ArgumentList "--hw-models", $out -Wait
+    Start-Process $exe -ArgumentList "--hw-models", "`"$out`"" -Wait
     Get-Content $out | Where-Object { $_ } | ForEach-Object { ollama pull $_ }
   } else { Write-Warning "Ollama ou Atelier.exe introuvable: ollama pull translategemma:12b" }
 }

@@ -42,7 +42,7 @@ def _gpus(sysfs: str) -> list[dict]:
     if exe:
         try:
             res = subprocess.run([exe, "--query-gpu=name,memory.total,memory.used", "--format=csv,noheader,nounits"],
-                                 capture_output=True, text=True, timeout=5)
+                                 capture_output=True, text=True, timeout=5, **plat.run_kw())
             for line in res.stdout.splitlines():
                 name, total, used = [x.strip() for x in line.split(",")]
                 t = int(float(total)) << 20

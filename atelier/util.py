@@ -18,7 +18,7 @@ def upload_paths(params: dict) -> list[Path]:
     out = []
     for k in UPLOAD_KEYS:
         v = params.get(k)
-        if not isinstance(v, str) or not v.startswith("/"):
+        if not isinstance(v, str) or not Path(v).is_absolute():
             continue
         p = Path(v).resolve()
         if p.is_relative_to(root) and p != root:

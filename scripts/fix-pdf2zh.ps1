@@ -1,4 +1,4 @@
-# bitstring 5 casse babeldoc; un `uv tool upgrade pdf2zh-next` le remet.
+﻿# bitstring 5 casse babeldoc; un `uv tool upgrade pdf2zh-next` le remet.
 $ErrorActionPreference = "Stop"
 $dir = (uv tool dir).Trim()
 $py = Join-Path $dir "pdf2zh-next\Scripts\python.exe"

@@ -1,4 +1,4 @@
-# Build the Windows app: dist\Atelier\Atelier.exe (+ dist\Atelier-Setup.exe if Inno Setup 6 is installed).
+﻿# Build the Windows app: dist\Atelier\Atelier.exe (+ dist\Atelier-Setup.exe if Inno Setup 6 is installed).
 # PowerShell, from anywhere:  powershell -ExecutionPolicy Bypass -File scripts\build-win.ps1
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot)

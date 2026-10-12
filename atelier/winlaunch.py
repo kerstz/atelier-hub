@@ -40,8 +40,9 @@ def _window(url: str) -> bool:
     """Blocks until the window is closed. False if no web view is usable."""
     try:
         import webview
+        webview.settings["ALLOW_DOWNLOADS"] = True
         webview.create_window("Atelier", url, width=1280, height=840, min_size=(900, 600))
-        webview.start()
+        webview.start(private_mode=False)
         return True
     except Exception as e:
         print(f"pywebview indisponible: {e}", file=sys.stderr)
