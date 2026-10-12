@@ -235,6 +235,16 @@
           <ul id="models" class="list"></ul>
         </div>
         <div class="card">
+          <div class="card-head"><h2>Dépendances</h2><button id="deps-refresh" class="btn ghost sm"><i data-i="search"></i><span>Revérifier</span></button></div>
+          <p id="deps-sum" class="dim">…</p>
+          <ul id="deps" class="list deps"></ul>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Disque</h2></div>
+          <p id="disk-sum" class="dim">…</p>
+          <ul id="disk" class="list"></ul>
+        </div>
+        <div class="card">
           <div class="card-head"><h2>Verrou GPU</h2></div>
           <p id="gpu-lock" class="dim"></p>
           <details class="adv">
@@ -257,10 +267,13 @@
   </button>
   <div class="tray-body">
     <ul id="joblist" class="list"></ul>
-    <div class="tray-foot"><button id="clear" class="btn ghost sm"><i data-i="trash"></i><span>Vider</span></button></div>
+    <div class="tray-foot">
+      <select id="tray-filter" aria-label="Filtrer les tâches"><option value="all">Toutes</option><option value="active">En cours</option><option value="failed">Échecs</option></select>
+      <button id="clear" class="btn ghost sm"><i data-i="trash"></i><span>Vider</span></button></div>
   </div>
 </section>
 <div id="toasts" aria-live="polite"></div>
+<div id="sr-live" class="sr-only" role="status" aria-live="polite"></div>
 
 <script src="ui.js"></script>
 <script src="app.js"></script>

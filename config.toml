@@ -25,6 +25,8 @@ vision_model = "gemma3:12b"
 
 [translate]
 chunk_chars = 2500
+# envoyer le bloc précédent (source + traduction) en contexte: termes et registre cohérents
+context = true
 
 [youtube]
 sub_langs = "en"

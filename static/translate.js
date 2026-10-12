@@ -234,6 +234,7 @@
     loadHistory();
   };
 
+  glossaryBar($gloss);
   (async () => {
     langs = await (await fetch("/api/langs")).json();
     fillLangs();

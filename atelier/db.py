@@ -21,6 +21,7 @@ def init() -> None:
         status text, gpu integer, progress real default 0, message text default '',
         output text, error text, created real, started real, finished real)"""
     )
+    _db.execute("create table if not exists glossaries(name text primary key, text text, updated real)")
     _db.execute(
         """create table if not exists translations(
         id integer primary key autoincrement, created real,
@@ -74,6 +75,27 @@ def active_params(exclude: int | None = None) -> list[dict]:
 def clear_finished() -> None:
     _db.execute("delete from jobs where status in ('done','failed','cancelled')")
     _db.commit()
+
+
+def glossaries() -> list[dict]:
+    return [dict(r) for r in _db.execute("select name, text, updated from glossaries order by name collate nocase")]
+
+
+def glossary_get(name: str) -> dict | None:
+    r = _db.execute("select name, text, updated from glossaries where name=?", (name,)).fetchone()
+    return dict(r) if r else None
+
+
+def glossary_put(name: str, text: str) -> None:
+    _db.execute("insert into glossaries(name,text,updated) values(?,?,?) on conflict(name) do update "
+                "set text=excluded.text, updated=excluded.updated", (name, text, time.time()))
+    _db.commit()
+
+
+def glossary_delete(name: str) -> bool:
+    cur = _db.execute("delete from glossaries where name=?", (name,))
+    _db.commit()
+    return cur.rowcount > 0
 
 
 HISTORY = 20

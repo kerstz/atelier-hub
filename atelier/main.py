@@ -6,7 +6,7 @@ import uuid
 import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
@@ -15,7 +15,7 @@ from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import audio, convert, db, docs, gpu, images, joblog, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
+from . import audio, convert, db, docs, gpu, images, joblog, maint, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
 from .config import ROOT, cfg, data_dir, output_dir
 from .jobs import KINDS, manager
 from .util import missing_uploads, upload_paths
@@ -300,6 +300,68 @@ async def convert_zip(ids: str):
     await asyncio.to_thread(_zip, files, dest)
     return FileResponse(dest, filename="atelier-convert.zip", media_type="application/zip",
                         background=BackgroundTask(dest.unlink, missing_ok=True))
+
+
+@app.get("/api/deps")
+async def deps():
+    return await maint.deps()
+
+
+@app.get("/api/disk")
+async def disk():
+    return await maint.disk()
+
+
+@app.post("/api/disk/clean/{target}")
+async def disk_clean(target: str):
+    try:
+        return {"freed": await maint.clean(target)}
+    except KeyError:
+        raise HTTPException(404, "cible inconnue")
+
+
+@app.get("/api/jobs/{jid}/file")
+async def job_file(jid: int):
+    job = db.get(jid)
+    p = maint.primary_file(job) if job else None
+    if not p:
+        raise HTTPException(404, "pas de fichier")
+    return {"path": str(p), "name": p.name}
+
+
+GLOSS_NAME_RE = re.compile(r"^[\w .()'\-]{1,60}$")
+
+
+class GlossaryIn(BaseModel):
+    text: str
+
+
+@app.get("/api/glossaries")
+async def glossaries():
+    return db.glossaries()
+
+
+@app.put("/api/glossaries/{name}")
+async def glossary_put(name: str, body: GlossaryIn):
+    if not GLOSS_NAME_RE.match(name) or len(body.text) > 100_000:
+        raise HTTPException(400, "nom ou contenu invalide")
+    db.glossary_put(name.strip(), body.text)
+    return {"ok": True}
+
+
+@app.delete("/api/glossaries/{name}")
+async def glossary_delete(name: str):
+    if not db.glossary_delete(name):
+        raise HTTPException(404, "glossaire inconnu")
+    return {"ok": True}
+
+
+@app.get("/api/glossaries/{name}/export")
+async def glossary_export(name: str):
+    g = db.glossary_get(name)
+    if not g:
+        raise HTTPException(404, "glossaire inconnu")
+    return PlainTextResponse(g["text"], headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}.txt"})
 
 
 @app.get("/api/services")

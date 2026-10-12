@@ -194,3 +194,15 @@ env: redémarrer le service. Voix Piper: aucune par défaut pour ces langues (aj
 - smoke4: "upload supprimé" obsolète depuis phase 14 (subtitles keep_uploads) -> test attend maintenant l'upload conservé.
 - smoke5 (vrai bug phase 16): le nom unique de docs.run comparait tous les formats (`<nom>.<tgt>.*`): un pptx du même nom qu'un docx existant devenait "<nom> (2)". Corrigé: docs.output_base compare par type de sortie (docx/pptx/xlsx/epub séparés, pdf mono+dual = une famille). smoke5 nettoie ses sorties au départ.
 - smoke10/11/15 TIMEOUT dans smoke-all: veille système (journal: suspend exit 08:53, saut d'horloge 40301 s), pas un bug; chacun repasse seul en 1-7 s.
+
+## Phase 18 — Idées post-audit (smoke18.sh; UI vérifiée dans un vrai navigateur)
+done: panneau Dépendances + Disque (Système), glossaires nommés côté serveur (+ export), contexte inter-blocs dans Traduire, chaînage YouTube/Sous-titres -> Sous-titres, filtre du tray, annonce vocale (aria-live), progressbar aria.
+decisions:
+- maint.py: GET /api/deps (24 lignes: binaire/chemin, modèles Ollama, voix fr, langues tesseract, hint de commande + "utile pour"), GET /api/disk, POST /api/disk/clean/{uploads|logs|listen} (jamais les sorties ~/Atelier; uploads/journaux des jobs actifs épargnés).
+- Glossaires: table `glossaries(name, text, updated)`, GET/PUT/DELETE /api/glossaries[/{name}] + /export; nom ≤60 car. `[\w .()'-]`. glossaryBar() ajoute une barre (choix, nom, Enregistrer/Supprimer/Exporter) au-dessus du glossaire de Traduire, Sous-titres, Documents. Remplace le partage par localStorage (perdu en repli navigateur).
+- Traduire: bloc N reçoit (source, traduction) du bloc N-1 en messages (pas cumulatif), `[translate] context = true`.
+- Chaînage: GET /api/jobs/{id}/file = fichier principal (srt via message; youtube = média le plus récent depuis `started`; borné au dossier de sortie). Boutons "Sous-titrer" (youtube) et "Résumer / retraduire" (subtitles) -> hash `soustitres?path=&name=` prérempli.
+- Tray: filtre Toutes/En cours/Échecs; zone sr-only annonce fin/échec.
+- Historique des traductions inchangé (20, spec phase 2); a11y plus poussée non faite.
+env: service redémarré. Réel: 24 dépendances, 3 manquantes (ocrmypdf, gemma3:12b second/vision).
+next: backlog vide côté audit. Éventuel: ocrmypdf + `ollama pull gemma3:12b` (résumé, image), contexte inter-lots pour PDF.
