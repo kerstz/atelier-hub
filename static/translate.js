@@ -36,7 +36,10 @@
     $gloss.value = store.get("tr.gloss", "");
   }
 
-  const name = (c) => langs.find((l) => l.code === c)?.name ?? c;
+  const name = (c) => {
+    const l = langs.find((x) => x.code === c);
+    return l ? i18n.pick(l, "name") : c;
+  };
 
   function setBusy(busy) {
     $go.hidden = busy;

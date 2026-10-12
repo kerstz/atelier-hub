@@ -508,6 +508,8 @@ $("#clear").onclick = async () => {
   renderJobs();
   bus.dispatchEvent(new Event("jobs"));
 };
+$("#lang-toggle .lbl").textContent = i18n.lang === "en" ? "Français" : "English";
+$("#lang-toggle").onclick = i18n.toggle;
 $("#deps-refresh").onclick = refreshDeps;
 $("#tray-filter").onchange = renderJobs;
 $("#demo-gpu").onclick = () => post("/api/jobs", {kind: "demo", title: "Test GPU", params: {gpu: true, seconds: 5}});

@@ -166,7 +166,7 @@ const ui = (() => {
   // sibling variants (pt/pt-BR, zh/zh-TW, filipino/cebuano…). `prefix` labels the note ("Source", "Cible").
   function langPicker(sel, langs, {value, auto = true, prefix = ""} = {}) {
     const list = langs.filter((l) => auto || l.code !== "auto");
-    select(sel, list.map((l) => [l.code, l.name]), value);
+    select(sel, list.map((l) => [l.code, i18n.pick(l, "name")]), value);
     if (!sel.value) sel.selectedIndex = 0;
     const row = sel.closest(".lang-row, .field-row") || sel.parentElement;
     const note = h("p", "dim lang-note");
@@ -177,9 +177,10 @@ const ui = (() => {
     const paint = () => {
       const l = langs.find((x) => x.code === sel.value);
       const parts = [];
-      if (l?.note) parts.push(l.note);
-      if (l?.variants?.length) parts.push(`Autres variantes : ${l.variants.map((v) => v.name).join(", ")}.`);
-      note.textContent = parts.length ? `${prefix ? prefix + " — " : ""}${l.name} : ${parts.join(" ")}` : "";
+      const text = l && i18n.pick(l, "note");
+      if (text) parts.push(text);
+      if (l?.variants?.length) parts.push(`Autres variantes : ${l.variants.map((v) => i18n.pick(v, "name")).join(", ")}.`);
+      note.textContent = parts.length ? `${prefix ? prefix + " — " : ""}${i18n.pick(l, "name")} : ${parts.join(" ")}` : "";
       note.hidden = !parts.length;
     };
     sel.addEventListener("change", paint);

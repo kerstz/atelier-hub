@@ -46,11 +46,22 @@ Atelier ne télécharge ni n'installe rien lui-même.
 
 ```bash
 git clone https://github.com/kerstz/atelier && cd atelier
-bash scripts/env-check.sh          # ce qui est présent / manquant
-uv sync --frozen
-bash scripts/install-service.sh    # unité systemd --user, écoute sur 127.0.0.1:7777
-bash scripts/install-desktop.sh    # optionnel : entrée de menu + fenêtre native
+./install.sh --dry-run             # affiche le plan pour votre distro, ne change rien
+./install.sh                       # niveau standard (demande confirmation avant d'agir)
 ```
+
+`install.sh` détecte Arch/CachyOS/Manjaro (pacman), Debian/Ubuntu/Mint (apt), Fedora/Nobara (dnf) et
+openSUSE (zypper). Options : `--tier=minimal|standard|full`, `--yes`, `--dry-run`, `--no-whisper`,
+`--no-desktop`, `--no-service`, `--ollama`, `--models`.
+
+| Niveau | Ajoute |
+|---|---|
+| `minimal` | ffmpeg, yt-dlp, poppler, uv, le service — traduction, YouTube, sous-titres existants |
+| `standard` (défaut) | OCR, pandoc, LibreOffice, libvips, whisper.cpp (build Vulkan), pdf2zh-next, entrée de menu |
+| `full` | calibre, Piper, rembg, Demucs, Real-ESRGAN, DeepFilterNet |
+
+Voie manuelle (toute distro) : `bash scripts/env-check.sh`, `uv sync --frozen`, `bash scripts/install-service.sh`,
+puis éventuellement `bash scripts/install-desktop.sh`.
 
 Ouvrir <http://127.0.0.1:7777>. Les réglages sont dans `config.toml` (modèles, chemins, ports, voix, limites).
 
