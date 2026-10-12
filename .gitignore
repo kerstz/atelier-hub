@@ -8,3 +8,4 @@ __pycache__/
 *.log
 Atelier/
 uploads/
+.playwright-mcp/

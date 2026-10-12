@@ -18,7 +18,8 @@ async function uploadFile(file) {
   return (await r.json()).path;
 }
 
-const gib = (b) => (b / 2 ** 30).toFixed(1) + " Go";
+const GO = i18n.lang === "en" ? "GB" : "Go", MO = i18n.lang === "en" ? "MB" : "Mo";
+const gib = (b) => (b / 2 ** 30).toFixed(1) + " " + GO;
 const el = (tag, text, cls) => ui.h(tag, cls, text);
 const tabs = () => [...document.querySelectorAll("#tabs .nav")];
 
@@ -366,7 +367,7 @@ async function refreshDeps() {
   );
 }
 
-const mib = (b) => (b >= 2 ** 30 ? `${(b / 2 ** 30).toFixed(1)} Go` : `${Math.round(b / 2 ** 20)} Mo`);
+const mib = (b) => (b >= 2 ** 30 ? `${(b / 2 ** 30).toFixed(1)} ${GO}` : `${Math.round(b / 2 ** 20)} ${MO}`);
 async function refreshDisk() {
   let d;
   try {

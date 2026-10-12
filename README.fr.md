@@ -1,48 +1,81 @@
+<div align="center">
+
+<img src="static/icon.svg" width="96" alt="Atelier logo">
+
 # Atelier
+
+**Un hub local, utilisable hors ligne, pour la traduction, les médias et les documents.**<br>
+Un petit service sur votre machine. Vos textes et fichiers ne la quittent jamais.
+
+[![CI](https://github.com/kerstz/atelier-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/kerstz/atelier-hub/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab.svg)
+![Platform](https://img.shields.io/badge/platform-Linux-informational.svg)
+![Offline](https://img.shields.io/badge/runs-100%25%20local-success.svg)
+![UI](https://img.shields.io/badge/UI-EN%20%7C%20FR-8a6cff.svg)
 
 Français · [English](README.md)
 
-Hub web local, tout-en-un et hors ligne après installation, pour la traduction, les médias et les
-documents. Un petit service FastAPI sur `127.0.0.1:7777`, une UI HTML/JS vanilla (sans build ni CDN) et
-une file de tâches qui enveloppe des CLI éprouvées au lieu de les réimplémenter.
+<img src="docs/screenshots/translate.png" alt="Atelier — onglet Traduire" width="860">
 
-Développé et testé sur **CachyOS / Arch Linux** avec un GPU AMD (RX 6900 XT, Vulkan). L'interface est en
-français par défaut, avec une bascule vers l'anglais dans la barre latérale.
+</div>
 
-## Fonctionnalités
+---
+
+Atelier enveloppe des outils en ligne de commande éprouvés (ffmpeg, yt-dlp, whisper.cpp, Ollama, pdf2zh-next,
+Piper, Demucs…) derrière une seule interface web, une file de tâches et un verrou GPU global — **au lieu de les
+réimplémenter**. Il n'écoute que sur `127.0.0.1`, n'a ni étape de build ni CDN, et continue de fonctionner
+sans réseau.
+
+## L'essentiel
+
+- **Traduire** texte, sous-titres, PDF, fichiers Office et EPUB avec des modèles locaux — 35 langues, variantes
+  expliquées (portugais PT/BR, chinois simplifié/traditionnel, philippin vs cebuano…).
+- **S'adapte à votre matériel** : choisit les modèles selon votre GPU/RAM, et bascule sur **NLLB-200 en CPU**
+  pour qu'un petit PC traduise quand même.
+- **Tout dans une file** : progression SSE, annulation, relance, journal par tâche, notifications de bureau,
+  une tâche GPU à la fois (modèles déchargés avant les jobs GPU hors Ollama).
+- **Fenêtre native ou navigateur** : fenêtre pywebview optionnelle avec entrée de menu, reprise sur crash et
+  repli navigateur.
+- **Privé par construction** : loopback uniquement, contrôles de même origine, aucune commande shell
+  construite depuis l'UI, écritures confinées à `~/Atelier` et au dossier de données.
+
+## Au programme
 
 | Onglet | Contenu |
 |---|---|
-| **Traduire** | Texte libre, découpage par blocs avec contexte, flux en direct, glossaires, image → texte → traduction (modèle vision), dictée (micro → whisper.cpp), lecture à voix haute / export MP3 (Piper) |
+| **Traduire** | Texte libre avec contexte entre blocs et glossaires · image → texte → traduction (modèle vision) · dictée (micro → whisper.cpp) · lecture à voix haute / export MP3 (Piper) |
 | **YouTube** | Vidéo ou playlist → mkv / mp3 / sous-titres seuls, choix de qualité, progression réelle |
-| **Sous-titres** | URL ou média/SRT local → sous-titres existants, sinon whisper.cpp → SRT traduit (+ mkv soft-sub), résumé du transcript avec chapitres horodatés |
-| **Documents** | PDF (pdf2zh-next, mono + bilingue, OCR auto des scans), DOCX / PPTX / XLSX avec mise en forme inline conservée, EPUB (table des matières + métadonnées conservées) |
-| **Convertir** | Vidéo/audio (ffmpeg, VAAPI h264/hevc, AV1 en CPU), images (libvips), documents (pandoc + LibreOffice), e-books (calibre), lot + zip |
-| **Images** | Agrandissement ×2 / ×4 (Real-ESRGAN, Vulkan), détourage (rembg) |
-| **Audio** | Séparation des pistes (Demucs), réduction du bruit de la voix (DeepFilterNet) |
+| **Sous-titres** | URL ou média/SRT local → sous-titres existants, sinon whisper.cpp → SRT traduit (+ mkv soft-sub) · résumé du transcript avec chapitres horodatés |
+| **Documents** | PDF (pdf2zh-next, mono + bilingue, OCR automatique des scans) · DOCX / PPTX / XLSX avec mise en forme inline conservée · EPUB avec table des matières + métadonnées conservées |
+| **Convertir** | Vidéo/audio (ffmpeg, VAAPI h264/hevc, AV1 en CPU) · images (libvips) · documents (pandoc + LibreOffice) · e-books (calibre) · lot + zip |
+| **Images** | Agrandissement ×2 / ×4 (Real-ESRGAN, Vulkan) · détourage (rembg) |
+| **Audio** | Séparation des pistes (Demucs) · réduction du bruit de la voix (DeepFilterNet) |
 | **Services** | Sonde, démarrage et arrêt de vos autres services locaux (Open WebUI, Jellyfin…) |
-| **Système** | VRAM, modèles Ollama chargés, dépendances, espace disque et nettoyage |
+| **Système** | VRAM, modèles chargés, profil matériel, dépendances avec commandes d'installation, espace disque et nettoyage |
 
-En plus : verrou GPU global (une tâche GPU à la fois, modèles déchargés avant les jobs GPU hors Ollama),
-file de tâches avec progression SSE, annulation, relance, journal par tâche, notifications de bureau,
-fenêtre native optionnelle (pywebview) avec entrée de menu.
+## Galerie
 
-35 langues, avec les variantes expliquées (portugais PT/BR, chinois simplifié/traditionnel, philippin vs
-cebuano, indonésien vs malais…).
+<table>
+  <tr>
+    <td><img src="docs/screenshots/convert.png" alt="Convert"><br><sub><b>Convertir</b> — déposez n'importe quoi, choisissez la cible, lot en zip</sub></td>
+    <td><img src="docs/screenshots/documents.png" alt="Documents"><br><sub><b>Documents</b> — PDF, Office et EPUB, mise en page conservée</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/subtitles.png" alt="Subtitles"><br><sub><b>Sous-titres</b> — sous-titres existants ou whisper.cpp, puis traduction</sub></td>
+    <td><img src="docs/screenshots/youtube.png" alt="YouTube"><br><sub><b>YouTube</b> — vidéo, audio ou sous-titres, playlists comprises</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/images.png" alt="Images"><br><sub><b>Images</b> — agrandissement et détourage</sub></td>
+    <td><img src="docs/screenshots/audio.png" alt="Audio"><br><sub><b>Audio</b> — pistes et réduction du bruit</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/system.png" alt="System"><br><sub><b>Système</b> — profil matériel, dépendances, disque</sub></td>
+    <td><img src="docs/screenshots/translate-light.png" alt="Light theme"><br><sub><b>Thème clair</b> — suit le système, modifiable</sub></td>
+  </tr>
+</table>
 
-## Prérequis
-
-- Linux avec systemd (unités utilisateur), Python 3.12 + [uv](https://docs.astral.sh/uv/)
-- [Ollama](https://ollama.com) avec un modèle de traduction (défaut `translategemma:12b`) et un second
-  modèle (défaut `gemma3:12b`, résumés et traduction d'image)
-- `ffmpeg`, `yt-dlp` ; whisper.cpp compilé avec Vulkan (`scripts/build-whisper.sh`)
-- Selon les fonctions (le panneau **Système → Dépendances** indique ce qui manque et comment l'installer) :
-  `pdf2zh-next`, `ocrmypdf` + `tesseract`, `pandoc`, LibreOffice, `calibre`, `libvips`, `piper-tts`,
-  `rembg`, `realesrgan-ncnn-vulkan`, `demucs`, `deep-filter`
-
-Atelier ne télécharge ni n'installe rien lui-même.
-
-## Installation
+## Démarrage rapide
 
 ```bash
 git clone https://github.com/kerstz/atelier-hub && cd atelier-hub
@@ -50,10 +83,10 @@ git clone https://github.com/kerstz/atelier-hub && cd atelier-hub
 ./install.sh                       # niveau standard (demande confirmation avant d'agir)
 ```
 
-`install.sh` détecte Arch/CachyOS/Manjaro (pacman), Debian/Ubuntu/Mint (apt), Fedora/Nobara (dnf) et
-openSUSE (zypper). Options : `--tier=minimal|standard|full`, `--yes`, `--dry-run`, `--no-whisper`,
-`--no-desktop`, `--no-service`, `--ollama`, `--models` (télécharge les modèles Ollama recommandés pour *votre* matériel),
-`--engine=ct2` (traduction sur CPU pour les petites machines).
+Puis ouvrir <http://127.0.0.1:7777>. `install.sh` détecte Arch/CachyOS/Manjaro (pacman), Debian/Ubuntu/Mint
+(apt), Fedora/Nobara (dnf) et openSUSE (zypper). Options : `--tier=minimal|standard|full`, `--yes`,
+`--dry-run`, `--no-whisper`, `--no-desktop`, `--no-service`, `--ollama`, `--models` (télécharge les modèles
+Ollama recommandés pour *votre* matériel), `--engine=ct2` (traduction CPU pour petites machines).
 
 | Niveau | Ajoute |
 |---|---|
@@ -62,34 +95,80 @@ openSUSE (zypper). Options : `--tier=minimal|standard|full`, `--yes`, `--dry-run
 | `full` | calibre, Piper, rembg, Demucs, Real-ESRGAN, DeepFilterNet |
 
 Voie manuelle (toute distro) : `bash scripts/env-check.sh`, `uv sync --frozen`, `bash scripts/install-service.sh`,
-puis éventuellement `bash scripts/install-desktop.sh`.
-
-Ouvrir <http://127.0.0.1:7777>. Les réglages sont dans `config.toml` (modèles, chemins, ports, voix, limites).
+puis éventuellement `bash scripts/install-desktop.sh`. Atelier ne télécharge ni n'installe rien sans l'avoir
+listé d'abord.
 
 ## Adaptation au matériel
 
 Atelier profile la machine (VRAM GPU — AMD/NVIDIA —, RAM, cœurs, AVX2) et choisit les modèles par rôle :
-GPU ≥ 16 Go → `translategemma:12b` / `gemma3:12b` ; 8 Go → variantes 4B ; sans GPU exploitable → **NLLB-200
-sur CPU** (CTranslate2, int8, 35 langues) : une petite machine traduit quand même texte, sous-titres,
-DOCX/PPTX/XLSX et EPUB (le PDF exige Ollama). Voir **Système → Matériel**, `python -m atelier.hw` et
-`[translate] engine` dans `config.toml` (`auto` ne choisit que parmi ce qui est déjà installé). Les poids NLLB
-sont sous licence CC-BY-NC.
 
-## Tests
+| Machine | Traduction | Texte / résumé | Vision |
+|---|---|---|---|
+| GPU ≥ 24 Go | `translategemma:27b` | `gemma3:27b` | `gemma3:27b` |
+| GPU 14–24 Go | `translategemma:12b` | `gemma3:12b` | `gemma3:12b` |
+| GPU 3,5–14 Go | `translategemma:4b` | `gemma3:4b` | `gemma3:4b` |
+| CPU seul, ≥ 15 Go de RAM | NLLB-200 1.3B (CTranslate2) | `gemma3:4b` | `gemma3:4b` |
+| Petite machine | NLLB-200 600M (CTranslate2) | `gemma3:1b` | — |
 
-Pas de framework de test : un script smoke par phase.
+Voir **Système → Matériel**, `python -m atelier.hw` et `[translate] engine` dans `config.toml` (`auto` ne choisit
+que parmi ce qui est déjà installé ; les réglages explicites gagnent toujours). Les poids NLLB sont CC-BY-NC ;
+avec le moteur CPU la traduction de PDF est indisponible (pdf2zh exige Ollama).
+
+## Fonctionnement
+
+```mermaid
+flowchart LR
+    UI["Web UI<br/>vanilla JS"] -- HTTP / SSE --> API["FastAPI<br/>127.0.0.1:7777"]
+    API --> Q["Job queue + SQLite<br/>progress · cancel · retry · logs"]
+    Q --> L{{"GPU lock"}}
+    L --> W["whisper.cpp"]
+    L --> O["Ollama"]
+    L --> G["Real-ESRGAN · Demucs"]
+    Q --> C["ffmpeg · yt-dlp · pandoc<br/>LibreOffice · libvips · …"]
+    Q --> N["NLLB (CTranslate2)<br/>CPU"]
+```
+
+Détails dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (en anglais).
+
+## Configuration
+
+Tout est dans [`config.toml`](config.toml) : ports et chemins, modèles et moteur, voix, limites d'envoi,
+comportement GPU, services. L'interface est en français ou en anglais (bouton dans la barre latérale ; suit
+la langue du navigateur par défaut).
+
+## Développement
 
 ```bash
-bash scripts/smoke-all.sh --quick    # tout sauf les longs/réseau (3, 4, 5)
-bash scripts/smoke-all.sh            # complet (Ollama, whisper.cpp, réseau)
+uv sync --frozen
+uv run python -m atelier                 # http://127.0.0.1:7777
+bash scripts/smoke-all.sh --quick        # suite smoke hors ligne (aucun modèle requis)
+bash scripts/smoke-all.sh                # complet : Ollama, whisper.cpp, réseau
 ```
+
+Pas de framework de test, volontairement — un script smoke par domaine dans `scripts/`. Voir
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Sécurité
 
-Mono-utilisateur, local uniquement : écoute sur loopback, refuse les en-têtes `Host`/`Origin` étrangers
-(même origine seulement), ne construit jamais de commande shell depuis l'UI, écrit uniquement dans
-`~/Atelier` et le dossier de données. Ne pas l'exposer sur un réseau.
+Mono-utilisateur, local uniquement. Atelier écoute sur loopback, refuse les en-têtes `Host`/`Origin` étrangers
+(même origine seulement, y compris les autres applications web locales), ne construit jamais de commande shell
+depuis l'UI et garde ses écritures dans `~/Atelier` et son dossier de données. **Ne pas l'exposer sur un
+réseau.** Détails et signalement : [SECURITY.md](SECURITY.md).
 
-## Licence
+## Remerciements
 
-Non spécifiée pour l'instant.
+Atelier repose sur [ffmpeg](https://ffmpeg.org), [yt-dlp](https://github.com/yt-dlp/yt-dlp),
+[whisper.cpp](https://github.com/ggml-org/whisper.cpp), [Ollama](https://ollama.com),
+[pdf2zh-next](https://github.com/PDFMathTranslate/PDFMathTranslate-next), [OCRmyPDF](https://ocrmypdf.readthedocs.io),
+[Piper](https://github.com/OHF-Voice/piper1-gpl), [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN),
+[Demucs](https://github.com/adefossez/demucs), [rembg](https://github.com/danielgatis/rembg),
+[DeepFilterNet](https://github.com/Rikorose/DeepFilterNet), [libvips](https://www.libvips.org),
+[pandoc](https://pandoc.org), [LibreOffice](https://www.libreoffice.org), [calibre](https://calibre-ebook.com),
+[CTranslate2](https://github.com/OpenNMT/CTranslate2) avec [NLLB-200](https://github.com/facebookresearch/fairseq/tree/nllb),
+[FastAPI](https://fastapi.tiangolo.com) et [pywebview](https://pywebview.flowrl.com). Les icônes viennent de
+[Lucide](https://lucide.dev) (ISC).
+
+## License
+
+[MIT](LICENSE) pour Atelier lui-même. Les outils et modèles pilotés ont leurs propres licences (notamment
+NLLB-200 : CC-BY-NC ; Piper 1.x : GPL-3).

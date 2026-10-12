@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: System tools used by the smoke tests
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg pandoc poppler-utils
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: Syntax (python, javascript, shell)
+        run: |
+          uv run --frozen python -m compileall -q atelier scripts/atelier_desktop.py
+          for f in static/*.js; do node --check "$f"; done
+          for f in install.sh scripts/*.sh scripts/atelier-desktop; do bash -n "$f"; done
+      - name: Offline smoke tests
+        run: |
+          for n in 16 17 18 19 20; do
+            echo "== smoke$n"; bash scripts/smoke$n.sh 2>&1 | grep -v Deprecat | tee /tmp/s$n.log
+            ! grep -q '^FAIL' /tmp/s$n.log
+          done
