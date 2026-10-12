@@ -46,11 +46,22 @@ Nothing is downloaded or installed by Atelier itself.
 
 ```bash
 git clone https://github.com/kerstz/atelier && cd atelier
-bash scripts/env-check.sh          # what is present / missing
-uv sync --frozen
-bash scripts/install-service.sh    # systemd --user unit, listens on 127.0.0.1:7777
-bash scripts/install-desktop.sh    # optional: menu entry + native window
+./install.sh --dry-run             # print the plan for your distro, change nothing
+./install.sh                       # standard tier (asks before doing anything)
 ```
+
+`install.sh` detects Arch/CachyOS/Manjaro (pacman), Debian/Ubuntu/Mint (apt), Fedora/Nobara (dnf) and
+openSUSE (zypper). Options: `--tier=minimal|standard|full`, `--yes`, `--dry-run`, `--no-whisper`,
+`--no-desktop`, `--no-service`, `--ollama`, `--models`.
+
+| Tier | Adds |
+|---|---|
+| `minimal` | ffmpeg, yt-dlp, poppler, uv, the service — translate, YouTube, subtitles with existing captions |
+| `standard` (default) | OCR, pandoc, LibreOffice, libvips, whisper.cpp (Vulkan build), pdf2zh-next, desktop entry |
+| `full` | calibre, Piper, rembg, Demucs, Real-ESRGAN, DeepFilterNet |
+
+Manual route (any distro): `bash scripts/env-check.sh`, `uv sync --frozen`, `bash scripts/install-service.sh`,
+optionally `bash scripts/install-desktop.sh`.
 
 Open <http://127.0.0.1:7777>. Settings live in `config.toml` (models, paths, ports, voices, limits).
 

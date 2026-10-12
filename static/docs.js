@@ -24,7 +24,7 @@
       }
       render();
     }
-    if ($status.textContent.startsWith("Envoi de")) $status.textContent = "";
+    if (/^(Envoi de|Uploading)/.test($status.textContent)) $status.textContent = "";
   }
 
   async function go() {

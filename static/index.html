@@ -25,6 +25,7 @@
       <button class="nav" data-tab="systeme" title="Système"><i data-i="cpu"></i><span class="lbl">Système</span></button>
     </nav>
     <div class="sb-foot">
+      <button class="nav" id="lang-toggle" title="Langue / Language"><i data-i="languages"></i><span class="lbl">English</span></button>
       <button class="nav" id="theme" title="Changer de thème"><i data-i="sun"></i><span class="lbl">Thème</span></button>
       <button class="nav" id="collapse" title="Réduire la barre latérale"><i data-i="panel-left"></i><span class="lbl">Réduire</span></button>
     </div>
@@ -275,6 +276,8 @@
 <div id="toasts" aria-live="polite"></div>
 <div id="sr-live" class="sr-only" role="status" aria-live="polite"></div>
 
+<script src="i18n.en.js"></script>
+<script src="i18n.js"></script>
 <script src="ui.js"></script>
 <script src="app.js"></script>
 <script src="translate.js"></script>
@@ -284,5 +287,6 @@
 <script src="convert.js"></script>
 <script src="media.js"></script>
 <script src="services.js"></script>
+<script>i18n.start();</script>
 </body>
 </html>

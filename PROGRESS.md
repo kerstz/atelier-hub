@@ -206,3 +206,13 @@ decisions:
 - Historique des traductions inchangé (20, spec phase 2); a11y plus poussée non faite.
 env: service redémarré. Réel: 24 dépendances, 3 manquantes (ocrmypdf, gemma3:12b second/vision).
 next: backlog vide côté audit. Éventuel: ocrmypdf + `ollama pull gemma3:12b` (résumé, image), contexte inter-lots pour PDF.
+
+## Phase 19 — Version anglaise + installateur multi-distro (smoke19.sh)
+done: README.md (EN) + README.fr.md, UI FR/EN (static/i18n.js + i18n.en.js, bouton langue dans la barre latérale), notes de langues EN (/api/langs: name_en, note_en), install.sh (arch/debian/fedora/suse).
+decisions:
+- i18n: le français reste la source et le défaut (détection navigator.language si rien de choisi). En "en": dictionnaire exact + regex appliqués aux nœuds texte et attributs title/placeholder/aria-label au chargement et par MutationObserver (écarts avec l'avis d'Opus: pas de data-t ni de t() dans chaque littéral — ~250 points à toucher; le garde-fou smoke19 vérifie que 100 % des chaînes statiques du HTML ont une traduction). Messages backend, titres de jobs (stockés en FR) et erreurs traduits à l'affichage par regex; non traduits = restent en FR sans rien casser.
+- Garde-fous: smoke19 exécute translate() via node sur le vrai code; tout nouveau texte HTML sans entrée EN fait échouer le smoke.
+- install.sh: familles via /etc/os-release (ID, ID_LIKE; ATELIER_OS_RELEASE pour tester). Niveaux minimal/standard/full, --dry-run, --yes, --ollama, --models, --no-{whisper,desktop,service}. Paquets installés en bloc puis un par un si échec. uv: paquet sur Arch, installateur officiel (avec confirmation) ailleurs. Real-ESRGAN/deep-filter: binaires GitHub x86_64 seulement. Ollama: paquet sur Arch, script officiel (confirmation) ailleurs.
+- Non testé en réel: apt/dnf/zypper (noms de paquets de mémoire; dry-run vérifié, un paquet absent n'arrête pas le reste).
+env: smoke-all quick: 364 ok, 0 FAIL.
+next: choix du modèle de traduction selon la machine + repli sans LLM pour petites machines (demande en cours).

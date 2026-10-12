@@ -104,6 +104,30 @@ META: dict[str, dict] = {
 }
 
 
+NOTES_EN = {
+    "ar": "Modern Standard Arabic. Right-to-left script: subtitles and text are fine, PDF layout is degraded.",
+    "pt": "European Portuguese (Portugal, lusophone Africa): \"tu\", \"autocarro\", own spelling and phrasing. "
+          "For Brazil, pick \"Portuguese (Brazil)\".",
+    "pt-BR": "Brazilian Portuguese: vocabulary, spelling and grammar differ from European Portuguese "
+             "(\"você\", gerund, \"ônibus\" instead of \"autocarro\").",
+    "zh": "Simplified Chinese (mainland China, Singapore): simplified characters, standard Mandarin.",
+    "zh-TW": "Traditional Chinese (Taiwan, Hong Kong): traditional characters and own vocabulary "
+             "(\"軟體\" instead of \"软件\"). The zh-TW code has not been verified on the translation model side.",
+    "fil": "National language of the Philippines, standardized from Tagalog (Manila region) with many English "
+           "loanwords. Understood almost everywhere in the country: default choice. Dictation and transcription "
+           "use the Tagalog model.",
+    "ceb": "Language of the Visayas and Mindanao (Cebu, Davao), distinct from Filipino/Tagalog and not mutually "
+           "intelligible with it. Experimental translation. No Whisper model for Cebuano: dictation and "
+           "transcription use automatic detection.",
+    "id": "National language of Indonesia. Very close to Malay (mutually intelligible in writing) but with "
+          "different vocabulary and usage.",
+    "ms": "Malaysia, Brunei, Singapore. Very close to Indonesian (mutually intelligible in writing) but with "
+          "different spelling, loanwords and usage. Experimental translation.",
+    "he": "Modern Hebrew. Right-to-left script: subtitles and text are fine, PDF layout is degraded.",
+    "fa": "Persian (Farsi). Right-to-left script: subtitles and text are fine, PDF layout is degraded.",
+}
+
+
 def _meta(code: str) -> dict:
     return META.get(code, {})
 
@@ -128,13 +152,13 @@ def lang_list() -> list[dict]:
     for c in LANGS:
         if f := _meta(c).get("family"):
             fam.setdefault(f, []).append(c)
-    out = [{"code": "auto", "name": "Détecter", "note": "", "variants": []}]
+    out = [{"code": "auto", "name": "Détecter", "name_en": "Detect", "note": "", "note_en": "", "variants": []}]
     for c, n in LANGS.items():
         m = _meta(c)
         same = [x for x in fam.get(m.get("family", ""), []) if x != c]
         out.append({
-            "code": c, "name": n[1], "note": m.get("note", ""),
-            "variants": [{"code": x, "name": LANGS[x][1]} for x in same],
+            "code": c, "name": n[1], "name_en": n[0], "note": m.get("note", ""), "note_en": NOTES_EN.get(c, ""),
+            "variants": [{"code": x, "name": LANGS[x][1], "name_en": LANGS[x][0]} for x in same],
         })
     return out
 
