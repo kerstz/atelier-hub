@@ -20,6 +20,8 @@ Français · [English](README.md)
 
 </div>
 
+> **Vibe coding.** L'essentiel de ce projet a été écrit avec des assistants de code IA (Claude Code), à partir de prompts plutôt qu'à la main. Lisez le code avant de lui confier quoi que ce soit de sensible.
+
 ---
 
 Atelier enveloppe des outils en ligne de commande éprouvés (ffmpeg, yt-dlp, whisper.cpp, Ollama, pdf2zh-next,

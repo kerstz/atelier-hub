@@ -20,6 +20,8 @@ One small service on your machine. Your texts and files never leave it.
 
 </div>
 
+> **Vibe coded.** Most of this project was written with AI coding assistants (Claude Code), guided by prompts rather than hand-written. Read the code before relying on it for anything sensitive.
+
 ---
 
 Atelier wraps battle-tested command-line tools (ffmpeg, yt-dlp, whisper.cpp, Ollama, pdf2zh-next, Piper,
