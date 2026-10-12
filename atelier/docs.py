@@ -6,14 +6,14 @@ import re
 import shutil
 from pathlib import Path
 
-from . import epub, inline, ocr, translate
+from . import engines, epub, inline, ocr, translate
 from .batch import Translator, numbered
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, manager, register
 from .office import LOADERS
 from .proc import run_cmd
 from .srt import flat
-from .util import free_base
+from .util import HEAVY, free_base
 
 PAGES_RE = re.compile(r"^[0-9,\- ]{1,60}$")
 CONVERT = {".doc": "docx", ".odt": "docx", ".rtf": "docx", ".ppt": "pptx", ".odp": "pptx", ".xls": "xlsx", ".ods": "xlsx"}
@@ -39,8 +39,9 @@ async def translate_texts(ctx: Ctx, texts: list[str], src, tgt, glossary, lo: fl
     if cur:
         batches.append(cur)
     tr, res, prev = Translator(src, tgt, glossary), {}, []
-    ctx.set(lo, "attente GPU…")
-    async with manager.gpu_lock:
+    eng = await engines.pick()
+    ctx.set(lo, "attente GPU…" if eng.gpu else "en file…")
+    async with (manager.gpu_lock if eng.gpu else HEAVY):
         for bi, b in enumerate(batches):
             got = await tr.batch(b, prev)
             res.update(got)
@@ -121,6 +122,8 @@ def pdf_progress(ctx: Ctx):
 async def do_pdf(ctx: Ctx, path: Path, name: str, src, tgt, glossary, pages: str, work: Path, out: Path, use_ocr: bool = True) -> list[Path]:
     if src == "auto":
         raise RuntimeError("langue source requise pour un PDF")
+    if (await engines.pick()).name != "ollama":
+        raise RuntimeError("PDF indisponible avec le moteur CPU (pdf2zh exige Ollama): convertir en DOCX puis traduire le DOCX")
     if use_ocr and not await ocr.has_text(path):
         ctx.set(0, "PDF sans texte: OCR…")
         scanned = work / "ocr.pdf"
@@ -132,7 +135,7 @@ async def do_pdf(ctx: Ctx, path: Path, name: str, src, tgt, glossary, pages: str
     pdf = work / f"{name}.pdf"
     shutil.copy(path, pdf)
     argv = [
-        "pdf2zh_next", "--ollama", "--ollama-model", d["pdf_model"] or ol["translate_model"],
+        "pdf2zh_next", "--ollama", "--ollama-model", d["pdf_model"] or engines.model("translate"),
         "--ollama-host", ol["url"], "--lang-in", src, "--lang-out", tgt, "--output", str(res_dir),
         "--qps", str(d["qps"]), "--watermark-output-mode", "no_watermark", "--disable-config-auto-save",
     ]

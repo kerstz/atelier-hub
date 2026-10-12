@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # Atelier installer: detects the distro and installs what the chosen tier needs.
 #   ./install.sh [--tier=minimal|standard|full] [--yes] [--dry-run] [--no-whisper] [--no-desktop]
-#                [--no-service] [--ollama] [--models]
+#                [--no-service] [--ollama] [--models] [--engine=ct2]
 # Tiers:  minimal  = core only (translate, YouTube, subtitles with existing captions)
 #         standard = + OCR, documents, convert, whisper.cpp, desktop entry   (default)
 #         full     = + e-books, TTS, background removal, upscaling, stems, denoise
+# --models  pulls the Ollama models recommended for THIS machine (VRAM/RAM based; see: python -m atelier.hw)
+# --engine=ct2  CPU translation engine for small machines: NLLB-200 via CTranslate2 (no GPU/LLM needed)
 # Nothing is downloaded or built without being listed first (use --dry-run to only print the plan).
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-TIER=standard YES=0 DRY=0 WHISPER=1 DESKTOP=1 SERVICE=1 OLLAMA=0 MODELS=0
+TIER=standard YES=0 DRY=0 WHISPER=1 DESKTOP=1 SERVICE=1 OLLAMA=0 MODELS=0 ENGINE=
 
 usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; }
 for a in "$@"; do
@@ -20,7 +22,8 @@ for a in "$@"; do
     --no-desktop) DESKTOP=0 ;;
     --no-service) SERVICE=0 ;;
     --ollama) OLLAMA=1 ;;
-    --models) MODELS=1 ;;
+    --models|--models=auto) MODELS=1 ;;
+    --engine=ct2) ENGINE=ct2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown option: $a" >&2; usage >&2; exit 64 ;;
   esac
@@ -120,7 +123,8 @@ echo "  python tools (uv tool): yt-dlp$([ "$TIER" != minimal ] && echo ' pdf2zh-
 [ "$TIER" != minimal ] && [ "$WHISPER" = 1 ] && echo "  whisper.cpp: clone + Vulkan build + large-v3-turbo model (~1.6 GB) via scripts/build-whisper.sh"
 [ "$TIER" = full ] && echo "  binaries (x86_64): Real-ESRGAN ncnn-vulkan -> ~/.local/opt/realesrgan, deep-filter -> ~/.local/bin"
 [ "$OLLAMA" = 1 ] && echo "  Ollama: $([ "$family" = arch ] && echo 'distro package' || echo 'official installer https://ollama.com/install.sh')"
-[ "$MODELS" = 1 ] && echo "  Ollama models (~8 GB): translategemma:12b gemma3:12b"
+[ "$MODELS" = 1 ] && echo "  Ollama models: the set recommended for this machine (python -m atelier.hw --models)"
+[ "$ENGINE" = ct2 ] && echo "  CPU engine: ctranslate2 + sentencepiece, NLLB-200 int8 model from Hugging Face (CC-BY-NC, unverified repo id)"
 [ "$SERVICE" = 1 ] && echo "  systemd --user unit: atelier.service (127.0.0.1:7777)"
 [ "$DESKTOP" = 1 ] && [ "$TIER" != minimal ] && echo "  desktop: menu entry + native window"
 confirm "Proceed?" || { echo "aborted."; exit 1; }
@@ -208,10 +212,6 @@ if [ "$OLLAMA" = 1 ]; then
     fi
   fi
 fi
-if [ "$MODELS" = 1 ]; then
-  say "Ollama models"
-  for m in translategemma:12b gemma3:12b; do run ollama pull "$m" || warn "ollama pull $m failed (is the ollama service running?)"; done
-fi
 
 # ---- 7. Atelier itself
 say "Atelier"
@@ -219,6 +219,33 @@ cd "$ROOT" || exit 1
 run uv sync --frozen
 [ "$SERVICE" = 1 ] && run bash scripts/install-service.sh
 [ "$DESKTOP" = 1 ] && [ "$TIER" != minimal ] && run bash scripts/install-desktop.sh
+
+if [ "$MODELS" = 1 ] || [ "$ENGINE" = ct2 ]; then
+  say "Hardware profile"
+  [ "$DRY" = 1 ] && echo '  $ uv run --frozen python -m atelier.hw' || uv run --frozen python -m atelier.hw
+fi
+if [ "$MODELS" = 1 ]; then
+  say "Ollama models (recommended for this machine)"
+  if [ "$DRY" = 1 ]; then echo '  $ ollama pull <models from: python -m atelier.hw --models>'
+  else
+    mapfile -t _models < <(uv run --frozen python -m atelier.hw --models 2>/dev/null)
+    [ ${#_models[@]} -eq 0 ] && _models=(translategemma:12b gemma3:12b)
+    for m in "${_models[@]}"; do run ollama pull "$m" || warn "ollama pull $m failed (is the ollama service running?)"; done
+  fi
+fi
+if [ "$ENGINE" = ct2 ]; then
+  say "CPU translation engine (NLLB-200, CTranslate2)"
+  mdir="$HOME/.local/share/atelier/nllb-200-distilled-600M-int8"
+  run uv pip install --python "$ROOT/.venv/bin/python" ctranslate2 sentencepiece huggingface_hub
+  if [ "$DRY" = 1 ]; then
+    echo "  \$ huggingface_hub.snapshot_download('JustFrederik/<nllb model>-ct2-int8', local_dir='$mdir')"
+  elif confirm "Download the NLLB model (600M ~0.6 GB, 1.3B ~1.4 GB, license CC-BY-NC)?"; then
+    nllb=$(uv run --frozen python -m atelier.hw --ct2 2>/dev/null); nllb=${nllb:-nllb-200-distilled-600M}
+    # the config points at the 600M directory: a bigger model is stored there too (single model_dir)
+    uv run --no-sync python -c "from huggingface_hub import snapshot_download; snapshot_download('JustFrederik/${nllb}-ct2-int8', local_dir='$mdir')" \
+      || warn "download failed: put a CTranslate2 NLLB model (model.bin + sentencepiece .model) in $mdir"
+  fi
+fi
 
 say "Check"
 [ "$DRY" = 1 ] && echo "  (dry-run) would run: bash scripts/env-check.sh" || bash scripts/env-check.sh || true

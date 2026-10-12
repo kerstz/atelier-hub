@@ -27,6 +27,15 @@ vision_model = "gemma3:12b"
 chunk_chars = 2500
 # envoyer le bloc précédent (source + traduction) en contexte: termes et registre cohérents
 context = true
+# auto | ollama | ctranslate2 (NLLB sur CPU, pour les petites machines). auto ne choisit que parmi
+# ce qui est déjà installé; les modèles "auto" ci-dessous suivent la recommandation du matériel.
+engine = "auto"
+
+[ctranslate2]
+# modèle NLLB-200 converti CTranslate2 int8 (voir install.sh --engine=ct2), licence CC-BY-NC
+model_dir = "~/.local/share/atelier/nllb-200-distilled-600M-int8"
+# 0 = tous les cœurs
+threads = 0
 
 [youtube]
 sub_langs = "en"

@@ -6,7 +6,7 @@ from typing import AsyncIterator
 
 import httpx
 
-from . import db, ollama
+from . import db, engines, ollama
 from .config import cfg, data_dir
 from .jobs import Ctx, register
 
@@ -300,7 +300,9 @@ async def run_image(ctx: Ctx, p: dict, src: str, tgt: str) -> None:
         raise RuntimeError("image trop lourde (> 20 Mo)")
     b64 = base64.b64encode(path.read_bytes()).decode()
     name = re.sub(r"^[0-9a-f]{8}-", "", path.name)
-    model = cfg["ollama"]["vision_model"]
+    model = engines.model("vision")
+    if not model:
+        raise RuntimeError("traduction d'image indisponible sur ce matériel (aucun modèle vision recommandé)")
     ctx.set(0.05, "libération de la VRAM…")
     await ollama.exclusive(model)
     ctx.set(0.15, f"lecture de l'image ({model})…")
@@ -328,13 +330,19 @@ async def run(ctx: Ctx, p: dict) -> None:
         raise RuntimeError("langue inconnue")
     glossary = parse_glossary(p.get("glossary") or "")
     chunks = chunk(text, int(cfg["translate"]["chunk_chars"]))
-    model = cfg["ollama"]["translate_model"]
+    model = engines.model("translate")
+    eng = await engines.pick()
     parts = []
     prev: list[dict] = []  # previous block + its translation: keeps terms and register consistent across blocks
     for i, c in enumerate(chunks):
         ctx.set(i / len(chunks), f"bloc {i + 1}/{len(chunks)}")
         if i:
             ctx.delta("\n\n")
+        if eng.name == "ctranslate2":  # NLLB: one segment at a time, no prompt, no streaming
+            out = (await eng.translate_items([(1, c)], src, tgt))[1]
+            ctx.delta(out)
+            parts.append(out.strip())
+            continue
         prompt = build_prompt(src, tgt, c, glossary)
         out = ""
         async for tok in stream_chat(model, messages=prev + [{"role": "user", "content": prompt}]):

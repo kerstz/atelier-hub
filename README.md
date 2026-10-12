@@ -52,7 +52,8 @@ git clone https://github.com/kerstz/atelier && cd atelier
 
 `install.sh` detects Arch/CachyOS/Manjaro (pacman), Debian/Ubuntu/Mint (apt), Fedora/Nobara (dnf) and
 openSUSE (zypper). Options: `--tier=minimal|standard|full`, `--yes`, `--dry-run`, `--no-whisper`,
-`--no-desktop`, `--no-service`, `--ollama`, `--models`.
+`--no-desktop`, `--no-service`, `--ollama`, `--models` (pulls the Ollama models recommended for *your* hardware),
+`--engine=ct2` (CPU translation for small machines).
 
 | Tier | Adds |
 |---|---|
@@ -64,6 +65,14 @@ Manual route (any distro): `bash scripts/env-check.sh`, `uv sync --frozen`, `bas
 optionally `bash scripts/install-desktop.sh`.
 
 Open <http://127.0.0.1:7777>. Settings live in `config.toml` (models, paths, ports, voices, limits).
+
+## Hardware adaptation
+
+Atelier profiles the machine (GPU VRAM — AMD/NVIDIA —, RAM, cores, AVX2) and picks models per role:
+16 GB+ GPU → `translategemma:12b` / `gemma3:12b`; 8 GB → the 4B variants; no usable GPU → **NLLB-200 on
+CPU** (CTranslate2, int8, 35 languages) so a small PC can still translate text, subtitles, DOCX/PPTX/XLSX and
+EPUB (PDF needs Ollama). See **System → Hardware**, `python -m atelier.hw`, and `[translate] engine` in
+`config.toml` (`auto` only ever picks what is already installed). NLLB weights are CC-BY-NC.
 
 ## Tests
 

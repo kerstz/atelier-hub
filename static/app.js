@@ -34,6 +34,7 @@ function showTab(name) {
   location.hash = name;
   if (name === "systeme") {
     refreshSystem();
+    refreshProfile();
     refreshDeps();
     refreshDisk();
   }
@@ -314,6 +315,26 @@ function onJob(j, initial = false) {
 
 // ---- système
 
+async function refreshProfile(refresh = false) {
+  let d;
+  try {
+    d = await (await fetch(`/api/profile${refresh ? "?refresh=true" : ""}`)).json();
+  } catch {
+    return;
+  }
+  const p = d.profile, r = d.recommendation;
+  const gpu = p.gpu ? `${p.gpu.vendor.toUpperCase()} ${gib(p.gpu.vram_total)} (${gib(p.gpu.vram_free)} libres)` : "aucun GPU exploitable";
+  $("#hw-sum").textContent = `${r.label} — ${gpu} · RAM ${gib(p.ram_total)} · ${p.cores} cœurs${p.avx2 ? " · AVX2" : ""}.`;
+  const rows = [
+    `Moteur de traduction utilisé : ${d.engine === "ctranslate2" ? "NLLB (CTranslate2, CPU)" : "Ollama"} — réglage « ${d.configured} »`,
+    `Modèles recommandés : traduction ${r.models.translate || "—"} · texte ${r.models.second || "—"} · vision ${r.models.vision || "indisponible"}`,
+  ];
+  if (r.engine === "ctranslate2" && !d.ct2_ready) rows.push("Modèle NLLB absent : voir install.sh --engine=ct2");
+  d.missing_models.forEach((m) => rows.push(`Modèle absent : ollama pull ${m}`));
+  r.notes.forEach((n) => rows.push(n));
+  $("#hw").replaceChildren(...rows.map((t) => el("li", t)));
+}
+
 async function refreshDeps() {
   const ul = $("#deps");
   if (!ul.children.length) ul.replaceChildren(ui.skeleton(3));
@@ -510,6 +531,7 @@ $("#clear").onclick = async () => {
 };
 $("#lang-toggle .lbl").textContent = i18n.lang === "en" ? "Français" : "English";
 $("#lang-toggle").onclick = i18n.toggle;
+$("#hw-refresh").onclick = () => refreshProfile(true);
 $("#deps-refresh").onclick = refreshDeps;
 $("#tray-filter").onchange = renderJobs;
 $("#demo-gpu").onclick = () => post("/api/jobs", {kind: "demo", title: "Test GPU", params: {gpu: true, seconds: 5}});

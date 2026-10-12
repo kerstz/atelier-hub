@@ -2,7 +2,7 @@ import re
 import shutil
 from pathlib import Path
 
-from . import ollama, srt, translate
+from . import engines, ollama, srt, translate
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, manager, register
 from .subs import acquire
@@ -86,7 +86,9 @@ def final_prompt(lang: str, title: str, heads: tuple[str, str, str], notes: bool
 
 
 async def summarize(ctx: Ctx, lines: list[str], title: str, lang_code: str, lo: float, hi: float) -> str:
-    model = cfg["summary"]["model"] or cfg["ollama"]["second_model"]
+    model = cfg["summary"]["model"] or engines.model("second")
+    if not model:
+        raise RuntimeError("résumé indisponible sur ce matériel (aucun modèle de texte recommandé)")
     num_ctx = int(cfg["summary"]["num_ctx"])
     limit = max((num_ctx - RESERVE) * CHARS_PER_TOKEN, 2000)
     lang = translate.LANGS[lang_code][0]

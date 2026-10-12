@@ -52,8 +52,12 @@ async def deps() -> list[dict]:
             pass
     rows.append(_row("ollama", "Ollama", up, c["ollama"]["url"] if up else "injoignable", "systemctl start ollama", "traduction, résumé"))
     if up:
-        for key, used in (("translate_model", "traduction"), ("second_model", "résumé, 2ᵉ modèle"), ("vision_model", "traduction d'image")):
-            m = c["ollama"][key]
+        from . import engines
+        for role, used in (("translate", "traduction"), ("second", "résumé, 2ᵉ modèle"), ("vision", "traduction d'image")):
+            m = engines.model(role)
+            if not m:
+                continue
+            key = f"{role}_model"
             ok = m in have or (":" not in m and f"{m}:latest" in have)
             rows.append(_row(f"model-{key}", f"modèle {m}", ok, "présent" if ok else "absent", f"ollama pull {m}", used))
 
