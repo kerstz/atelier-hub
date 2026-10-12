@@ -82,11 +82,13 @@ async def deps() -> list[dict]:
     which("vips", "libvips", "vips", "sudo pacman -S libvips", "Convertir (images), ×2")
 
     which("piper", "Piper", c["tts"]["bin"], "uv tool install piper-tts", "Écouter, MP3")
-    voice = {**DEFAULT_VOICES, **c["tts"].get("voices", {})}.get("fr")
-    vf = Path(c["tts"]["voices_dir"]).expanduser() / f"{voice}.onnx" if voice else None
-    rows.append(_row("voice-fr", f"voix {voice}", bool(vf and vf.is_file()), "présente" if vf and vf.is_file() else "absente",
-                     f"uv tool run --from piper-tts python -m piper.download_voices {voice} --download-dir {c['tts']['voices_dir']}",
-                     "Écouter (français)"))
+    voices = {**DEFAULT_VOICES, **c["tts"].get("voices", {})}
+    for lang, used in (("fr", "Écouter (français)"), ("en", "Écouter (anglais)")):
+        voice = voices.get(lang)
+        vf = Path(c["tts"]["voices_dir"]).expanduser() / f"{voice}.onnx" if voice else None
+        rows.append(_row(f"voice-{lang}", f"voix {voice}", bool(vf and vf.is_file()), "présente" if vf and vf.is_file() else "absente",
+                         f"uv tool run --from piper-tts python -m piper.download_voices {voice} --download-dir {c['tts']['voices_dir']}",
+                         used))
     which("realesrgan", "Real-ESRGAN", c["images"]["realesrgan_bin"], "zip ncnn-vulkan: github.com/xinntao/Real-ESRGAN/releases", "Images ×2/×4")
     which("rembg", "rembg", c["images"]["rembg_bin"], 'uv tool install "rembg[cpu,cli]"', "Images (détourage)")
     which("demucs", "Demucs", c["audio"]["demucs_bin"], "uv tool install demucs", "Audio (pistes)")

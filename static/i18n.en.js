@@ -92,7 +92,7 @@ const I18N_EN = {
   "transcription, dictée": "transcription, dictation", "traduction, résumé": "translation, summaries", "résumé, 2ᵉ modèle": "summaries, 2nd model",
   "traduction d'image": "image translation", "PDF": "PDF", "OCR des PDF": "PDF OCR", "détection de texte PDF": "PDF text detection", "OCR": "OCR",
   "Convertir (documents)": "Convert (documents)", "documents .doc/.odt, Convertir": "documents .doc/.odt, Convert", "Convertir (e-books)": "Convert (e-books)",
-  "Convertir (images), ×2": "Convert (images), ×2", "Écouter, MP3": "Listen, MP3", "Écouter (français)": "Listen (French)", "Images ×2/×4": "Images ×2/×4",
+  "Convertir (images), ×2": "Convert (images), ×2", "Écouter, MP3": "Listen, MP3", "Écouter (français)": "Listen (French)", "Écouter (anglais)": "Listen (English)", "Images ×2/×4": "Images ×2/×4",
   "Images (détourage)": "Images (background removal)", "Audio (pistes)": "Audio (stems)", "Audio (bruit)": "Audio (noise)", "notifications": "notifications",
   "actions presse-papiers": "clipboard actions", "whisper.cpp + modèle": "whisper.cpp + model", "tesseract + langues OCR": "tesseract + OCR languages",
   "présent": "present", "présente": "present", "absent": "missing", "absente": "missing", "introuvable": "not found", "injoignable": "unreachable",
