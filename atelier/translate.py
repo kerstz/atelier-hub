@@ -16,7 +16,8 @@ LANGS = {
     "es": ("Spanish", "espagnol"),
     "de": ("German", "allemand"),
     "it": ("Italian", "italien"),
-    "pt": ("Portuguese", "portugais"),
+    "pt": ("Portuguese", "portugais (Portugal)"),
+    "pt-BR": ("Brazilian Portuguese", "portugais (Brésil)"),
     "nl": ("Dutch", "néerlandais"),
     "pl": ("Polish", "polonais"),
     "ru": ("Russian", "russe"),
@@ -29,12 +30,113 @@ LANGS = {
     "vi": ("Vietnamese", "vietnamien"),
     "ja": ("Japanese", "japonais"),
     "ko": ("Korean", "coréen"),
-    "zh": ("Chinese", "chinois"),
+    "zh": ("Chinese", "chinois simplifié"),
+    "zh-TW": ("Traditional Chinese", "chinois traditionnel (Taïwan)"),
+    "fil": ("Filipino", "philippin (filipino)"),
+    "ceb": ("Cebuano", "cebuano (philippin des Visayas)"),
+    "id": ("Indonesian", "indonésien"),
+    "ms": ("Malay", "malais"),
+    "th": ("Thai", "thaï"),
+    "he": ("Hebrew", "hébreu"),
+    "fa": ("Persian", "persan"),
+    "bn": ("Bengali", "bengali"),
+    "el": ("Greek", "grec"),
+    "ro": ("Romanian", "roumain"),
+    "hu": ("Hungarian", "hongrois"),
+    "bg": ("Bulgarian", "bulgare"),
+    "da": ("Danish", "danois"),
+    "fi": ("Finnish", "finnois"),
+}
+
+# Per-language details other tools need; absent keys fall back to the code itself.
+#   whisper: `-l` code (None = no Whisper model for it -> auto-detect)   iso3: mkv track language
+#   subs: yt-dlp --sub-langs patterns   family: variants of one language shown together   note: UI explanation (fr)
+_RTL = " Écriture de droite à gauche : sous-titres et texte corrects, mise en page PDF dégradée."
+_EXP = " Traduction expérimentale (langue hors du cœur d'entraînement du modèle)."
+META: dict[str, dict] = {
+    "en": {"iso3": "eng"}, "fr": {"iso3": "fra"}, "es": {"iso3": "spa"}, "de": {"iso3": "deu"}, "it": {"iso3": "ita"},
+    "nl": {"iso3": "nld"}, "pl": {"iso3": "pol"}, "ru": {"iso3": "rus"}, "uk": {"iso3": "ukr"}, "cs": {"iso3": "ces"},
+    "sv": {"iso3": "swe"}, "tr": {"iso3": "tur"}, "hi": {"iso3": "hin"}, "vi": {"iso3": "vie"}, "ja": {"iso3": "jpn"},
+    "ko": {"iso3": "kor"}, "th": {"iso3": "tha"}, "bn": {"iso3": "ben"}, "el": {"iso3": "ell"}, "ro": {"iso3": "ron"},
+    "hu": {"iso3": "hun"}, "bg": {"iso3": "bul"}, "da": {"iso3": "dan"}, "fi": {"iso3": "fin"},
+    "ar": {"iso3": "ara", "note": "Arabe standard moderne." + _RTL},
+    "pt": {
+        "iso3": "por", "family": "pt",
+        "note": "Portugais européen (Portugal, Afrique lusophone) : « tu », « autocarro », orthographe et tournures propres. "
+                "Pour le Brésil, choisir « portugais (Brésil) ».",
+    },
+    "pt-BR": {
+        "whisper": "pt", "iso3": "por", "subs": "pt-BR.*,pt.*", "family": "pt",
+        "note": "Portugais du Brésil : vocabulaire, orthographe et grammaire différents du portugais européen "
+                "(« você », gérondif, « ônibus » au lieu de « autocarro »).",
+    },
+    "zh": {
+        "iso3": "zho", "family": "zh",
+        "note": "Chinois simplifié (Chine continentale, Singapour) : caractères simplifiés, mandarin standard.",
+    },
+    "zh-TW": {
+        "whisper": "zh", "iso3": "zho", "subs": "zh-TW.*,zh-Hant.*", "family": "zh",
+        "note": "Chinois traditionnel (Taïwan, Hong Kong) : caractères traditionnels et vocabulaire propre "
+                "(« 軟體 » au lieu de « 软件 »). Le code zh-TW n'a pas été vérifié côté modèle de traduction.",
+    },
+    "fil": {
+        "whisper": "tl", "iso3": "fil", "subs": "fil.*,tl.*", "family": "ph",
+        "note": "Langue nationale des Philippines, standardisée à partir du tagalog (région de Manille) avec de nombreux "
+                "emprunts à l'anglais. Comprise presque partout dans le pays : choix par défaut. "
+                "Dictée et transcription via le modèle tagalog.",
+    },
+    "ceb": {
+        "whisper": None, "iso3": "ceb", "subs": "ceb.*", "family": "ph",
+        "note": "Langue des Visayas et de Mindanao (Cebu, Davao), distincte du filipino/tagalog et non intelligible avec lui."
+                + _EXP + " Pas de modèle Whisper cebuano : dictée et transcription en détection automatique.",
+    },
+    "id": {
+        "iso3": "ind", "family": "ms",
+        "note": "Langue nationale d'Indonésie. Très proche du malais (intelligibles à l'écrit) mais vocabulaire et usages différents.",
+    },
+    "ms": {
+        "iso3": "msa", "family": "ms",
+        "note": "Malaisie, Brunéi, Singapour. Très proche de l'indonésien (intelligibles à l'écrit) mais orthographe, "
+                "emprunts et usages différents." + _EXP,
+    },
+    "he": {"iso3": "heb", "subs": "he.*,iw.*", "note": "Hébreu moderne." + _RTL},
+    "fa": {"iso3": "fas", "note": "Persan (farsi)." + _RTL},
 }
 
 
+def _meta(code: str) -> dict:
+    return META.get(code, {})
+
+
+def whisper_code(code: str) -> str:
+    """`-l` value for whisper.cpp: the language, or "auto" when Whisper has no model for it."""
+    if code == "auto":
+        return "auto"
+    return _meta(code).get("whisper", code) or "auto"
+
+
+def iso3(code: str) -> str:
+    return _meta(code).get("iso3", "und")
+
+
+def sub_langs(code: str) -> str:
+    return _meta(code).get("subs", f"{code}.*")
+
+
 def lang_list() -> list[dict]:
-    return [{"code": "auto", "name": "Détecter"}] + [{"code": c, "name": n[1]} for c, n in LANGS.items()]
+    fam: dict[str, list[str]] = {}
+    for c in LANGS:
+        if f := _meta(c).get("family"):
+            fam.setdefault(f, []).append(c)
+    out = [{"code": "auto", "name": "Détecter", "note": "", "variants": []}]
+    for c, n in LANGS.items():
+        m = _meta(c)
+        same = [x for x in fam.get(m.get("family", ""), []) if x != c]
+        out.append({
+            "code": c, "name": n[1], "note": m.get("note", ""),
+            "variants": [{"code": x, "name": LANGS[x][1]} for x in same],
+        })
+    return out
 
 
 def parse_glossary(text: str) -> list[tuple[str, str]]:

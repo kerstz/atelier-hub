@@ -27,13 +27,12 @@
     }
   }
 
+  let paintLangs = () => {};
+
   function fillLangs() {
-    langs.forEach((l) => {
-      $src.append(new Option(l.name, l.code));
-      if (l.code !== "auto") $tgt.append(new Option(l.name, l.code));
-    });
-    $src.value = store.get("tr.src", "auto");
-    $tgt.value = store.get("tr.tgt", "fr");
+    const a = ui.langPicker($src, langs, {value: store.get("tr.src", "auto"), prefix: "Source"});
+    const b = ui.langPicker($tgt, langs, {value: store.get("tr.tgt", "fr"), auto: false, prefix: "Cible"});
+    paintLangs = () => (a(), b());
     $gloss.value = store.get("tr.gloss", "");
   }
 
@@ -206,6 +205,7 @@
         $out.value = h.result;
         $src.value = h.src;
         $tgt.value = h.tgt;
+        paintLangs();
       };
       ul.append(li);
     });
@@ -224,6 +224,7 @@
   $("#tr-swap").onclick = () => {
     if ($src.value === "auto") return;
     [$src.value, $tgt.value] = [$tgt.value, $src.value];
+    paintLangs();
     [$in.value, $out.value] = [$out.value, $in.value];
   };
   ui.copy($("#tr-copy"), () => $out.value);
