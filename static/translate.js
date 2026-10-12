@@ -210,6 +210,13 @@
     });
   }
 
+  bus.addEventListener("prefill", (e) => {
+    const text = e.detail.tab === "traduire" && e.detail.params.get("text");
+    if (!text) return;
+    $in.value = text;
+    $in.focus();
+  });
+
   $go.onclick = go;
   ui.dropzone($("#tr-drop"), {onFiles: (fs) => takeImage(fs[0])});
   $cancel.onclick = () => current && post(`/api/jobs/${current}/cancel`);

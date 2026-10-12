@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# Lanceur Atelier: service systemd --user, fenêtre native (pywebview), repli navigateur.
+#   atelier-desktop [--translate-clipboard | --download-clipboard] [--browser] [--dry-run]
+set -u
+root="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+port="${ATELIER_PORT:-7777}"
+url="http://127.0.0.1:$port/"
+unit=atelier.service
+venv="${ATELIER_DESKTOP_VENV:-${XDG_DATA_HOME:-$HOME/.local/share}/atelier/desktop-venv}"
+run="${XDG_RUNTIME_DIR:-/tmp}"
+sock="$run/atelier-desktop.sock"
+action="" force_browser=0 dry=0
+for a in "$@"; do
+  case $a in
+    --translate-clipboard) action=translate ;;
+    --download-clipboard) action=download ;;
+    --browser) force_browser=1 ;;
+    --dry-run) dry=1 ;;
+    *) echo "option inconnue: $a" >&2; exit 64 ;;
+  esac
+done
+
+say() { [ "$dry" = 1 ] && echo "$*"; return 0; }
+notify() { command -v notify-send >/dev/null && notify-send -a Atelier -i "$root/static/icon.svg" -u "${3:-normal}" "$1" "${2:-}"; true; }
+up() { curl -fsS -m 1 -o /dev/null "$url" 2>/dev/null; }
+
+gui=gtk
+case "${XDG_CURRENT_DESKTOP:-}" in *[Kk][Dd][Ee]*|*[Pp]lasma*) gui=qt ;; esac
+
+# --- presse-papiers -> hash
+clip() {
+  if [ -n "${ATELIER_CLIP+x}" ]; then printf '%s' "$ATELIER_CLIP"
+  elif [ "${XDG_SESSION_TYPE:-}" = wayland ] && command -v wl-paste >/dev/null; then wl-paste -n 2>/dev/null
+  elif command -v xclip >/dev/null; then xclip -o -selection clipboard 2>/dev/null
+  elif command -v wl-paste >/dev/null; then wl-paste -n 2>/dev/null
+  fi
+}
+quote() { python3 -c 'import sys,urllib.parse as u; print(u.quote(sys.stdin.read()[:4000], safe=""))'; }
+hash=""
+case $action in
+  translate)
+    text="$(clip)"
+    [ -n "${text//[[:space:]]/}" ] || { say "clipboard=vide"; notify "Atelier" "Presse-papiers vide."; [ "$dry" = 1 ] && exit 0 || exit 1; }
+    hash="traduire?text=$(printf '%s' "$text" | quote)" ;;
+  download)
+    text="$(clip | head -n1 | tr -d '[:space:]')"
+    case $text in
+      http://*|https://*) hash="youtube?url=$(printf '%s' "$text" | quote)" ;;
+      *) say "clipboard=pas-une-url"; notify "Atelier" "Le presse-papiers ne contient pas d'URL."; [ "$dry" = 1 ] && exit 0 || exit 1 ;;
+    esac ;;
+esac
+
+# --- choix du mode
+mode=""
+if [ "$force_browser" = 0 ] && [ -x "$venv/bin/python" ]; then mode=pywebview; fi
+browser=""
+for b in chromium chromium-browser google-chrome-stable brave brave-browser; do
+  command -v "$b" >/dev/null && { browser=$b; break; }
+done
+if [ -z "$mode" ]; then
+  if [ -n "$browser" ]; then mode=chromium; elif command -v firefox >/dev/null; then mode=firefox; else mode=none; fi
+fi
+
+if [ "$dry" = 1 ]; then
+  echo "gui=$gui"
+  echo "url=$url"
+  echo "hash=$hash"
+  up && echo "service=up" || echo "service=down (démarrage: systemctl --user start $unit)"
+  echo "mode=$mode"
+  echo "browser=${browser:-firefox}"
+  echo "socket=$sock"
+  exit 0
+fi
+
+# --- instance unique
+focus_existing() {
+  if [ -S "$sock" ]; then
+    python3 - "$sock" "${hash:+open $hash}" <<'PY' 2>/dev/null
+import socket, sys
+s = socket.socket(socket.AF_UNIX); s.settimeout(2); s.connect(sys.argv[1])
+s.sendall(((sys.argv[2] or "focus") + "\n").encode())
+PY
+  fi
+  command -v hyprctl >/dev/null && hyprctl dispatch focuswindow 'class:^atelier$' >/dev/null 2>&1
+  command -v swaymsg >/dev/null && swaymsg '[app_id="atelier"] focus' >/dev/null 2>&1
+  command -v kdotool >/dev/null && kdotool search --class atelier windowactivate >/dev/null 2>&1
+  command -v wmctrl >/dev/null && wmctrl -x -a atelier >/dev/null 2>&1
+  true
+}
+exec 9>"$run/atelier-desktop.lock"
+if ! flock -n 9; then focus_existing; exit 0; fi
+
+# --- service
+if ! up; then
+  if ! systemctl --user start "$unit" 2>/dev/null; then
+    notify "Atelier" "Unité $unit introuvable: lancer scripts/install-service.sh." critical
+    exit 1
+  fi
+  for _ in $(seq 30); do up && break; sleep 0.5; done
+  if ! up; then
+    notify "Atelier" "Le service ne répond pas après 15 s (journalctl --user -u $unit)." critical
+    exit 1
+  fi
+fi
+
+open_browser() {
+  local target="$url${hash:+#$hash}"
+  if [ -n "$browser" ] && [ "$mode" != firefox ]; then
+    "$browser" --app="$target" --class=atelier --name=atelier \
+      --user-data-dir="${XDG_CONFIG_HOME:-$HOME/.config}/atelier/browser" --no-first-run --no-default-browser-check >/dev/null 2>&1
+  elif command -v firefox >/dev/null; then
+    firefox --new-window "$target" >/dev/null 2>&1
+  else
+    notify "Atelier" "Aucune fenêtre possible: ouvre $url dans un navigateur." critical
+    exit 1
+  fi
+}
+
+if [ "$mode" = pywebview ]; then
+  t0=$(date +%s)
+  "$venv/bin/python" "$root/scripts/atelier_desktop.py" --url "$url" --hash "$hash" --gui "$gui"
+  rc=$?
+  # échec rapide = pywebview inutilisable -> navigateur
+  if [ $rc -ne 0 ] && [ $(( $(date +%s) - t0 )) -lt 10 ]; then mode=chromium; open_browser; fi
+else
+  open_browser
+fi
+exit 0

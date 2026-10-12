@@ -121,3 +121,16 @@ decisions:
 - Bouton Télécharger de la tray: affiché pour toute sortie fichier (extension), sauf youtube.
 env: piper 1.8.0 (+voix fr_FR-siwis-medium) et rembg installés, flags piper vérifiés réel. realesrgan (~/.local/opt/realesrgan, testé RX 6900 XT) et deep-filter (~/.local/bin) installés, flags vérifiés réel. rembg: modèle u2net à télécharger au 1er usage.
 next: installer + `systemctl --user restart atelier` + smoke11; phase 12 (desktop) puis audit Opus 5.5.
+
+## Phase 12 — Appli desktop (smoke12.sh ok; fenêtre testée en réel sous Hyprland)
+done: scripts/atelier-desktop (lanceur), scripts/atelier_desktop.py (pywebview), static/icon.svg, desktop/atelier.desktop.in, install-desktop.sh / uninstall-desktop.sh, notify.py (notify-send fin de job), hash #onglet?text=/url= (app.js route + prefill translate/youtube), [desktop] notify/notify_min_seconds, groupe uv "desktop".
+decisions:
+- venv dédié ~/.local/share/atelier/desktop-venv: python système + --system-site-packages (gi/WebKitGTK/PyQt6 de pacman, pas de build PyGObject) + pywebview du groupe "desktop" (uv pip install --group). Le venv projet (py3.12) n'a pas gi.
+- KDE|plasma -> gui=qt (qtpy + PyQt6; python-pyqt6-webengine requis, non testé), sinon gtk. Classe réelle relevée: `atelier` (hyprctl) = StartupWMClass; forcée par sys.argv[0] + GLib.set_prgname.
+- Instance unique: flock sur $XDG_RUNTIME_DIR/atelier-desktop.lock puis focus via socket unix de la fenêtre (restore/show/present + hash) et hyprctl/swaymsg/kdotool/wmctrl en renfort.
+- Repli: pywebview rc≠0 en <10 s ou venv absent -> chromium --app (profil dédié, --class=atelier), sinon firefox --new-window. --browser le force.
+- Fenêtre = client pur: fermer n'arrête jamais le service. Service absent: systemctl --user start, attente 15 s, sinon notify-send critique.
+- Presse-papiers: wl-paste (Wayland) puis xclip; texte coupé à 4000 car.; action "télécharger" exige http(s)://, onglet préremplit sans lancer.
+- Notifs: jobs ≥5 s ou échecs; silence pour demo, dictate, tts écoute. Taille mémorisée dans ~/.config/atelier/window.json (position utile seulement en X11; Hyprland tile la fenêtre).
+env: `bash scripts/install-desktop.sh` fait (venv + menu). Redémarrer le service pour activer les notifs: `systemctl --user restart atelier`. desktop-file-validate: seulement un hint (3 catégories principales, voulu).
+next: audit Opus 5.5.

@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from typing import Awaitable, Callable
 
-from . import db
+from . import db, notify
 
 
 @dataclass
@@ -73,6 +73,7 @@ class Manager:
 
     async def _run(self, jid: int, k: Kind, params: dict, gpu: bool) -> None:
         held = False
+        t0 = time.time()
         try:
             if gpu:
                 await self.gpu_lock.acquire()
@@ -80,10 +81,12 @@ class Manager:
             self.update(jid, status="running", started=time.time())
             out = await k.handler(Ctx(self, jid), params)
             self.update(jid, status="done", progress=1.0, output=out, finished=time.time())
+            notify.finished(db.get(jid), params, time.time() - t0)
         except asyncio.CancelledError:
             self.update(jid, status="cancelled", finished=time.time())
         except Exception as e:
             self.update(jid, status="failed", error=str(e), finished=time.time())
+            notify.finished(db.get(jid), params, time.time() - t0)
         finally:
             if held:
                 self.gpu_lock.release()
