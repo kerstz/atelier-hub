@@ -8,7 +8,7 @@ from .convert import need, unique
 from .jobs import Ctx, register
 from .ocr import upload_name
 from .proc import CmdError, run_cmd
-from .util import HEAVY, consume, src_file, workdir
+from .util import binpath, HEAVY, consume, src_file, workdir
 
 PCT_RE = re.compile(r"(\d+(?:\.\d+)?)%")
 MODELS = {"photo": "realesrgan-x4plus", "anime": "realesrgan-x4plus-anime"}
@@ -27,14 +27,14 @@ async def size(path: Path) -> tuple[int, int]:
 
 async def upscale(ctx: Ctx, src: Path, dest: Path, factor: int, style: str) -> None:
     d = cfg["images"]
-    need(d["realesrgan_bin"], hint="yay -S realesrgan-ncnn-vulkan (ou binaire GitHub xinntao/Real-ESRGAN-ncnn-vulkan)")
+    need(binpath(d["realesrgan_bin"]), hint="zip ncnn-vulkan ubuntu de github.com/xinntao/Real-ESRGAN/releases → ~/.local/opt/realesrgan, puis [images] realesrgan_bin")
     w, h = await size(src)
     if w * h > (MAX_PIXELS if factor == 4 else MAX_PIXELS // 2):
         raise RuntimeError(f"image trop grande ({w}x{h}) pour ×{factor}")
     work = workdir(ctx.id, "u")
     try:
         big = work / "x4.png"
-        argv = [d["realesrgan_bin"], "-i", str(src), "-o", str(big), "-n", MODELS.get(style, MODELS["photo"]),
+        argv = [binpath(d["realesrgan_bin"]), "-i", str(src), "-o", str(big), "-n", MODELS.get(style, MODELS["photo"]),
                 "-s", "4", "-f", "png", "-g", str(d["gpu_id"])]
         if d["models_dir"]:
             argv += ["-m", str(Path(d["models_dir"]).expanduser())]
@@ -62,7 +62,7 @@ def _quiet() -> dict:
 
 
 async def rembg(ctx: Ctx, src: Path, dest: Path, model: str) -> None:
-    bin_ = cfg["images"]["rembg_bin"]
+    bin_ = binpath(cfg["images"]["rembg_bin"])
     need(bin_, hint='uv tool install "rembg[cpu,cli]"')
     ctx.set(0.1, "détourage…")
     async with HEAVY:

@@ -71,7 +71,7 @@ voices_dir = "~/.local/share/piper"
 fr = "fr_FR-siwis-medium"
 
 [images]
-# AUR realesrgan-ncnn-vulkan ; models_dir vide = dossier models à côté du binaire
+# zip GitHub Real-ESRGAN ncnn-vulkan (ex: realesrgan_bin = "~/.local/opt/realesrgan/realesrgan-ncnn-vulkan") ; models_dir vide = dossier models à côté du binaire
 realesrgan_bin = "realesrgan-ncnn-vulkan"
 models_dir = ""
 gpu_id = 0
