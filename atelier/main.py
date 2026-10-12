@@ -14,9 +14,10 @@ from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import audio, convert, db, docs, gpu, images, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
+from . import audio, convert, db, docs, gpu, images, joblog, speech, ocr, ollama, services, subs, summary, translate, youtube  # noqa: F401
 from .config import ROOT, data_dir, output_dir
 from .jobs import KINDS, manager
+from .util import missing_uploads
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost"}
 
@@ -28,6 +29,7 @@ async def lifespan(_: FastAPI):
     for sub in ("youtube", "subs", "docs", "convert", "audio", "images"):
         output_dir(sub).mkdir(exist_ok=True)
     speech.purge_listen()
+    joblog.purge()
     up = data_dir() / "uploads"
     up.mkdir(exist_ok=True)
     for f in up.iterdir():
@@ -131,8 +133,31 @@ async def create_job(body: JobIn):
 
 @app.post("/api/jobs/clear")
 async def clear_jobs():
+    joblog.remove([j["id"] for j in db.recent(100000) if j["status"] in ("done", "failed", "cancelled")])
     db.clear_finished()
     return {"ok": True}
+
+
+@app.get("/api/jobs/{jid}/log")
+async def job_log(jid: int):
+    if not db.get(jid):
+        raise HTTPException(404, "tâche inconnue")
+    return PlainTextResponse(joblog.read(jid) or "(aucune sortie de commande enregistrée)")
+
+
+@app.post("/api/jobs/{jid}/retry")
+async def retry_job(jid: int):
+    job = db.get(jid)
+    if not job:
+        raise HTTPException(404, "tâche inconnue")
+    if job["status"] not in ("failed", "cancelled"):
+        raise HTTPException(400, "seules les tâches échouées ou annulées se relancent")
+    if job["kind"] not in KINDS:
+        raise HTTPException(400, f"type inconnu: {job['kind']}")
+    params = db.params(jid)
+    if missing_uploads(params):
+        raise HTTPException(410, "fichier source supprimé: relancer depuis l'onglet")
+    return manager.submit(job["kind"], job["title"], params)
 
 
 @app.post("/api/jobs/{jid}/cancel")

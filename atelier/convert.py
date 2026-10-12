@@ -358,8 +358,6 @@ async def run(ctx: Ctx, p: dict) -> str:
         raise
     finally:
         shutil.rmtree(work, ignore_errors=True)
-        if path.resolve().is_relative_to((data_dir() / "uploads").resolve()):
-            path.unlink(missing_ok=True)
     ctx.set(1.0, dest.name)
     return str(dest)
 

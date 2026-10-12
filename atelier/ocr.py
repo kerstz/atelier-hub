@@ -59,11 +59,7 @@ async def run(ctx: Ctx, p: dict) -> str:
     out = output_dir("docs")
     out.mkdir(parents=True, exist_ok=True)
     dest = out / f"{upload_name(path)}.ocr.pdf"
-    try:
-        await ocr_pdf(ctx, path, dest, bool(p.get("force")))
-    finally:
-        if path.resolve().is_relative_to((data_dir() / "uploads").resolve()):
-            path.unlink(missing_ok=True)
+    await ocr_pdf(ctx, path, dest, bool(p.get("force")))
     ctx.set(1.0, dest.name)
     return str(out)
 

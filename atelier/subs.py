@@ -3,7 +3,7 @@ import re
 import shutil
 from pathlib import Path
 
-from . import srt, translate
+from . import ollama, srt, translate
 from .batch import Translator, numbered
 from .config import cfg, data_dir, output_dir
 from .jobs import Ctx, manager, register
@@ -102,6 +102,8 @@ async def transcribe(ctx: Ctx, media: Path, lang: str, work: Path, lo: float, hi
 
     ctx.set(lo, "attente GPU…")
     async with manager.gpu_lock:
+        if cfg["gpu"]["free_vram"]:
+            await ollama.unload_all()
         await run_cmd(
             [bin_, "-m", str(model), "-f", str(wav), "-l", lang, "-osrt", "-of", str(work / "whisper"),
              "-pp", "-t", str(cfg["whisper"]["threads"])],
@@ -177,7 +179,6 @@ async def run(ctx: Ctx, p: dict) -> str:
     work.mkdir(parents=True)
     out = output_dir("subs")
     out.mkdir(parents=True, exist_ok=True)
-    uploads = (data_dir() / "uploads").resolve()
     try:
         sub, media, name_base, t_lo = await acquire(
             ctx, source, is_url, src, bool(p.get("force_whisper")), want_mux,
@@ -200,8 +201,6 @@ async def run(ctx: Ctx, p: dict) -> str:
         return str(out)
     finally:
         shutil.rmtree(work, ignore_errors=True)
-        if not is_url and Path(source).resolve().is_relative_to(uploads):
-            Path(source).unlink(missing_ok=True)
 
 
 register("subtitles", run)

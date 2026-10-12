@@ -134,3 +134,14 @@ decisions:
 - Notifs: jobs ≥5 s ou échecs; silence pour demo, dictate, tts écoute. Taille mémorisée dans ~/.config/atelier/window.json (position utile seulement en X11; Hyprland tile la fenêtre).
 env: `bash scripts/install-desktop.sh` fait (venv + menu). Redémarrer le service pour activer les notifs: `systemctl --user restart atelier`. desktop-file-validate: seulement un hint (3 catégories principales, voulu).
 next: audit Opus 5.5.
+
+## Phase 13 — Fiabilité du cœur des jobs (smoke13.sh + smoke-all.sh)
+done: joblog.py (journal par job), relance (POST /api/jobs/{id}/retry + bouton), upload consommé seulement à la réussite (jobs.py, plus dans les handlers), libération VRAM avant jobs GPU hors Ollama, scripts/smoke-all.sh, uv.lock à jour (groupe desktop).
+decisions:
+- Journal: contextvar joblog.JOB posé dans Manager._run (hérité par les sous-tâches); proc.run_cmd écrit `$ cmd`, chaque ligne (ANSI retiré) et `[code N]` dans data/logs/<id>.log; plafond 2 Mo puis marqueur + 15 dernières lignes (500 car. max). Traceback ajoutée à l'échec. Purge >14 j au démarrage; "Vider" supprime aussi les journaux. GET /api/jobs/{id}/log (300 Ko de fin), bouton Journal sur toute carte terminée (ui.viewer).
+- Relance: failed/cancelled seulement; params relus en base; 410 si un upload référencé a disparu (uploads gardés 2 j par le purge de démarrage). Y compris "interrompu" au redémarrage.
+- Uploads: util.consume_uploads(params) = toute valeur de params sous data/uploads, appelée après succès. translate image ne supprime plus après lecture.
+- VRAM: Kind.frees_vram (dictate, image, audio) -> ollama.unload_all() sous le verrou GPU, + avant whisper-cli dans subs.transcribe. Coupé par [gpu] free_vram=false. Coût: le modèle Ollama se recharge à la tâche suivante.
+- smoke-all.sh [--quick] [N…]: résumé ok/FAIL/skip/temps par script, code retour ≠0 si FAIL; --quick saute 3/4/5 (YouTube, whisper, PDF).
+env: redémarrer le service pour les endpoints (`systemctl --user restart atelier`). smoke3/4/5 jamais relancés depuis phase 8: `bash scripts/smoke-all.sh` complet à lancer par l'utilisateur.
+next: audit Opus 5.5; après audit: dépendances (panneau Système), contexte inter-blocs Traduire, glossaires serveur, chaînage d'outils, disque, a11y.

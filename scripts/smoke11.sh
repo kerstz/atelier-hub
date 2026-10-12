@@ -121,7 +121,9 @@ check("x2 = x4 puis /2 (128)", w == "128")
 up = d / "data" / "uploads" / "abcd1234-a.png"
 shutil.copy(d / "in.png", up)
 r, _ = go("image", path=str(up), action="rembg", model="u2net")
-check("rembg -> .sans-fond.png, upload consommé", isinstance(r, str) and r.endswith("sans-fond.png") and not up.exists())
+check("rembg -> .sans-fond.png", isinstance(r, str) and r.endswith("sans-fond.png"))
+from atelier.util import consume_uploads
+check("upload gardé par le handler, consommé par le gestionnaire", up.exists() and (consume_uploads({"path": str(up)}) or not up.exists()))
 r, _ = go("image", path=str(d / "a.png"), action="rembg", model="evil; rm")
 check("rembg modèle invalide refusé", isinstance(r, Exception))
 

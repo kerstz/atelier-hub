@@ -8,6 +8,8 @@ data = "~/.local/share/atelier"
 [gpu]
 # "auto" = AMD card with most VRAM; or "card1"
 card = "auto"
+# décharger les modèles Ollama avant un job GPU qui n'en a pas besoin (whisper, upscale, demucs)
+free_vram = true
 
 [ollama]
 url = "http://127.0.0.1:11434"

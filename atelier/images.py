@@ -8,7 +8,7 @@ from .convert import need, unique
 from .jobs import Ctx, register
 from .ocr import upload_name
 from .proc import CmdError, run_cmd
-from .util import binpath, HEAVY, consume, src_file, workdir
+from .util import binpath, HEAVY, src_file, workdir
 
 PCT_RE = re.compile(r"(\d+(?:\.\d+)?)%")
 MODELS = {"photo": "realesrgan-x4plus", "anime": "realesrgan-x4plus-anime"}
@@ -78,30 +78,27 @@ async def run(ctx: Ctx, p: dict) -> str:
     out = output_dir("images")
     out.mkdir(parents=True, exist_ok=True)
     name = upload_name(path)
+    if action == "upscale":
+        factor = 4 if int(p.get("factor", 2)) == 4 else 2
+        dest = unique(out, f"{name}.x{factor}", ".png")
+        run_ = upscale(ctx, path, dest, factor, p.get("style", "photo"))
+    elif action == "rembg":
+        model = p.get("model") or cfg["images"]["rembg_model"]
+        if model not in REMBG_MODELS:
+            raise RuntimeError("modèle inconnu")
+        dest = unique(out, f"{name}.sans-fond", ".png")
+        run_ = rembg(ctx, path, dest, model)
+    else:
+        raise RuntimeError("action inconnue")
     try:
-        if action == "upscale":
-            factor = 4 if int(p.get("factor", 2)) == 4 else 2
-            dest = unique(out, f"{name}.x{factor}", ".png")
-            run_ = upscale(ctx, path, dest, factor, p.get("style", "photo"))
-        elif action == "rembg":
-            model = p.get("model") or cfg["images"]["rembg_model"]
-            if model not in REMBG_MODELS:
-                raise RuntimeError("modèle inconnu")
-            dest = unique(out, f"{name}.sans-fond", ".png")
-            run_ = rembg(ctx, path, dest, model)
-        else:
-            raise RuntimeError("action inconnue")
-        try:
-            await run_
-            if not dest.stat().st_size:
-                raise RuntimeError("sortie vide")
-        except BaseException:
-            dest.unlink(missing_ok=True)
-            raise
-    finally:
-        consume(path)
+        await run_
+        if not dest.stat().st_size:
+            raise RuntimeError("sortie vide")
+    except BaseException:
+        dest.unlink(missing_ok=True)
+        raise
     ctx.set(1.0, dest.name)
     return str(dest)
 
 
-register("image", run, gpu=lambda p: p.get("action", "upscale") == "upscale")
+register("image", run, gpu=lambda p: p.get("action", "upscale") == "upscale", frees_vram=True)

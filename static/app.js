@@ -38,6 +38,26 @@ function showTab(name) {
 
 // ---- jobs (tray + per-tab result cards)
 
+async function retryJob(j) {
+  const r = await post(`/api/jobs/${j.id}/retry`);
+  if (r.ok) return ui.toast(`Tâche #${j.id} relancée`, "ok");
+  let why = "Relance impossible";
+  try {
+    why = (await r.json()).detail || why;
+  } catch {}
+  ui.toast(why, "bad");
+}
+
+async function showLog(j) {
+  let text = "Journal indisponible.";
+  try {
+    const r = await fetch(`/api/jobs/${j.id}/log`);
+    if (r.ok) text = await r.text();
+  } catch {}
+  const head = [`#${j.id} ${j.title}`, j.error ? `Erreur : ${j.error}` : "", ""].filter((x, i) => x || i === 2).join("\n");
+  ui.viewer({title: `Journal · tâche #${j.id}`, text: head + text});
+}
+
 function jobCard(j) {
   const li = el("li", null, `job st-${j.status}`);
   const top = el("div", null, "job-top");
@@ -62,6 +82,12 @@ function jobCard(j) {
   }
   if (j.status === "done" && /\.[A-Za-z0-9]{2,5}$/.test(j.output || "") && j.kind !== "youtube") {
     btns.append(ui.button("Télécharger", {size: "sm", icon: "download", onclick: () => (location.href = `/api/jobs/${j.id}/download`)}));
+  }
+  if (j.status === "failed" || j.status === "cancelled") {
+    btns.append(ui.button("Relancer", {size: "sm", icon: "play", onclick: () => retryJob(j)}));
+  }
+  if (FINAL.includes(j.status)) {
+    btns.append(ui.button("Journal", {size: "sm", icon: "file-text", onclick: () => showLog(j)}));
   }
   if (btns.children.length) li.append(btns);
   return li;

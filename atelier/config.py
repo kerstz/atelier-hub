@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULTS = {
     "server": {"port": 7777},
     "paths": {"output": "~/Atelier", "data": "~/.local/share/atelier"},
-    "gpu": {"card": "auto"},
+    "gpu": {"card": "auto", "free_vram": True},
     "ollama": {
         "url": "http://127.0.0.1:11434",
         "translate_model": "translategemma:12b",
