@@ -47,6 +47,8 @@ else
 fi
 t "window class réel = atelier (notes PROGRESS)" "grep -q 'StartupWMClass=@WMCLASS@' desktop/atelier.desktop.in && grep -q 'NAME = \"atelier\"' scripts/atelier_desktop.py"
 t "python fenêtre: syntaxe" "python3 -m py_compile scripts/atelier_desktop.py"
+t "fenêtre: DMABUF WebKit désactivé par défaut + reprise sur crash du rendu" "grep -q WEBKIT_DISABLE_DMABUF_RENDERER scripts/atelier_desktop.py && grep -q web-process-terminated scripts/atelier_desktop.py"
+t "lanceur: code 2 -> repli navigateur" "grep -q 'rc -eq 2' scripts/atelier-desktop"
 t "JS route/prefill: syntaxe" "node --check static/app.js && node --check static/translate.js && node --check static/youtube.js"
 
 # --- notifications de fin de tâche

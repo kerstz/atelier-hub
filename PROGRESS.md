@@ -227,3 +227,8 @@ decisions (analyse Opus):
 - install.sh --engine=ct2: pip ctranslate2 sentencepiece huggingface_hub + dépôt JustFrederik/<nllb>-ct2-int8 (id NON vérifié), confirmation avant téléchargement, stocké dans [ctranslate2] model_dir.
 non testé en réel: qualité/vitesse NLLB, dépôt HF, tags gemma3:1b / translategemma:4b/27b (fakes ctranslate2 + faux sysfs dans smoke20). Argos non implémenté (NLLB le couvre).
 env: smoke-all quick 407 ok. Redémarrer le service.
+
+## Correctif — crash du moteur de rendu de la fenêtre native (2026-10-12)
+- Cause: `WebKitWebProcess` (WebKitGTK 2.54) SIGABRT deux fois (09:46, 09:59), vu par coredumpctl; le service Atelier n'a pas crashé. Pas reproduit à la demande (trace sans symboles).
+- Correctifs: `WEBKIT_DISABLE_DMABUF_RENDERER=1` par défaut (ATELIER_WEBKIT_SAFE=0 pour l'enlever); signal `web-process-terminated` -> rechargement de la page; >3 crashs en 2 min -> code retour 2 -> le lanceur ouvre chromium. Crash simulé (SIGABRT sur le processus de rendu): la fenêtre reste vivante et se recharge.
+- Si ça persiste: `coredumpctl info <pid>` + lancer avec `ATELIER_WEBKIT_SAFE=1 WEBKIT_DISABLE_COMPOSITING_MODE=1`.
