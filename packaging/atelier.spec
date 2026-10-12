@@ -1,9 +1,12 @@
 # PyInstaller spec (onedir). Build: scripts/build-win.ps1
+import pathlib
 import sys
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
-hidden = collect_submodules("atelier") + collect_submodules("uvicorn")
+# collect_submodules("atelier") finds nothing here (package not importable at spec time): list the files
+hidden = [f"atelier.{p.stem}" for p in pathlib.Path(SPECPATH, "..", "atelier").glob("*.py") if p.stem != "__init__"] + ["atelier"]
+hidden += collect_submodules("uvicorn")
 if sys.platform == "win32":
     hidden += ["webview.platforms.edgechromium", "tkinter", "sounddevice"]
 datas = [("../static", "static"), ("../config.toml", "."), ("../atelier/voicelive_worker.py", "atelier"),
