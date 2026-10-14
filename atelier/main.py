@@ -479,4 +479,15 @@ async def events():
     return StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
 
 
+class _Revalidate(StaticFiles):  # VERT rebuilds keep the same URLs: HTML/wasm must not go stale
+    async def get_response(self, path, scope):
+        r = await super().get_response(path, scope)
+        if not path.startswith("_app/immutable"):
+            r.headers["Cache-Control"] = "no-cache"
+        return r
+
+
+_vert = data_dir() / "vert"
+if (_vert / "index.html").is_file():
+    app.mount("/vert", _Revalidate(directory=_vert, html=True), name="vert")
 app.mount("/", StaticFiles(directory=ROOT / "static", html=True), name="static")

@@ -57,6 +57,9 @@ const I18N_EN = {
   "Qualité haute": "High quality", "Qualité normale": "Normal quality", "Fichier léger": "Small file", "Taille d'origine": "Original size",
   "aucun format commun": "no common format", "Format non reconnu": "Unrecognized format",
   "Les fichiers convertis sont enregistrés dans le dossier Atelier › convert.": "Converted files are saved in the Atelier › convert folder.",
+  "Navigateur": "Browser", "Où convertir": "Where to convert", "Conversion dans le navigateur": "In-browser conversion",
+  "Tous formats, vidéo et e-books compris. Résultats dans le dossier Atelier › convert.": "All formats, including video and e-books. Results in the Atelier › convert folder.",
+  "Images, audio, documents : converti dans le navigateur, téléchargement direct.": "Images, audio, documents: converted in the browser, direct download.",
   // images / audio
   "Agrandir une image (×2 / ×4) ou enlever son arrière-plan.": "Enlarge an image (×2 / ×4) or remove its background.",
   "Déposer des images": "Drop images", "png, jpg, webp… — une tâche par image": "png, jpg, webp… — one task per image", "Action": "Action", "Option": "Option",

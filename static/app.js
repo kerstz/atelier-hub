@@ -40,6 +40,7 @@ function showTab(name) {
     refreshDisk();
   }
   if (name === "services") bus.dispatchEvent(new Event("services"));
+  if (name === "convertir") bus.dispatchEvent(new Event("tab:convertir"));
 }
 
 // ---- jobs (tray + per-tab result cards)
@@ -521,7 +522,7 @@ function shortcuts(e) {
   if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
   if (e.key === "Enter") {
     const b = document.querySelector(".tab:not([hidden]) [data-main]");
-    if (b && !b.disabled && !b.hidden) {
+    if (b && !b.disabled && b.offsetParent) {
       e.preventDefault();
       b.click();
     }

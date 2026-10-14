@@ -290,3 +290,9 @@ done: A wine+ffmpeg/yt-dlp réels (fichiers verrouillés, guillemets services, m
 decisions: ctranslate2 embarqué (+180 Mo): NLLB CPU marche sans rien installer. Cache-Control no-cache sur static.
 non testé: vrai Windows (WebView2, installeur, win-setup), vrai bureau Debian, systemctl --user réel.
 env: smoke21 "direct IA worker" échoue déjà sur HEAD (pas une régression).
+
+## Ajout — VERT intégré (mode "Navigateur" de Convertir)
+done: scripts/build-vert.sh (clone VERT, base=/vert, patches hors-ligne: ffmpeg.wasm local, pas de vertd distant/SW/dons, build bun|npm, échec si URL externe restante, copie -> <data>/vert); main.py monte /vert (no-cache hors _app/immutable); Convertir: sélecteur Atelier/Navigateur (cv.mode), iframe /vert/convert/ stylée par variables Atelier (clair/sombre, FR/EN), UI VERT masquée par classes.
+decisions: AGPL-3.0, code VERT non copié (build local). Linux seulement. Vidéo = mode Atelier (vertd absent).
+env: `./scripts/build-vert.sh && systemctl --user restart atelier`. Vérifié navigateur: png->jpeg, wav->mp3, 0 requête externe.
+non testé: drag&drop réel, popup Settings VERT (EN), masquage à revérifier après chaque pull de VERT.

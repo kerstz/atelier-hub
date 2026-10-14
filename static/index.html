@@ -167,6 +167,11 @@
 
       <section id="tab-convertir" class="tab" hidden>
         <header class="page-head"><h1>Convertir</h1><p class="dim">Vidéo, audio, images, documents, e-books : le type est détecté, choisis le format cible.</p></header>
+        <div id="cv-mode-row" class="field-row wrap" hidden>
+          <div id="cv-mode" aria-label="Où convertir"></div>
+          <span id="cv-mode-hint" class="dim"></span>
+        </div>
+        <div id="cv-atelier">
         <div class="card">
           <div id="cv-drop"><i data-i="upload"></i><strong>Déposer des fichiers</strong><span class="dim">glisser, coller ou cliquer — un lot = une tâche par fichier</span></div>
           <div id="cv-list" class="chips"></div>
@@ -179,6 +184,8 @@
           <span id="cv-status" class="dim"></span>
         </div>
         <div class="card"><div class="card-head"><h2>Résultats</h2></div><div id="cv-result"></div></div>
+        </div>
+        <iframe id="vt-frame" title="Conversion dans le navigateur" hidden></iframe>
       </section>
 
       <section id="tab-images" class="tab" hidden>
@@ -296,6 +303,7 @@
 <script src="voice.js"></script>
 <script src="player.js"></script>
 <script src="services.js"></script>
+<script src="vert.js"></script>
 <script>i18n.start();</script>
 </body>
 </html>
