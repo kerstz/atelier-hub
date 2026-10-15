@@ -101,6 +101,20 @@ Voie manuelle (toute distro) : `bash scripts/env-check.sh`, `uv sync --frozen`, 
 puis éventuellement `bash scripts/install-desktop.sh`. Atelier ne télécharge ni n'installe rien sans l'avoir
 listé d'abord.
 
+### Optionnel : convertisseur dans le navigateur (VERT)
+
+Le second mode de Convertir, **Navigateur**, intègre [VERT](https://github.com/VERT-sh/VERT) (images, audio,
+documents, en WebAssembly, rien ne quitte la page). Il est construit depuis les sources sur votre machine, figé
+sur un commit testé, puis servi hors-ligne sur `/vert/` :
+
+```bash
+bash scripts/build-vert.sh           # git + bun (ou node/npm), quelques minutes, ~100 Mo
+systemctl --user restart atelier
+```
+
+Linux uniquement ; la vidéo reste dans le mode ffmpeg habituel. Sans build, le sélecteur de mode n'apparaît pas.
+VERT est sous AGPL-3.0 : il n'est pas inclus dans le `.deb`/`.exe`, seulement construit en local.
+
 ## Windows (expérimental)
 
 Même application, empaquetée en `Atelier.exe` (PyInstaller + fenêtre WebView2, installeur Inno Setup). Build sous Windows :
@@ -163,7 +177,8 @@ Pas de framework de test, volontairement — un script smoke par domaine dans `s
 
 Mono-utilisateur, local uniquement. Atelier écoute sur loopback, refuse les en-têtes `Host`/`Origin` étrangers
 (même origine seulement, y compris les autres applications web locales), ne construit jamais de commande shell
-depuis l'UI et garde ses écritures dans `~/Atelier` et son dossier de données. **Ne pas l'exposer sur un
+depuis l'UI et garde ses écritures dans `~/Atelier` et son dossier de données. Le build VERT optionnel est du code
+de même origine : il est donc figé et jamais téléchargé à l'exécution. **Ne pas l'exposer sur un
 réseau.** Détails et signalement : [SECURITY.md](SECURITY.md).
 
 ## Remerciements
@@ -177,7 +192,7 @@ Atelier repose sur [ffmpeg](https://ffmpeg.org), [yt-dlp](https://github.com/yt-
 [pandoc](https://pandoc.org), [LibreOffice](https://www.libreoffice.org), [calibre](https://calibre-ebook.com),
 [CTranslate2](https://github.com/OpenNMT/CTranslate2) avec [NLLB-200](https://github.com/facebookresearch/fairseq/tree/nllb),
 [FastAPI](https://fastapi.tiangolo.com) et [pywebview](https://pywebview.flowrl.com). Les icônes viennent de
-[Lucide](https://lucide.dev) (ISC).
+[Lucide](https://lucide.dev) (ISC). La conversion dans le navigateur est [VERT](https://github.com/VERT-sh/VERT) (AGPL-3.0).
 
 ## License
 

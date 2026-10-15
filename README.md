@@ -101,6 +101,20 @@ Manual route (any distro): `bash scripts/env-check.sh`, `uv sync --frozen`, `bas
 optionally `bash scripts/install-desktop.sh`. Nothing is downloaded or installed by Atelier itself without
 being listed first.
 
+### Optional: in-browser converter (VERT)
+
+Convert's second mode, **Navigateur**, embeds [VERT](https://github.com/VERT-sh/VERT) (images, audio, documents,
+in WebAssembly, nothing leaves the page). It is built from source on your machine, pinned to a tested commit,
+then served offline from `/vert/`:
+
+```bash
+bash scripts/build-vert.sh           # needs git + bun (or node/npm), a few minutes, ~100 MB
+systemctl --user restart atelier
+```
+
+Linux only; video stays in the regular ffmpeg mode. Without the build, the mode selector simply doesn't appear.
+VERT is AGPL-3.0: it is not bundled in the `.deb`/`.exe`, only built locally.
+
 ## Windows (experimental)
 
 Same app, packaged as `Atelier.exe` (PyInstaller + WebView2 window, Inno Setup installer). Build on Windows:
@@ -163,7 +177,7 @@ There is no test framework by design — one smoke script per feature area in `s
 
 Single user, local only. Atelier binds to loopback, rejects foreign `Host`/`Origin` headers (same origin
 only, including other local web apps), never builds shell commands from UI input and keeps writes inside
-`~/Atelier` and its data directory. **Do not expose it to a network.** Details and reporting:
+`~/Atelier` and its data directory. The optional VERT build is same-origin code, hence pinned and never fetched at runtime. **Do not expose it to a network.** Details and reporting:
 [SECURITY.md](SECURITY.md).
 
 ## Acknowledgements
@@ -177,7 +191,7 @@ Atelier stands on [ffmpeg](https://ffmpeg.org), [yt-dlp](https://github.com/yt-d
 [pandoc](https://pandoc.org), [LibreOffice](https://www.libreoffice.org), [calibre](https://calibre-ebook.com),
 [CTranslate2](https://github.com/OpenNMT/CTranslate2) with [NLLB-200](https://github.com/facebookresearch/fairseq/tree/nllb),
 [FastAPI](https://fastapi.tiangolo.com) and [pywebview](https://pywebview.flowrl.com). Icons are from
-[Lucide](https://lucide.dev) (ISC).
+[Lucide](https://lucide.dev) (ISC). In-browser conversion is [VERT](https://github.com/VERT-sh/VERT) (AGPL-3.0).
 
 ## License
 
