@@ -58,6 +58,7 @@ ${DZ}>button h2{color:var(--fg);font-size:15px!important;font-weight:500!importa
     for (const [k, v] of Object.entries(VARS)) root.style.setProperty(k, cs.getPropertyValue(v).trim());
     root.style.setProperty("--fg-on-accent", "#fff");
     root.style.setProperty("--fg-on-badge", "#fff");
+    root.lang = i18n.lang;
     root.style.colorScheme = dark ? "dark" : "light";
     root.classList.toggle("dark", dark);
     root.classList.toggle("light", !dark);
@@ -84,6 +85,10 @@ ${DZ}>button h2{color:var(--fg);font-size:15px!important;font-weight:500!importa
     new ResizeObserver(later).observe(d.body);
     new MutationObserver(later).observe(d.body, {childList: true, subtree: true});
     d.addEventListener("transitionend", later);
+    d.addEventListener("click", (e) => {  // a link leaving /vert/ would load Atelier inside the frame
+      const a = e.target.closest?.("a[href]");
+      if (a && !new URL(a.href, d.baseURI).pathname.startsWith("/vert/")) e.preventDefault();
+    }, true);
     fit();
     $frame.style.visibility = "";
   }
@@ -104,7 +109,7 @@ ${DZ}>button h2{color:var(--fg);font-size:15px!important;font-weight:500!importa
     $atelier.hidden = v;
     $frame.hidden = !v;
     $hint.textContent = HINTS[v ? "vert" : "atelier"];
-    if (v) load();
+    if (v && !$("#tab-convertir").hidden) load();
   }
 
   ui.segmented($("#cv-mode"), [["atelier", "Atelier", "server"], ["vert", "Navigateur", "download"]], mode, (m) => {

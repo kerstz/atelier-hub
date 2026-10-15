@@ -296,3 +296,8 @@ done: scripts/build-vert.sh (clone VERT, base=/vert, patches hors-ligne: ffmpeg.
 decisions: AGPL-3.0, code VERT non copié (build local). Linux seulement. Vidéo = mode Atelier (vertd absent).
 env: `./scripts/build-vert.sh && systemctl --user restart atelier`. Vérifié navigateur: png->jpeg, wav->mp3, 0 requête externe.
 non testé: drag&drop réel, popup Settings VERT (EN), masquage à revérifier après chaque pull de VERT.
+
+## Revue Opus VERT (smoke25.sh ok)
+done: build-vert.sh durci (VERT_REF figé f5ecdec, reset/clean avant maj, bun --frozen-lockfile --ignore-scripts, assertion après chaque patch, data_dir via atelier.config, copie atomique, LICENSE.VERT + SOURCE, sw.js retiré); main.py: X-Frame-Options/frame-ancestors/nosniff hors /api, cache immutable sur /vert/_app/immutable; vert.js: chargement seulement Convertir visible, lang iframe, clic sortant bloqué; maint.deps ligne VERT (optionnelle); README EN/FR + ARCHITECTURE (AGPL, non embarqué .deb/.exe).
+decisions: pas de sandbox iframe (illusoire same-origin), pas de COOP/COEP (ffmpeg mono-thread). Isolation par port séparé = reportée.
+optionnel non fait: CSP stricte sur /vert, install.sh --vert, build bwrap.

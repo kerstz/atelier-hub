@@ -51,7 +51,7 @@ down.
 | **YouTube** | Video or playlist → mkv / mp3 / subtitles only, quality choice, real progress |
 | **Subtitles** | URL or local media/SRT → existing subtitles, else whisper.cpp → translated SRT (+ soft-sub mkv) · transcript summary with timestamped chapters |
 | **Documents** | PDF (pdf2zh-next, mono + bilingual, automatic OCR for scans) · DOCX / PPTX / XLSX with inline formatting kept · EPUB with TOC + metadata kept |
-| **Convert** | Video/audio (ffmpeg, VAAPI h264/hevc, AV1 on CPU) · images (libvips) · documents (pandoc + LibreOffice) · e-books (calibre) · batch + zip |
+| **Convert** | Video/audio (ffmpeg, VAAPI h264/hevc, AV1 on CPU) · images (libvips) · documents (pandoc + LibreOffice) · e-books (calibre) · batch + zip · optional in-browser mode ([VERT](https://github.com/VERT-sh/VERT), `scripts/build-vert.sh`) |
 | **Images** | Upscale ×2 / ×4 (Real-ESRGAN, Vulkan) · background removal (rembg) · watermark area removal (ffmpeg delogo) |
 | **Audio** | Stem separation (Demucs) · voice denoising (DeepFilterNet) · **voice changer**: 15 zero-shot voices FR/EN (Seed-VC, GPU) + effects, on files or live to a virtual PipeWire mic — see [docs/VOICES.md](docs/VOICES.md) |
 | **Services** | Probe, start and stop your other local services (Open WebUI, Jellyfin…) |
@@ -182,4 +182,4 @@ Atelier stands on [ffmpeg](https://ffmpeg.org), [yt-dlp](https://github.com/yt-d
 ## License
 
 [MIT](LICENSE) for Atelier itself. The tools and models it drives have their own licenses (notably NLLB-200:
-CC-BY-NC; Piper 1.x: GPL-3).
+CC-BY-NC; Piper 1.x: GPL-3; VERT: AGPL-3.0, built locally from source and not redistributed with Atelier).

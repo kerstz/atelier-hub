@@ -91,6 +91,9 @@ async def local_only(request: Request, call_next):
     resp = await call_next(request)
     if not request.url.path.startswith("/api/"):  # UI files: revalidate (etag) so an update never mixes old and new JS
         resp.headers.setdefault("cache-control", "no-cache")
+        resp.headers["X-Frame-Options"] = "SAMEORIGIN"
+        resp.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
+        resp.headers["X-Content-Type-Options"] = "nosniff"
     return resp
 
 
@@ -482,8 +485,8 @@ async def events():
 class _Revalidate(StaticFiles):  # VERT rebuilds keep the same URLs: HTML/wasm must not go stale
     async def get_response(self, path, scope):
         r = await super().get_response(path, scope)
-        if not path.startswith("_app/immutable"):
-            r.headers["Cache-Control"] = "no-cache"
+        immutable = path.startswith("_app/immutable")
+        r.headers["Cache-Control"] = "public, max-age=31536000, immutable" if immutable else "no-cache"
         return r
 
 

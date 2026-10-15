@@ -125,6 +125,9 @@ async def deps() -> list[dict]:
     which("yt-dlp", "yt-dlp", "yt-dlp", "sudo pacman -S yt-dlp", "YouTube, sous-titres")
     w = _bin(c["whisper"]["bin"])
     model = Path(c["whisper"]["model"]).expanduser()
+    vert = (data_dir() / "vert" / "index.html").is_file()
+    rows.append(_row("vert", "VERT (conversion navigateur)", vert, "construit" if vert else "non construit",
+                     "scripts/build-vert.sh", "Convertir › Navigateur (optionnel)"))
     rows.append(_row("whisper", "whisper.cpp + modèle", bool(w) and model.is_file(),
                      f"{w or 'binaire absent'} · {'modèle ok' if model.is_file() else 'modèle absent'}",
                      "scripts/build-whisper.sh", "transcription, dictée"))

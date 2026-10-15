@@ -79,6 +79,14 @@ Loopback only; `Host` must be local and `Origin` must equal the request's own or
 outputs are confined to `~/Atelier`. Subprocesses always receive argument lists (never a shell); untrusted
 documents are read with pandoc's `--sandbox` into an AST first.
 
+## VERT (in-browser conversion)
+
+`scripts/build-vert.sh` builds [VERT](https://github.com/VERT-sh/VERT) (AGPL-3.0, pinned `VERT_REF`) from source with
+offline patches (base `/vert`, local ffmpeg.wasm, no remote vertd, no service worker) into `<data>/vert`, which
+`main.py` mounts on `/vert/` when present. Convertir shows it as the "Navigateur" mode: a same-origin iframe skinned
+with Atelier's CSS variables (`static/vert.js`). Same origin means VERT's JS can call `/api`: that is why the build
+is pinned and never fetched at runtime. Not bundled in the .deb/.exe (AGPL source obligations).
+
 ## Layout
 
 ```

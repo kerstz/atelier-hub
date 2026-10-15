@@ -51,7 +51,7 @@ sans réseau.
 | **YouTube** | Vidéo ou playlist → mkv / mp3 / sous-titres seuls, choix de qualité, progression réelle |
 | **Sous-titres** | URL ou média/SRT local → sous-titres existants, sinon whisper.cpp → SRT traduit (+ mkv soft-sub) · résumé du transcript avec chapitres horodatés |
 | **Documents** | PDF (pdf2zh-next, mono + bilingue, OCR automatique des scans) · DOCX / PPTX / XLSX avec mise en forme inline conservée · EPUB avec table des matières + métadonnées conservées |
-| **Convertir** | Vidéo/audio (ffmpeg, VAAPI h264/hevc, AV1 en CPU) · images (libvips) · documents (pandoc + LibreOffice) · e-books (calibre) · lot + zip |
+| **Convertir** | Vidéo/audio (ffmpeg, VAAPI h264/hevc, AV1 en CPU) · images (libvips) · documents (pandoc + LibreOffice) · e-books (calibre) · lot + zip · mode navigateur optionnel ([VERT](https://github.com/VERT-sh/VERT), `scripts/build-vert.sh`) |
 | **Images** | Agrandissement ×2 / ×4 (Real-ESRGAN, Vulkan) · détourage (rembg) |
 | **Audio** | Séparation des pistes (Demucs) · réduction du bruit de la voix (DeepFilterNet) · **changeur de voix**: 15 voix zéro-shot FR/EN (Seed-VC, GPU) + effets, sur fichiers ou en direct vers un micro virtuel PipeWire — voir [docs/VOICES.md](docs/VOICES.md) |
 | **Services** | Sonde, démarrage et arrêt de vos autres services locaux (Open WebUI, Jellyfin…) |
@@ -182,4 +182,4 @@ Atelier repose sur [ffmpeg](https://ffmpeg.org), [yt-dlp](https://github.com/yt-
 ## License
 
 [MIT](LICENSE) pour Atelier lui-même. Les outils et modèles pilotés ont leurs propres licences (notamment
-NLLB-200 : CC-BY-NC ; Piper 1.x : GPL-3).
+NLLB-200 : CC-BY-NC ; Piper 1.x : GPL-3 ; VERT : AGPL-3.0, construit localement depuis les sources et non redistribué avec Atelier).
