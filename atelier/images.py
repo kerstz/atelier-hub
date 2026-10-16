@@ -19,8 +19,11 @@ MAX_PIXELS = 24_000_000  # input cap for x4 (output = 16x)
 
 async def size(path: Path) -> tuple[int, int]:
     if not shutil.which("vipsheader"):
+        need("ffprobe", hint="sudo pacman -S ffmpeg")
         out: list[str] = []
         await run_cmd(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", str(path)], out.append)
+        if not out:
+            raise RuntimeError("dimensions illisibles")
         w, h = out[-1].strip().split(",")[:2]
         return int(w), int(h)
     w: list[str] = []
@@ -34,6 +37,8 @@ async def upscale(ctx: Ctx, src: Path, dest: Path, factor: int, style: str) -> N
     d = cfg["images"]
     zip = "realesrgan-ncnn-vulkan-20220424-macos.zip" if plat.IS_MAC else "zip ncnn-vulkan ubuntu"
     need(binpath(d["realesrgan_bin"]), hint=f"{zip} de github.com/xinntao/Real-ESRGAN/releases → ~/.local/opt/realesrgan, puis [images] realesrgan_bin")
+    if factor == 2:
+        need("vips", hint="sudo pacman -S libvips")
     w, h = await size(src)
     if w * h > (MAX_PIXELS if factor == 4 else MAX_PIXELS // 2):
         raise RuntimeError(f"image trop grande ({w}x{h}) pour ×{factor}")

@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import audio, convert, plat, db, docs, engines, gpu, grammar, hw, images, joblog, maint, media, player, speech, ocr, ollama, services, subs, summary, translate, voice, voicelive, youtube  # noqa: F401
-from .config import ROOT, cfg, data_dir, output_dir
+from .config import ROOT, VERSION, cfg, data_dir, output_dir
 from .jobs import KINDS, manager
 from .util import missing_uploads, upload_paths
 
@@ -119,7 +119,7 @@ class UnloadIn(BaseModel):
 @app.get("/api/system")
 async def system():
     vram = await asyncio.to_thread(gpu.vram) if plat.IS_MAC else gpu.vram()  # mac: sync HTTP to Ollama, off the event loop
-    return {"vram": vram, "ollama": await ollama.loaded(), "gpu_busy": manager.gpu_lock.locked()}
+    return {"vram": vram, "ollama": await ollama.loaded(), "gpu_busy": manager.gpu_lock.locked(), "version": VERSION}
 
 
 @app.post("/api/ollama/unload")

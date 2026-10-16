@@ -11,6 +11,7 @@ t "static js" "curl -fsS $base/app.js | grep -q EventSource"
 t "host étranger refusé" "[ \$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.com' $base/api/system) = 403 ]"
 t "origin étranger refusé" "[ \$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: http://evil.com' $base/api/jobs/clear) = 403 ]"
 t "system vram" "curl -fsS $base/api/system | jq_ \"d['vram']['total']>0\" | grep -q True"
+t "system version" "curl -fsS $base/api/system | jq_ \"bool(d.get('version'))\" | grep -q True"
 
 post() { curl -fsS -X POST -H 'Content-Type: application/json' -d "${2-}" "$base$1"; }
 state() { curl -fsS $base/api/jobs | jq_ "next(j['status'] for j in d if j['id']==$1)"; }

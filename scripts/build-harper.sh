@@ -11,6 +11,7 @@ command -v npm >/dev/null || die "npm absent (sudo pacman -S npm)"
 out="${HARPER_OUT:-$(uv run --frozen --offline python -c 'from atelier.config import data_dir; print(data_dir() / "harper")' 2>/dev/null || echo "$HOME/.local/share/atelier/harper")}"
 work="$HOME/.local/opt/harper-build"
 mkdir -p "$work" "$out"
+out="$(cd "$out" && pwd)"
 cp scripts/harper/entry.js "$work/entry.js"
 cd "$work"
 [ -f package.json ] || echo '{"private":true}' > package.json

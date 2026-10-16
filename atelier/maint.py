@@ -20,9 +20,7 @@ def _bin(name: str) -> str | None:
     return shutil.which(binpath(name))
 
 
-WINGET = {"ffmpeg": "Gyan.FFmpeg", "yt-dlp": "yt-dlp.yt-dlp", "poppler": "oschwartz10612.Poppler",
-          "pandoc-cli": "JohnMacFarlane.Pandoc", "libreoffice-fresh": "TheDocumentFoundation.LibreOffice",
-          "calibre": "calibre.calibre", "tesseract": "UB-Mannheim.TesseractOCR"}
+WINGET = plat.WINGET
 
 
 def _win_hint(hint: str) -> str:
@@ -145,13 +143,14 @@ async def deps() -> list[dict]:
     w = _bin(c["whisper"]["bin"])
     model = Path(c["whisper"]["model"]).expanduser()
     vert = (data_dir() / "vert" / "index.html").is_file()
-    rows.append(_row("vert", "VERT (conversion navigateur)", vert, "construit" if vert else "non construit (Linux seulement)" if plat.IS_MAC else "non construit",
-                     "" if plat.IS_MAC else "scripts/build-vert.sh", "Convertir › Navigateur (optionnel)"))
+    linux_only = plat.IS_MAC or plat.IS_WIN
+    rows.append(_row("vert", "VERT (conversion navigateur)", vert, "construit" if vert else "non construit (Linux seulement)" if linux_only else "non construit",
+                     "Linux seulement" if linux_only else "scripts/build-vert.sh", "Convertir › Navigateur (optionnel)"))
     rows.append(_row("languagetool", "LanguageTool (correcteur FR)", grammar.available(),
                      "trouvé" if grammar.available() else "introuvable", grammar.install_hint(), "Correcteur › français"))
     hp = grammar.harper_built(data_dir())
     rows.append(_row("harper", "Harper (correcteur EN)", hp, "construit" if hp else "non construit",
-                     "scripts/build-harper.sh", "Correcteur › anglais (optionnel)"))
+                     "inclus dans l'installeur" if plat.IS_WIN else "scripts/build-harper.sh", "Correcteur › anglais (optionnel)"))
     rows.append(_row("whisper", "whisper.cpp + modèle", bool(w) and model.is_file(),
                      f"{w or 'binaire absent'} · {'modèle ok' if model.is_file() else 'modèle absent'}",
                      "brew install whisper-cpp && scripts/build-whisper.sh" if plat.IS_MAC else "scripts/build-whisper.sh", "transcription, dictée"))

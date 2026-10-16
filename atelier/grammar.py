@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 import shlex
 import shutil
 import sys
@@ -31,7 +32,7 @@ def _url(path: str) -> str:
 def _jar_dirs() -> list[Path]:
     """Où chercher languagetool-server.jar: notre dossier de données (scripts/get-languagetool.*), puis paquets système."""
     dirs = [data_dir() / "languagetool"]
-    dirs += sorted(data_dir().glob("languagetool/LanguageTool-*"), reverse=True)  # le zip officiel s'extrait dans LanguageTool-x.y/
+    dirs += sorted(data_dir().glob("languagetool/LanguageTool-*"), key=lambda p: [int(x) for x in re.findall(r"\d+", p.name)], reverse=True)  # le zip officiel s'extrait dans LanguageTool-x.y/
     if plat.NT:
         for base in (os.environ.get("ProgramFiles"), os.environ.get("LOCALAPPDATA")):
             if base:
@@ -54,6 +55,8 @@ def command() -> list[str] | None:
     if g["lt_cmd"]:
         return shlex.split(g["lt_cmd"], posix=not plat.NT)
     port = ["--port", str(_port())]
+    if plat.IS_MAC and (b := shutil.which("languagetool-server")):  # le lanceur Homebrew règle JAVA_HOME
+        return [b, *port]
     java = shutil.which("java")
     if not java:
         return None

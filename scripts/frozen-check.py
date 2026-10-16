@@ -1,11 +1,13 @@
 """Smoke test of a running Atelier (frozen binary in CI): every GET route, static files, SSE, upload, glossary.
 No external tool needed. Usage: python scripts/frozen-check.py [base_url] [log_file]. Exit 1 on any failure."""
 import json
+import os
 import re
 import sys
 import urllib.error
 import urllib.request
 
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:7777").rstrip("/")
 LOG = sys.argv[2] if len(sys.argv) > 2 else ""
 PARAMS = {"jid": "999999", "name": "absent", "sid": "absent", "target": "absent", "vid": "absent"}
@@ -45,6 +47,10 @@ check("GET / (index.html)", st == 200 and b"<html" in raw.lower(), str(st))
 for asset in sorted(set(re.findall(rb'(?:src|href)="([\w./-]+\.(?:js|css|svg))"', raw)) | {b"icons.svg"}):
     st, _ = req("GET", "/" + asset.decode())
     check(f"static {asset.decode()} -> {st}", st == 200)
+
+if os.path.isfile(os.path.join(ROOT, "static", "harper", "harper.wasm")):
+    st, _ = req("GET", "/harper/harper.wasm")
+    check(f"static harper/harper.wasm -> {st}", st == 200)
 
 with urllib.request.urlopen(BASE + "/api/events", timeout=10) as resp:
     first = resp.readline()

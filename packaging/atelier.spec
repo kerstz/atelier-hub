@@ -14,7 +14,7 @@ hidden += ["ctranslate2", "sentencepiece"]
 if sys.platform == "win32":
     hidden += ["webview.platforms.edgechromium", "tkinter", "sounddevice"]
 datas = [("../static", "static"), ("../config.toml", "."), ("../atelier/voicelive_worker.py", "atelier"),
-         ("../atelier/strip_images.lua", "atelier"), ("../atelier/winaudio.py", "atelier")]
+         ("../atelier/strip_images.lua", "atelier"), ("../atelier/winaudio.py", "atelier"), ("../pyproject.toml", ".")]
 for pkg in ("docx", "pptx", "openpyxl"):
     datas += collect_data_files(pkg)
 

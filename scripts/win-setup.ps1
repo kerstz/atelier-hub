@@ -46,20 +46,26 @@ $todo | ForEach-Object { Write-Host "  winget install $($winget[$_])" }
 $uvtools | ForEach-Object { Write-Host "  uv tool install $_" }
 if ($Tier -ne "minimal" -and -not $NoWhisper -and -not (Test-Path "$whisperDir\bin\whisper-cli.exe")) { Write-Host "  whisper.cpp ($(if ($nvidia) {'CUDA'} else {'CPU'})) + modèle large-v3-turbo (~1,6 Go)" }
 if ($Tier -eq "full") { Write-Host "  Real-ESRGAN (ncnn-vulkan), DeepFilterNet (deep-filter.exe)" }
-if ($Tier -ne "minimal") {
-  # le paquet Tesseract winget n'embarque que l'anglais: langues OCR dans un dossier à nous (TESSDATA_PREFIX)
-  $td = Join-Path $env:LOCALAPPDATA "Atelier\tessdata"
-  New-Item -ItemType Directory -Force $td | Out-Null
-  foreach ($l in "eng", "fra", "osd") {
-    $f = Join-Path $td "$l.traineddata"
-    if (-not (Test-Path $f)) { Invoke-WebRequest "https://github.com/tesseract-ocr/tessdata_fast/raw/main/$l.traineddata" -OutFile "$f.part"; Move-Item "$f.part" $f }
-  }
-  [Environment]::SetEnvironmentVariable("TESSDATA_PREFIX", $td, "User")
-}
 if ($Tier -ne "minimal") { Write-Host "  Java + LanguageTool (correcteur FR, ~250 Mo)" }
 if ($Models) { Write-Host "  modèles Ollama recommandés (python -m atelier.hw --models)" }
 if (-not $todo -and -not $uvtools -and -not $Models) { Write-Host "  rien à faire" }
 if (-not $Yes -and (Read-Host "Continuer ? [o/N]") -notmatch '^[oOyY]') { exit 0 }
+
+if ($Tier -ne "minimal") {
+  # le paquet Tesseract winget n'embarque que l'anglais: langues OCR dans un dossier à nous (TESSDATA_PREFIX)
+  $td = Join-Path $env:LOCALAPPDATA "Atelier\tessdata"
+  New-Item -ItemType Directory -Force $td | Out-Null
+  try {
+    foreach ($l in "eng", "fra", "osd") {
+      $f = Join-Path $td "$l.traineddata"
+      if (-not (Test-Path $f)) { Invoke-WebRequest "https://github.com/tesseract-ocr/tessdata_fast/raw/main/$l.traineddata" -OutFile "$f.part"; Move-Item "$f.part" $f }
+    }
+    [Environment]::SetEnvironmentVariable("TESSDATA_PREFIX", $td, "User")
+  } catch {
+    Write-Warning $_
+    Remove-Item "$td\*.part" -Force -ErrorAction SilentlyContinue
+  }
+}
 
 if ($todo -and -not (Has winget)) { Write-Host "winget introuvable (App Installer, Windows 10 1809+)"; exit 1 }
 foreach ($t in $todo) { winget install --id $winget[$t] -e --accept-package-agreements --accept-source-agreements; if ($LASTEXITCODE) { Write-Warning "échec: $($winget[$t])" } }

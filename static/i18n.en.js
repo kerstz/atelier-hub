@@ -96,6 +96,7 @@ const I18N_EN = {
   // services / system
   "État des services locaux, démarrage et arrêt.": "State of local services, start and stop.",
   "Mémoire vidéo, modèles chargés et verrou GPU.": "Video memory, loaded models and GPU lock.",
+  "inclus dans l'installeur": "included in the installer", "Linux seulement": "Linux only",
   "Mémoire vidéo": "Video memory", "Modèles Ollama chargés": "Loaded Ollama models", "Dépendances": "Dependencies", "Revérifier": "Re-check",
   "Disque": "Disk", "Verrou GPU": "GPU lock", "Test GPU (5 s)": "GPU test (5 s)", "Test CPU (5 s)": "CPU test (5 s)",
   "Ajouter des blocs [services.*] dans config.toml.": "Add [services.*] blocks in config.toml.", "Démarrer": "Start", "Échec.": "Failed.",

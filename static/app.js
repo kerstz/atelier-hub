@@ -431,6 +431,7 @@ async function refreshSystem() {
   } catch {
     return;
   }
+  if (s.version) $("#app-version").textContent = `Atelier v${s.version}`;
   const v = s.vram;
   if (v) {
     $("#vram-fill").style.width = `${(100 * v.used) / v.total}%`;

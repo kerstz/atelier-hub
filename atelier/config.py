@@ -1,3 +1,4 @@
+import importlib.metadata
 import os
 import sys
 import tomllib
@@ -6,6 +7,20 @@ from pathlib import Path
 from . import plat
 
 ROOT = Path(getattr(sys, "_MEIPASS", None) or Path(__file__).resolve().parent.parent)
+
+
+def _version() -> str:
+    try:
+        return importlib.metadata.version("atelier")
+    except importlib.metadata.PackageNotFoundError:
+        pass
+    try:
+        return tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    except (OSError, KeyError, tomllib.TOMLDecodeError):
+        return "dev"
+
+
+VERSION = _version()
 
 DEFAULTS = {
     "server": {"port": 7777, "max_upload_mb": 16384, "min_free_gb": 2},
