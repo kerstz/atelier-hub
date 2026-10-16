@@ -127,4 +127,31 @@ check("contexte: désactivable ([translate] context=false)", all(len(m) == 1 for
 raise SystemExit(0 if ok else 1)
 PY
 t "phase 18 hors-ligne" "[ $? = 0 ]"
+
+# images sans libvips: repli ffmpeg (PATH ne contient que ffmpeg/ffprobe)
+mkdir -p "$tmp/novips"; ln -sf "$(command -v ffmpeg)" "$tmp/novips/ffmpeg"; ln -sf "$(command -v ffprobe)" "$tmp/novips/ffprobe"
+ffmpeg -loglevel error -y -f lavfi -i color=red:s=640x480 -frames:v 1 "$tmp/src.png"
+cat > "$tmp/novips.py" <<'PY'
+import asyncio, shutil, subprocess, sys
+from pathlib import Path
+from atelier import images
+from atelier.convert import do_image
+class Ctx:
+    def set(self, *a, **k): pass
+d = Path(sys.argv[1]); src = d / "src.png"
+def dims(p): return subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", str(p)], capture_output=True, text=True).stdout.strip()
+assert shutil.which("vips") is None
+for tgt, side, ext, want in (("i:jpg", 0, ".jpg", "640,480"), ("i:webp", 200, ".webp", "200,150"), ("i:png", 100, ".png", "100,75")):
+    dest = d / f"out{tgt[2:]}{side}{ext}"; dest.touch()
+    asyncio.run(do_image(Ctx(), src, tgt, dest, 1, side))
+    assert dest.stat().st_size > 0 and dims(dest) == want, (tgt, dims(dest))
+half = d / "half.png"; half.touch()
+asyncio.run(images.half(src, half))
+assert dims(half) == "320,240", dims(half)
+try:
+    asyncio.run(do_image(Ctx(), src, "i:avif", d / "x.avif", 1, 0)); raise SystemExit("avif sans vips: pas d'erreur")
+except RuntimeError as e:
+    assert "libvips" in str(e)
+PY
+if env PATH="$tmp/novips" PYTHONPATH=. "$(uv run --frozen --offline python -c 'import sys; print(sys.executable)')" "$tmp/novips.py" "$tmp" >"$tmp/novips.out" 2>&1; then echo "ok   images sans vips: jpg/webp/png/×2 via ffmpeg, avif exige vips"; else echo "FAIL images sans vips"; tail -5 "$tmp/novips.out"; fail=1; fi
 exit $fail

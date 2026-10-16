@@ -316,9 +316,22 @@ async def do_audio(ctx: Ctx, src: Path, target: str, dest: Path, q: int) -> None
 IMG_OPTS = {"i:jpg": "[Q={q},optimize_coding]", "i:webp": "[Q={q}]", "i:avif": "[Q={q},effort=4]", "i:heic": "[Q={q}]", "i:png": "[compression=9]"}
 
 
+IMG_FF = {
+    "i:jpg": lambda q: ["-c:v", "mjpeg", "-q:v", str(round(2 + (100 - q) * 0.29))],
+    "i:webp": lambda q: ["-c:v", "libwebp", "-quality", str(q)],
+    "i:png": lambda q: ["-c:v", "png", "-compression_level", "9"],
+}
+
+
 async def do_image(ctx: Ctx, src: Path, target: str, dest: Path, q: int, side: int) -> None:
-    need("vips", hint="sudo pacman -S libvips")
     ctx.set(0.1, "conversion image…")
+    if target in IMG_FF and not shutil.which("vips"):
+        need("ffmpeg", hint="sudo pacman -S ffmpeg (ou libvips)")
+        vf = ["-vf", f"scale='min({side},iw)':'min({side},ih)':force_original_aspect_ratio=decrease"] if side else []
+        await run_cmd(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(src), *vf, *IMG_FF[target](Q_IMG[q]),
+                       "-frames:v", "1", str(dest)])
+        return
+    need("vips", hint="sudo pacman -S libvips")
     opt = IMG_OPTS[target].format(q=Q_IMG[q])
     env = {**os.environ, "VIPS_WARNING": "0"}
     if side:

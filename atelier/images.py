@@ -37,8 +37,8 @@ async def upscale(ctx: Ctx, src: Path, dest: Path, factor: int, style: str) -> N
     d = cfg["images"]
     zip = "realesrgan-ncnn-vulkan-20220424-macos.zip" if plat.IS_MAC else "zip ncnn-vulkan ubuntu"
     need(binpath(d["realesrgan_bin"]), hint=f"{zip} de github.com/xinntao/Real-ESRGAN/releases → ~/.local/opt/realesrgan, puis [images] realesrgan_bin")
-    if factor == 2:
-        need("vips", hint="sudo pacman -S libvips")
+    if factor == 2 and not shutil.which("vips"):
+        need("ffmpeg", hint="sudo pacman -S ffmpeg (ou libvips)")
     w, h = await size(src)
     if w * h > (MAX_PIXELS if factor == 4 else MAX_PIXELS // 2):
         raise RuntimeError(f"image trop grande ({w}x{h}) pour ×{factor}")
@@ -61,7 +61,7 @@ async def upscale(ctx: Ctx, src: Path, dest: Path, factor: int, style: str) -> N
             raise RuntimeError("realesrgan: aucune sortie")
         if factor == 2:
             ctx.set(0.9, "réduction ×2…")
-            await run_cmd(["vips", "resize", str(big), str(dest), "0.5", "--kernel", "lanczos3"], env=_quiet())
+            await half(big, dest)
         else:
             shutil.move(big, dest)
     finally:
@@ -70,6 +70,14 @@ async def upscale(ctx: Ctx, src: Path, dest: Path, factor: int, style: str) -> N
 
 def _quiet() -> dict:
     return {**os.environ, "VIPS_WARNING": "0"}
+
+
+async def half(src: Path, dest: Path) -> None:
+    if shutil.which("vips"):
+        await run_cmd(["vips", "resize", str(src), str(dest), "0.5", "--kernel", "lanczos3"], env=_quiet())
+    else:
+        await run_cmd(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(src), "-vf", "scale=iw/2:ih/2:flags=lanczos",
+                       "-frames:v", "1", str(dest)])
 
 
 async def rembg(ctx: Ctx, src: Path, dest: Path, model: str) -> None:
