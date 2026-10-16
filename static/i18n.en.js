@@ -7,6 +7,15 @@ const I18N_EN = {
   "Thème sombre": "Dark theme", "Réduire la barre latérale": "Collapse sidebar", "Réduire": "Collapse",
   "Déployer la barre latérale": "Expand sidebar", "Tâches": "Tasks", "Filtrer les tâches": "Filter tasks",
   "Toutes": "All", "En cours": "Running", "Échecs": "Failures", "Vider": "Clear",
+  // correcteur
+  "Correcteur": "Proofreader", "Orthographe et grammaire, vérifiées sur ton ordinateur : Harper pour l'anglais, LanguageTool pour le français et le reste.": "Spelling and grammar, checked on your computer: Harper for English, LanguageTool for French and the rest.",
+  "Langue du texte": "Text language", "Écris ou colle ton texte ici…": "Type or paste your text here…", "Les remarques apparaissent ici.": "Remarks appear here.",
+  "Vérifier": "Check", "Tout corriger": "Fix all", "Réinitialiser les ignorés": "Reset ignored", "Réafficher les remarques ignorées": "Show ignored remarks again",
+  "Arrêter LanguageTool": "Stop LanguageTool", "Libère la mémoire (LanguageTool redémarre à la demande)": "Frees memory (LanguageTool restarts on demand)",
+  "Rien à signaler.": "Nothing to report.", "Vérification…": "Checking…", "remarque": "remark", "remarques": "remarks", "Ignorer": "Ignore",
+  "Ne plus signaler ce cas": "Stop flagging this case", "supprimer": "delete", "Grammaire": "Grammar", "Vérification impossible": "Check failed",
+  "Aucun moteur installé. Anglais : ./scripts/build-harper.sh — ou pour toutes les langues : sudo pacman -S languagetool": "No engine installed. English: ./scripts/build-harper.sh — or for every language: sudo pacman -S languagetool",
+  "LanguageTool n'est pas installé : sudo pacman -S languagetool": "LanguageTool is not installed: sudo pacman -S languagetool",
   // translate
   "Texte libre, traduit localement par le modèle Ollama.": "Free text, translated locally by the Ollama model.",
   "Langue source": "Source language", "Langue cible": "Target language", "Inverser": "Swap",

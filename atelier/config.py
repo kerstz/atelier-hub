@@ -46,6 +46,7 @@ DEFAULTS = {
     "player": {"transcode": "auto", "cache_days": 7, "cache_max_gb": 5, "safe_gst": True, "mpv_bin": "mpv"},
     "desktop": {"notify": True, "notify_min_seconds": 5},
     "convert": {"vaapi_device": "/dev/dri/renderD128", "jobs": 2},
+    "grammar": {"lt_port": 8081, "lt_cmd": "", "lt_idle_min": 10, "lt_heap_mb": 1024, "en_dialect": "American"},
     "youtube": {"sub_langs": "en", "cookies_from_browser": "", "rate_limit": ""},
 }
 

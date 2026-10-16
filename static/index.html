@@ -15,6 +15,7 @@
     <div class="brand"><span class="logo" aria-hidden="true"></span><span class="lbl">Atelier</span></div>
     <nav id="tabs">
       <button class="nav" data-tab="traduire" title="Traduire"><i data-i="languages"></i><span class="lbl">Traduire</span></button>
+      <button class="nav" data-tab="corriger" title="Correcteur"><i data-i="spell-check"></i><span class="lbl">Correcteur</span></button>
       <button class="nav" data-tab="youtube" title="YouTube"><i data-i="youtube"></i><span class="lbl">YouTube</span></button>
       <button class="nav" data-tab="soustitres" title="Sous-titres"><i data-i="captions"></i><span class="lbl">Sous-titres</span></button>
       <button class="nav" data-tab="documents" title="Documents"><i data-i="file-text"></i><span class="lbl">Documents</span></button>
@@ -64,6 +65,33 @@
         <div class="card">
           <div class="card-head"><h2>Historique</h2><button id="tr-hclear" class="btn ghost sm"><i data-i="trash"></i><span>Vider</span></button></div>
           <ul id="tr-hist" class="list"></ul>
+        </div>
+      </section>
+
+      <section id="tab-corriger" class="tab" hidden>
+        <header class="page-head"><h1>Correcteur</h1><p class="dim">Orthographe et grammaire, vérifiées sur ton ordinateur : Harper pour l'anglais, LanguageTool pour le français et le reste.</p></header>
+        <div class="card">
+          <div class="field-row wrap">
+            <select id="gr-lang" aria-label="Langue du texte"></select>
+            <span id="gr-engine" class="chip" hidden></span>
+            <span id="gr-status" class="dim"></span>
+          </div>
+          <div id="gr-missing" class="gr-missing" hidden></div>
+          <div class="gr-cols">
+            <div class="gr-edit">
+              <div id="gr-back" class="gr-box" aria-hidden="true"></div>
+              <textarea id="gr-in" class="gr-box" placeholder="Écris ou colle ton texte ici…" spellcheck="false" autocapitalize="off"></textarea>
+            </div>
+            <div id="gr-issues" class="gr-issues" aria-live="polite"></div>
+          </div>
+        </div>
+        <div class="actionbar">
+          <button id="gr-go" class="btn primary" data-main><i data-i="spell-check"></i><span>Vérifier</span><kbd>Ctrl ↵</kbd></button>
+          <button id="gr-fix" class="btn" disabled><i data-i="check"></i><span>Tout corriger</span></button>
+          <button id="gr-copy" class="btn ghost"><i data-i="copy"></i><span>Copier</span></button>
+          <button id="gr-clear" class="btn ghost"><i data-i="trash"></i><span>Vider</span></button>
+          <button id="gr-reset" class="btn ghost" title="Réafficher les remarques ignorées"><i data-i="history"></i><span>Réinitialiser les ignorés</span></button>
+          <button id="gr-stop" class="btn ghost" title="Libère la mémoire (LanguageTool redémarre à la demande)" hidden><i data-i="power"></i><span>Arrêter LanguageTool</span></button>
         </div>
       </section>
 
@@ -304,6 +332,7 @@
 <script src="player.js"></script>
 <script src="services.js"></script>
 <script src="vert.js"></script>
+<script src="grammar.js"></script>
 <script>i18n.start();</script>
 </body>
 </html>

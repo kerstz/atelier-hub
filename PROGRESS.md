@@ -301,3 +301,9 @@ non testé: drag&drop réel, popup Settings VERT (EN), masquage à revérifier a
 done: build-vert.sh durci (VERT_REF figé f5ecdec, reset/clean avant maj, bun --frozen-lockfile --ignore-scripts, assertion après chaque patch, data_dir via atelier.config, copie atomique, LICENSE.VERT + SOURCE, sw.js retiré); main.py: X-Frame-Options/frame-ancestors/nosniff hors /api, cache immutable sur /vert/_app/immutable; vert.js: chargement seulement Convertir visible, lang iframe, clic sortant bloqué; maint.deps ligne VERT (optionnelle); README EN/FR + ARCHITECTURE (AGPL, non embarqué .deb/.exe).
 decisions: pas de sandbox iframe (illusoire same-origin), pas de COOP/COEP (ffmpeg mono-thread). Isolation par port séparé = reportée.
 optionnel non fait: CSP stricte sur /vert, install.sh --vert, build bwrap.
+
+## Ajout — Correcteur (Harper EN + LanguageTool FR)
+done: onglet Correcteur (static/grammar.js, soulignement par calque, cartes, remplacer/ignorer/tout corriger, FR/EN); atelier/grammar.py (LT local 127.0.0.1:8081 lancé à la demande, arrêt après inactivité, /api/grammar/{status,check,stop}); scripts/build-harper.sh (harper.js 2.13.0 + esbuild -> <data>/harper, wasm séparé, monté /harper); config [grammar]; maint.deps; smoke26.
+decisions: Harper = anglais seulement (pas de FR en amont) -> FR via LanguageTool, aussi repli EN si Harper absent. Harper vérifié navigateur (Playwright).
+non testé: LanguageTool réel (pas installé ici: détection auto du binaire/jar à confirmer).
+env: sudo pacman -S languagetool && ./scripts/build-harper.sh && systemctl --user restart atelier

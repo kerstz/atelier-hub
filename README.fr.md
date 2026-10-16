@@ -51,6 +51,7 @@ sans réseau.
 | **YouTube** | Vidéo ou playlist → mkv / mp3 / sous-titres seuls, choix de qualité, progression réelle |
 | **Sous-titres** | URL ou média/SRT local → sous-titres existants, sinon whisper.cpp → SRT traduit (+ mkv soft-sub) · résumé du transcript avec chapitres horodatés |
 | **Documents** | PDF (pdf2zh-next, mono + bilingue, OCR automatique des scans) · DOCX / PPTX / XLSX avec mise en forme inline conservée · EPUB avec table des matières + métadonnées conservées |
+| **Correcteur** | Orthographe + grammaire en direct, 100 % local : anglais avec [Harper](https://github.com/Automattic/harper) (WASM dans le navigateur), français et autres langues avec [LanguageTool](https://languagetool.org) |
 | **Convertir** | Vidéo/audio (ffmpeg, VAAPI h264/hevc, AV1 en CPU) · images (libvips) · documents (pandoc + LibreOffice) · e-books (calibre) · lot + zip · mode navigateur optionnel ([VERT](https://github.com/VERT-sh/VERT), `scripts/build-vert.sh`) |
 | **Images** | Agrandissement ×2 / ×4 (Real-ESRGAN, Vulkan) · détourage (rembg) |
 | **Audio** | Séparation des pistes (Demucs) · réduction du bruit de la voix (DeepFilterNet) · **changeur de voix**: 15 voix zéro-shot FR/EN (Seed-VC, GPU) + effets, sur fichiers ou en direct vers un micro virtuel PipeWire — voir [docs/VOICES.md](docs/VOICES.md) |
@@ -114,6 +115,18 @@ systemctl --user restart atelier
 
 Linux uniquement ; la vidéo reste dans le mode ffmpeg habituel. Sans build, le sélecteur de mode n'apparaît pas.
 VERT est sous AGPL-3.0 : il n'est pas inclus dans le `.deb`/`.exe`, seulement construit en local.
+
+### Correcteur (Harper + LanguageTool)
+
+L'anglais tourne dans le navigateur avec [Harper](https://github.com/Automattic/harper) (Apache-2.0, anglais seulement :
+pas de français en amont). Le français (et es/de/pt/it) passe par un serveur [LanguageTool](https://languagetool.org)
+local (LGPL), lancé à la demande sur `127.0.0.1:8081` et arrêté après 10 min d'inactivité. Harper est construit en local, non inclus.
+
+```bash
+sudo pacman -S languagetool          # français + autres langues
+bash scripts/build-harper.sh         # optionnel : anglais via Harper (npm, ~20 Mo de wasm)
+systemctl --user restart atelier
+```
 
 ## Windows (expérimental)
 

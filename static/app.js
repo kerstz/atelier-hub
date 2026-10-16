@@ -40,6 +40,7 @@ function showTab(name) {
     refreshDisk();
   }
   if (name === "services") bus.dispatchEvent(new Event("services"));
+  if (name === "corriger") bus.dispatchEvent(new Event("tab:corriger"));
   if (name === "convertir") bus.dispatchEvent(new Event("tab:convertir"));
 }
 

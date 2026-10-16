@@ -7,7 +7,7 @@ from pathlib import Path
 
 import httpx
 
-from . import db, joblog, ollama, plat
+from . import db, grammar, joblog, ollama, plat
 from .config import cfg, data_dir, output_dir
 from .proc import run_cmd
 from .speech import DEFAULT_VOICES
@@ -128,6 +128,11 @@ async def deps() -> list[dict]:
     vert = (data_dir() / "vert" / "index.html").is_file()
     rows.append(_row("vert", "VERT (conversion navigateur)", vert, "construit" if vert else "non construit",
                      "scripts/build-vert.sh", "Convertir › Navigateur (optionnel)"))
+    rows.append(_row("languagetool", "LanguageTool (correcteur FR)", grammar.available(),
+                     "trouvé" if grammar.available() else "introuvable", "sudo pacman -S languagetool", "Correcteur › français"))
+    hp = grammar.harper_built(data_dir())
+    rows.append(_row("harper", "Harper (correcteur EN)", hp, "construit" if hp else "non construit",
+                     "scripts/build-harper.sh", "Correcteur › anglais (optionnel)"))
     rows.append(_row("whisper", "whisper.cpp + modèle", bool(w) and model.is_file(),
                      f"{w or 'binaire absent'} · {'modèle ok' if model.is_file() else 'modèle absent'}",
                      "scripts/build-whisper.sh", "transcription, dictée"))

@@ -51,6 +51,7 @@ down.
 | **YouTube** | Video or playlist → mkv / mp3 / subtitles only, quality choice, real progress |
 | **Subtitles** | URL or local media/SRT → existing subtitles, else whisper.cpp → translated SRT (+ soft-sub mkv) · transcript summary with timestamped chapters |
 | **Documents** | PDF (pdf2zh-next, mono + bilingual, automatic OCR for scans) · DOCX / PPTX / XLSX with inline formatting kept · EPUB with TOC + metadata kept |
+| **Proofreader** | Spelling + grammar as you type, fully local: English with [Harper](https://github.com/Automattic/harper) (WASM in the browser), French and other languages with [LanguageTool](https://languagetool.org) |
 | **Convert** | Video/audio (ffmpeg, VAAPI h264/hevc, AV1 on CPU) · images (libvips) · documents (pandoc + LibreOffice) · e-books (calibre) · batch + zip · optional in-browser mode ([VERT](https://github.com/VERT-sh/VERT), `scripts/build-vert.sh`) |
 | **Images** | Upscale ×2 / ×4 (Real-ESRGAN, Vulkan) · background removal (rembg) · watermark area removal (ffmpeg delogo) |
 | **Audio** | Stem separation (Demucs) · voice denoising (DeepFilterNet) · **voice changer**: 15 zero-shot voices FR/EN (Seed-VC, GPU) + effects, on files or live to a virtual PipeWire mic — see [docs/VOICES.md](docs/VOICES.md) |
@@ -114,6 +115,18 @@ systemctl --user restart atelier
 
 Linux only; video stays in the regular ffmpeg mode. Without the build, the mode selector simply doesn't appear.
 VERT is AGPL-3.0: it is not bundled in the `.deb`/`.exe`, only built locally.
+
+### Proofreader (Harper + LanguageTool)
+
+English runs in the browser with [Harper](https://github.com/Automattic/harper) (Apache-2.0, English only: no French
+support upstream). French (and es/de/pt/it) uses a local [LanguageTool](https://languagetool.org) server (LGPL), started
+on demand on `127.0.0.1:8081` and stopped after 10 idle minutes. Harper is built locally, not bundled.
+
+```bash
+sudo pacman -S languagetool          # French + other languages
+bash scripts/build-harper.sh         # optional: English via Harper (npm, ~20 MB wasm)
+systemctl --user restart atelier
+```
 
 ## Windows (experimental)
 

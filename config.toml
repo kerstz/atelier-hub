@@ -37,6 +37,18 @@ model_dir = "~/.local/share/atelier/nllb-200-distilled-600M-int8"
 # 0 = tous les cœurs
 threads = 0
 
+[grammar]
+# Correcteur: français = LanguageTool local (sudo pacman -S languagetool), lancé à la demande
+# et arrêté après lt_idle_min minutes sans requête. Anglais = Harper dans le navigateur
+# (scripts/build-harper.sh), sinon LanguageTool.
+lt_port = 8081
+# commande complète si l'auto-détection échoue, ex. "java -cp /opt/lt/* org.languagetool.server.HTTPServer"
+lt_cmd = ""
+lt_idle_min = 10
+lt_heap_mb = 1024
+# American | British | Canadian | Australian | Indian
+en_dialect = "American"
+
 [youtube]
 sub_langs = "en"
 # ex: "firefox" pour vidéos protégées

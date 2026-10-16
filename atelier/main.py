@@ -15,7 +15,7 @@ from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import audio, convert, plat, db, docs, engines, gpu, hw, images, joblog, maint, media, player, speech, ocr, ollama, services, subs, summary, translate, voice, voicelive, youtube  # noqa: F401
+from . import audio, convert, plat, db, docs, engines, gpu, grammar, hw, images, joblog, maint, media, player, speech, ocr, ollama, services, subs, summary, translate, voice, voicelive, youtube  # noqa: F401
 from .config import ROOT, cfg, data_dir, output_dir
 from .jobs import KINDS, manager
 from .util import missing_uploads, upload_paths
@@ -65,6 +65,7 @@ async def lifespan(_: FastAPI):
     janitor = asyncio.create_task(_janitor())
     yield
     janitor.cancel()
+    await grammar.stop()
     tasks = list(manager.tasks.values())
     for t in tasks:
         t.cancel()
@@ -482,6 +483,32 @@ async def events():
     return StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
 
 
+class GrammarIn(BaseModel):
+    text: str
+    lang: str = "fr"
+
+
+@app.get("/api/grammar/status")
+async def grammar_status():
+    return await grammar.status(data_dir())
+
+
+@app.post("/api/grammar/check")
+async def grammar_check(body: GrammarIn):
+    try:
+        return {"matches": await grammar.check(body.text, body.lang)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except (RuntimeError, httpx.HTTPError) as e:
+        raise HTTPException(503, plat.localize(str(e)) or "LanguageTool indisponible")
+
+
+@app.post("/api/grammar/stop")
+async def grammar_stop():
+    await grammar.stop()
+    return {"ok": True}
+
+
 class _Revalidate(StaticFiles):  # VERT rebuilds keep the same URLs: HTML/wasm must not go stale
     async def get_response(self, path, scope):
         r = await super().get_response(path, scope)
@@ -493,4 +520,6 @@ class _Revalidate(StaticFiles):  # VERT rebuilds keep the same URLs: HTML/wasm m
 _vert = data_dir() / "vert"
 if (_vert / "index.html").is_file():
     app.mount("/vert", _Revalidate(directory=_vert, html=True), name="vert")
+if grammar.harper_built(data_dir()):
+    app.mount("/harper", _Revalidate(directory=data_dir() / "harper"), name="harper")
 app.mount("/", StaticFiles(directory=ROOT / "static", html=True), name="static")
