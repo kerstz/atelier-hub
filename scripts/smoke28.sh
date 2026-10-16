@@ -39,7 +39,31 @@ check("config: identifiants d'URL masqués", "hunter2" not in cleaned and "***@"
 check("config: valeurs non secrètes gardées", "chunk_chars = 1234" in cleaned)
 check("config: chemin HOME remplacé", str(Path.home()) not in clean_config(f"x = \"{Path.home()}/a\"\n") and "~/a" in clean_config(f"x = \"{Path.home()}/a\"\n"))
 
+import urllib.request
+from atelier import update
+from atelier.config import cfg
+calls = []
+def no_net(*a, **k):
+    calls.append(1); raise OSError("hors-ligne")
+urllib.request.urlopen = no_net
+update._cache.update(at=0.0)
+check("update: désactivée par défaut, aucun appel réseau", cfg["update"]["check"] is False and update.check() == {"latest": None, "enabled": False} and not calls)
+cfg["update"]["check"] = True
+check("update: hors-ligne -> latest null", update.check()["latest"] is None and len(calls) == 1)
+update._cache.update(at=0.0)
+update._fetch = lambda: {"latest": "99.0.0", "url": "https://github.com/kerstz/atelier-hub/releases/tag/v99.0.0"}
+r = update.check()
+check("update: release plus récente -> newer + lien GitHub", r["newer"] and r["latest"] == "99.0.0" and r["url"].startswith("https://github.com/"))
+update._cache.update(at=0.0); update.VERSION = "0.1.5"
+update._fetch = lambda: {"latest": "0.1.5", "url": "https://github.com/x/y"}
+check("update: même version -> pas de bannière", update.check()["newer"] is False)
+update._cache.update(at=0.0)
+update._fetch = lambda: {"latest": "0.2.0", "url": "https://github.com/x/y"}
+check("update: 0.2.0 > 0.1.5", update.check()["newer"] is True)
+update._cache.update(at=0.0); cfg["update"]["check"] = False
 with TestClient(app, base_url="http://127.0.0.1:7777") as c:
+    u = c.get("/api/update")
+    check("update: route 200, inerte quand désactivée", u.status_code == 200 and u.json()["latest"] is None and len(calls) == 1)
     r = c.get("/api/diagnostic")
     check("diagnostic: 200 zip en pièce jointe", r.status_code == 200 and r.headers["content-type"] == "application/zip" and "attachment" in r.headers["content-disposition"])
     z = zipfile.ZipFile(io.BytesIO(r.content))

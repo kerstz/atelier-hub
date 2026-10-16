@@ -190,6 +190,9 @@ Tout est dans [`config.toml`](config.toml) : ports et chemins, modèles et moteu
 comportement GPU, services. L'interface est en français ou en anglais (bouton dans la barre latérale ; suit
 la langue du navigateur par défaut).
 
+Vérification de mise à jour optionnelle (désactivée par défaut) : mettre
+`[update] check = true` dans `config.toml` ; Système affiche alors un lien si une release GitHub plus récente existe.
+
 ## Développement
 
 ```bash

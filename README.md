@@ -190,6 +190,9 @@ Everything lives in [`config.toml`](config.toml): ports and paths, models and en
 GPU behaviour, per-service entries. The UI is French or English (sidebar switch; it follows the browser
 language by default).
 
+Optional update check (off by default): set `[update] check = true`
+in `config.toml`; System then shows a link when a newer GitHub release exists.
+
 ## Development
 
 ```bash

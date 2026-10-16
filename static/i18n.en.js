@@ -161,6 +161,7 @@ const I18N_EN = {
 };
 
 const I18N_RX = [
+  [/^Nouvelle version v(.+) disponible$/, "New version v$1 available"],
   [/^Aucun moteur installé\. Anglais : (.*) — ou pour toutes les langues : (.*)$/, "No engine installed. English: $1 — or for every language: $2"],
   [/^LanguageTool n'est pas installé : (.*)$/, "LanguageTool is not installed: $1"],
   [/^(\d+) remarques?$/, (m, n) => `${n} ${n > 1 ? "remarks" : "remark"}`],

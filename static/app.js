@@ -423,6 +423,23 @@ async function refreshDisk() {
   );
 }
 
+async function refreshUpdate() {
+  let u;
+  try {
+    u = await (await fetch("/api/update")).json();
+  } catch {
+    return;
+  }
+  const note = $("#update-note");
+  note.replaceChildren();
+  if (!u.newer || !/^https:\/\/github\.com\//.test(u.url || "")) return;
+  const a = el("a", `Nouvelle version v${u.latest} disponible`);
+  a.href = u.url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  note.append(a);
+}
+
 async function refreshSystem() {
   if ($("#tab-systeme").hidden) return;
   let s;
@@ -432,6 +449,7 @@ async function refreshSystem() {
     return;
   }
   if (s.version) $("#app-version").textContent = `Atelier v${s.version}`;
+  refreshUpdate();
   const v = s.vram;
   if (v) {
     $("#vram-fill").style.width = `${(100 * v.used) / v.total}%`;

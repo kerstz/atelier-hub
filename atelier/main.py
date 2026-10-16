@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from . import audio, convert, plat, db, docs, engines, gpu, grammar, hw, images, joblog, maint, media, player, speech, ocr, ollama, services, subs, summary, translate, voice, voicelive, youtube  # noqa: F401
 from .config import ROOT, VERSION, cfg, data_dir, output_dir
 from .diagnostic import build_zip
+from .update import check as check_update
 from .jobs import KINDS, manager
 from .util import missing_uploads, upload_paths
 
@@ -333,6 +334,11 @@ app.include_router(voicelive.router)
 @app.get("/api/deps")
 async def deps():
     return await maint.deps()
+
+
+@app.get("/api/update")
+async def update():
+    return await asyncio.to_thread(check_update)
 
 
 @app.get("/api/diagnostic")
