@@ -1,4 +1,5 @@
 import asyncio
+import os
 import shlex
 import shutil
 import time
@@ -40,7 +41,9 @@ def command() -> list[str] | None:
     java = shutil.which("java")
     for d in _jar_dirs():
         if java and (d / "languagetool-server.jar").is_file():
-            return [java, f"-Xmx{g['lt_heap_mb']}m", "-cp", str(d / "*"), "org.languagetool.server.HTTPServer", *port]
+            # comme le script /usr/bin/languagetool: jars listés un à un (le joker * ne charge pas les modules de langue)
+            cp = [str(x) for x in (d.parent.parent / "languagetool", d, *sorted(d.glob("*.jar"))) if x.exists()]
+            return [java, f"-Xmx{g['lt_heap_mb']}m", "-cp", os.pathsep.join(cp), "org.languagetool.server.HTTPServer", *port]
     return None
 
 

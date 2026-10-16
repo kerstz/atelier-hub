@@ -101,6 +101,7 @@
 
   function paint() {
     paintBack();
+    $issues.classList.remove("stale");
     $fix.disabled = !matches.some((m) => m.replacements.length);
     if (!$in.value.trim()) {
       $issues.replaceChildren(ui.h("p", "dim", "Les remarques apparaissent ici."));
@@ -147,7 +148,7 @@
         refreshInfo(true);
       } catch (e) {
         if (mine !== seq) return;
-        $status.textContent = "";
+        paint();
         ui.toast(e.message, "bad");
       }
     };
@@ -178,6 +179,7 @@
     store.set("gr.text", $in.value);
     matches = [];
     paintBack();
+    $issues.classList.add("stale");
     run();
   });
   $in.addEventListener("scroll", () => ($back.scrollTop = $in.scrollTop));
@@ -191,6 +193,8 @@
   $lang.addEventListener("change", () => {
     store.set("gr.lang", $lang.value);
     matches = [];
+    paintBack();
+    $issues.classList.add("stale");
     refreshHead();
     run(true);
   });

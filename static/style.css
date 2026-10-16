@@ -255,3 +255,4 @@ textarea#gr-in:focus-visible{outline:2px solid var(--accent);border-color:var(--
 .gr-acts{display:flex;flex-wrap:wrap;gap:var(--s2)}
 .gr-ok{color:var(--ok);font-weight:500}
 .gr-missing{margin-top:var(--s3);padding:var(--s3);border:1px dashed var(--bad);border-radius:var(--radius);color:var(--bad);font-size:14px;user-select:all}
+.gr-issues.stale{opacity:.4;pointer-events:none;transition:opacity .15s}

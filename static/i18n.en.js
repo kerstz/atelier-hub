@@ -12,7 +12,7 @@ const I18N_EN = {
   "Langue du texte": "Text language", "Écris ou colle ton texte ici…": "Type or paste your text here…", "Les remarques apparaissent ici.": "Remarks appear here.",
   "Vérifier": "Check", "Tout corriger": "Fix all", "Réinitialiser les ignorés": "Reset ignored", "Réafficher les remarques ignorées": "Show ignored remarks again",
   "Arrêter LanguageTool": "Stop LanguageTool", "Libère la mémoire (LanguageTool redémarre à la demande)": "Frees memory (LanguageTool restarts on demand)",
-  "Rien à signaler.": "Nothing to report.", "Vérification…": "Checking…", "remarque": "remark", "remarques": "remarks", "Ignorer": "Ignore",
+  "Rien à signaler.": "Nothing to report.", "Harper · navigateur": "Harper · browser", "LanguageTool · local": "LanguageTool · local", "Vérification…": "Checking…", "remarque": "remark", "remarques": "remarks", "Ignorer": "Ignore",
   "Ne plus signaler ce cas": "Stop flagging this case", "supprimer": "delete", "Grammaire": "Grammar", "Vérification impossible": "Check failed",
   "Aucun moteur installé. Anglais : ./scripts/build-harper.sh — ou pour toutes les langues : sudo pacman -S languagetool": "No engine installed. English: ./scripts/build-harper.sh — or for every language: sudo pacman -S languagetool",
   "LanguageTool n'est pas installé : sudo pacman -S languagetool": "LanguageTool is not installed: sudo pacman -S languagetool",
@@ -158,6 +158,7 @@ const I18N_EN = {
 };
 
 const I18N_RX = [
+  [/^(\d+) remarques?$/, (m, n) => `${n} ${n > 1 ? "remarks" : "remark"}`],
   // ---- job statuses / progress coming from the backend
   [/^attente GPU…$/, "waiting for GPU…"], [/^attente…$/, "waiting…"], [/^en file…$/, "queued…"], [/^analyse…$/, "analyzing…"],
   [/^libération de la VRAM…$/, "freeing VRAM…"], [/^extraction audio…$/, "extracting audio…"], [/^préparation audio…$/, "preparing audio…"],
