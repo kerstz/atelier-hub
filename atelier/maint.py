@@ -129,7 +129,7 @@ async def deps() -> list[dict]:
     rows.append(_row("vert", "VERT (conversion navigateur)", vert, "construit" if vert else "non construit",
                      "scripts/build-vert.sh", "Convertir › Navigateur (optionnel)"))
     rows.append(_row("languagetool", "LanguageTool (correcteur FR)", grammar.available(),
-                     "trouvé" if grammar.available() else "introuvable", "sudo pacman -S languagetool", "Correcteur › français"))
+                     "trouvé" if grammar.available() else "introuvable", grammar.install_hint(), "Correcteur › français"))
     hp = grammar.harper_built(data_dir())
     rows.append(_row("harper", "Harper (correcteur EN)", hp, "construit" if hp else "non construit",
                      "scripts/build-harper.sh", "Correcteur › anglais (optionnel)"))

@@ -56,6 +56,7 @@ if ($Tier -ne "minimal") {
   }
   [Environment]::SetEnvironmentVariable("TESSDATA_PREFIX", $td, "User")
 }
+if ($Tier -ne "minimal") { Write-Host "  Java + LanguageTool (correcteur FR, ~250 Mo)" }
 if ($Models) { Write-Host "  modèles Ollama recommandés (python -m atelier.hw --models)" }
 if (-not $todo -and -not $uvtools -and -not $Models) { Write-Host "  rien à faire" }
 if (-not $Yes -and (Read-Host "Continuer ? [o/N]") -notmatch '^[oOyY]') { exit 0 }
@@ -91,6 +92,9 @@ if ($Models) {
     Start-Process $exe -ArgumentList "--hw-models", "`"$out`"" -Wait
     Get-Content $out | Where-Object { $_ } | ForEach-Object { ollama pull $_ }
   } else { Write-Warning "Ollama ou Atelier.exe introuvable: ollama pull translategemma:12b" }
+}
+if ($Tier -ne "minimal") {
+  try { & "$PSScriptRoot\get-languagetool.ps1" } catch { Write-Warning "LanguageTool (correcteur FR): $_" }
 }
 Write-Host ""
 Write-Host "Voix en direct: installer VB-Audio Cable (https://vb-audio.com/Cable/), puis scripts\voice-setup.ps1 pour la voix IA."

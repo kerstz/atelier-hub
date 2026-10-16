@@ -128,6 +128,10 @@ bash scripts/build-harper.sh         # optionnel : anglais via Harper (npm, ~20 
 systemctl --user restart atelier
 ```
 
+Autres systèmes : les releases `.exe` et `.deb` embarquent déjà Harper. Le français demande Java + LanguageTool :
+Windows `scripts\get-languagetool.ps1` (lancé aussi par `win-setup.ps1`), Linux sans le paquet `bash scripts/get-languagetool.sh`,
+macOS `brew install languagetool` (le chemin du Correcteur est prêt, mais Atelier n'est pas encore porté sur macOS).
+
 ## Windows (expérimental)
 
 Même application, empaquetée en `Atelier.exe` (PyInstaller + fenêtre WebView2, installeur Inno Setup). Build sous Windows :

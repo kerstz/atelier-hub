@@ -520,6 +520,6 @@ class _Revalidate(StaticFiles):  # VERT rebuilds keep the same URLs: HTML/wasm m
 _vert = data_dir() / "vert"
 if (_vert / "index.html").is_file():
     app.mount("/vert", _Revalidate(directory=_vert, html=True), name="vert")
-if grammar.harper_built(data_dir()):
-    app.mount("/harper", _Revalidate(directory=data_dir() / "harper"), name="harper")
+if (_hd := grammar.harper_dir(data_dir())):
+    app.mount("/harper", _Revalidate(directory=_hd), name="harper")
 app.mount("/", StaticFiles(directory=ROOT / "static", html=True), name="static")

@@ -307,3 +307,4 @@ done: onglet Correcteur (static/grammar.js, soulignement par calque, cartes, rem
 decisions: Harper = anglais seulement (pas de FR en amont) -> FR via LanguageTool, aussi repli EN si Harper absent. Harper vérifié navigateur (Playwright).
 non testé: LanguageTool réel (pas installé ici: détection auto du binaire/jar à confirmer).
 env: sudo pacman -S languagetool && ./scripts/build-harper.sh && systemctl --user restart atelier
+Win/Mac Correcteur: grammar.py cherche LT dans <data>/languagetool (zip officiel), ProgramFiles, brew; scripts/get-languagetool.{sh,ps1} (+ appelé par win-setup, dans le .deb); Harper embarqué dans .exe/.deb (release.yml, HARPER_OUT=static/harper, /harper servi aussi depuis static/). Fix classpath LT (jars un à un). macOS: Atelier non porté, seul le chemin Correcteur est prêt. NON TESTÉ sur Windows/macOS réels.

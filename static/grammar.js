@@ -35,9 +35,7 @@
     const l = $lang.value;
     if (DIALECT[l] && info.harper) return "";
     if (info.lt_available) return "";
-    return DIALECT[l]
-      ? "Aucun moteur installé. Anglais : ./scripts/build-harper.sh — ou pour toutes les langues : sudo pacman -S languagetool"
-      : "LanguageTool n'est pas installé : sudo pacman -S languagetool";
+    return (DIALECT[l] ? "Aucun moteur installé. Anglais : scripts/build-harper.sh — ou pour toutes les langues : " : "LanguageTool n'est pas installé : ") + (info.hint || "");
   }
 
   function paintBack() {

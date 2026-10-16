@@ -17,7 +17,7 @@ install -m644 "$root/packaging/deb/atelier.service" "$pkg/usr/lib/systemd/user/a
 install -m644 "$root/packaging/deb/atelier.desktop" "$pkg/usr/share/applications/atelier.desktop"
 install -m644 "$root/static/icon.svg" "$pkg/usr/share/icons/hicolor/scalable/apps/atelier.svg"
 install -d "$pkg/opt/atelier/scripts"  # plat.localize points the setup hints here
-install -m755 "$root"/scripts/{build-whisper,fix-pdf2zh,voice-setup,voice-refs}.sh "$pkg/opt/atelier/scripts/"
+install -m755 "$root"/scripts/{build-whisper,fix-pdf2zh,voice-setup,voice-refs,get-languagetool}.sh "$pkg/opt/atelier/scripts/"
 size=$(du -sk "$pkg" | cut -f1)
 cat > "$pkg/DEBIAN/control" <<CTL
 Package: atelier

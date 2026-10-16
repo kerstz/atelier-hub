@@ -128,6 +128,10 @@ bash scripts/build-harper.sh         # optional: English via Harper (npm, ~20 MB
 systemctl --user restart atelier
 ```
 
+Other systems: the `.exe` and `.deb` releases already embed Harper. French needs Java + LanguageTool:
+Windows `scripts\get-languagetool.ps1` (also run by `win-setup.ps1`), Linux without the package `bash scripts/get-languagetool.sh`,
+macOS `brew install languagetool` (the Proofreader code path is ready, but Atelier as a whole is not ported to macOS yet).
+
 ## Windows (experimental)
 
 Same app, packaged as `Atelier.exe` (PyInstaller + WebView2 window, Inno Setup installer). Build on Windows:

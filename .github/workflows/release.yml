@@ -14,6 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      - name: Harper (correcteur EN) embarqué
+        run: HARPER_OUT=static/harper bash scripts/build-harper.sh
       - name: Build Atelier (PyInstaller, onedir)
         run: |
           uv sync --frozen
@@ -44,6 +46,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      - name: Harper (correcteur EN) embarqué
+        shell: bash
+        run: HARPER_OUT=static/harper bash scripts/build-harper.sh
       - name: Build Atelier.exe (PyInstaller, onedir)
         shell: pwsh
         run: |

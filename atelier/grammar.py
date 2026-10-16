@@ -2,13 +2,14 @@ import asyncio
 import os
 import shlex
 import shutil
+import sys
 import time
 from pathlib import Path
 
 import httpx
 
 from . import plat
-from .config import cfg
+from .config import cfg, data_dir, ROOT
 from .proc import CmdError
 
 LANGS = {"fr": "fr", "en": "en-US", "en-gb": "en-GB", "es": "es", "de": "de-DE", "pt": "pt-PT", "it": "it"}
@@ -28,7 +29,24 @@ def _url(path: str) -> str:
 
 
 def _jar_dirs() -> list[Path]:
-    return [Path(p) for p in ("/usr/share/languagetool", "/usr/share/java/languagetool", "/opt/languagetool", "/usr/lib/languagetool")]
+    """Où chercher languagetool-server.jar: notre dossier de données (scripts/get-languagetool.*), puis paquets système."""
+    dirs = [data_dir() / "languagetool"]
+    dirs += sorted(data_dir().glob("languagetool/LanguageTool-*"), reverse=True)  # le zip officiel s'extrait dans LanguageTool-x.y/
+    if plat.NT:
+        for base in (os.environ.get("ProgramFiles"), os.environ.get("LOCALAPPDATA")):
+            if base:
+                dirs += [Path(base) / "LanguageTool", Path(base) / "Programs" / "LanguageTool"]
+    dirs += [Path(p) for p in ("/usr/share/languagetool", "/usr/share/java/languagetool", "/opt/languagetool", "/usr/lib/languagetool",
+                               "/opt/homebrew/opt/languagetool/libexec", "/usr/local/opt/languagetool/libexec")]
+    return dirs
+
+
+def install_hint() -> str:
+    if plat.IS_WIN:
+        return "scripts/get-languagetool.sh"
+    if sys.platform == "darwin":
+        return "brew install languagetool"
+    return "sudo pacman -S languagetool"
 
 
 def command() -> list[str] | None:
@@ -36,14 +54,16 @@ def command() -> list[str] | None:
     if g["lt_cmd"]:
         return shlex.split(g["lt_cmd"], posix=not plat.NT)
     port = ["--port", str(_port())]
-    if (b := shutil.which("languagetool-server")):
-        return [b, *port]
     java = shutil.which("java")
+    if not java:
+        return None
     for d in _jar_dirs():
-        if java and (d / "languagetool-server.jar").is_file():
+        if (d / "languagetool-server.jar").is_file():
             # comme le script /usr/bin/languagetool: jars listés un à un (le joker * ne charge pas les modules de langue)
-            cp = [str(x) for x in (d.parent.parent / "languagetool", d, *sorted(d.glob("*.jar"))) if x.exists()]
+            cp = [str(x) for x in (d.parent.parent / "languagetool", d, *sorted(d.glob("*.jar")), *sorted(d.glob("libs/*.jar"))) if x.exists()]
             return [java, f"-Xmx{g['lt_heap_mb']}m", "-cp", os.pathsep.join(cp), "org.languagetool.server.HTTPServer", *port]
+    if (b := shutil.which("languagetool-server")):  # Homebrew & co: lanceur déjà prêt
+        return [b, *port]
     return None
 
 
@@ -74,7 +94,7 @@ async def start() -> None:
             return
         cmd = command()
         if not cmd:
-            raise CmdError("LanguageTool introuvable: sudo pacman -S languagetool", 127)
+            raise CmdError("LanguageTool introuvable (et Java): " + install_hint(), 127)
         if _proc and _proc.returncode is None:
             plat.kill_tree(_proc, True)
         try:  # écoute sur 127.0.0.1 seulement (sans --public)
@@ -106,12 +126,20 @@ async def stop() -> None:
             plat.kill_tree(p, True)
 
 
+def harper_dir(data: Path) -> Path | None:
+    """Build local (scripts/build-harper.sh) ou embarqué dans static/harper (releases .exe/.deb)."""
+    for d in (data / "harper", ROOT / "static" / "harper"):
+        if (d / "harper.js").is_file() and (d / "harper.wasm").is_file():
+            return d
+    return None
+
+
 def harper_built(data: Path) -> bool:
-    return (data / "harper" / "harper.js").is_file() and (data / "harper" / "harper.wasm").is_file()
+    return harper_dir(data) is not None
 
 
 async def status(data: Path) -> dict:
-    return {"lt_available": available(), "lt_running": await alive(), "harper": harper_built(data),
+    return {"lt_available": available(), "lt_running": await alive(), "harper": harper_built(data), "hint": plat.localize(install_hint()),
             "dialect": cfg["grammar"]["en_dialect"], "langs": list(LANGS)}
 
 
