@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.." 2>/dev/null || true
 ver="${LT_VER:-6.6}"
 command -v java >/dev/null || { echo "Java absent: sudo pacman -S jre-openjdk | sudo apt install default-jre | brew install openjdk" >&2; exit 1; }
 command -v unzip >/dev/null || { echo "unzip absent" >&2; exit 1; }
-dest="$(python3 -c 'from atelier.config import data_dir; print(data_dir() / "languagetool")' 2>/dev/null || echo "$HOME/.local/share/atelier/languagetool")"
+dest="$(uv run --frozen --offline python -c 'from atelier.config import data_dir; print(data_dir() / "languagetool")' 2>/dev/null || echo "$HOME/.local/share/atelier/languagetool")"
 mkdir -p "$dest"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT

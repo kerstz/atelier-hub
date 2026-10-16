@@ -13,6 +13,8 @@ PLAYERS = [
 ]
 if plat.IS_WIN:
     PLAYERS = PLAYERS[3:]
+if plat.IS_MAC:
+    PLAYERS.insert(0, ("afplay", []))
 _proc: asyncio.subprocess.Process | None = None
 
 
@@ -56,7 +58,7 @@ async def play_video(path: str, sub: str | None = None) -> str:
     from .config import cfg
     mpv = shutil.which(os.path.expanduser(cfg["player"]["mpv_bin"]))
     if not mpv:
-        raise RuntimeError("mpv introuvable (winget install mpv, ou pacman -S mpv)")
+        raise RuntimeError("mpv introuvable (" + ("brew install mpv" if plat.IS_MAC else "winget install mpv, ou pacman -S mpv") + ")")
     global _proc
     await stop()
     argv = [mpv, "--force-window=yes", "--title=Atelier — lecture", "--really-quiet"]

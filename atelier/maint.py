@@ -42,6 +42,8 @@ PKG = {
     "fedora": ("sudo dnf install", "tesseract-langpack-{}", {"ffmpeg": "ffmpeg-free", "poppler": "poppler-utils", "pandoc-cli": "pandoc",
                                                             "libreoffice-fresh": "libreoffice", "libvips": "vips-tools"}),
 }
+PKG["mac"] = ("brew install", "tesseract-lang", {"pandoc-cli": "pandoc", "libvips": "vips", "libreoffice-fresh": "--cask libreoffice",
+                                              "calibre": "--cask calibre", "poppler": "poppler"})
 FAMILIES = {"arch": "arch cachyos manjaro endeavouros garuda artix arcolinux",
             "debian": "debian ubuntu linuxmint pop raspbian zorin elementary neon kali",
             "fedora": "fedora rhel centos rocky almalinux nobara bazzite ultramarine"}
@@ -67,13 +69,27 @@ def _linux_hint(hint: str, fam: str) -> str:
     if fam == "debian" and hint == "sudo pacman -S yt-dlp":  # apt's yt-dlp lags behind YouTube changes
         return "sudo apt install pipx && pipx install yt-dlp"
     cmd, tess, names = PKG[fam]
-    pkgs = [tess.format(p[15:]) if p.startswith("tesseract-data-") else names.get(p, p) for p in hint.split()[3:]]
+    pkgs = list(dict.fromkeys(tess.format(p[15:]) if p.startswith("tesseract-data-") else names.get(p, p) for p in hint.split()[3:]))
+    if fam == "mac":  # casks need their own command
+        forms = [p for p in pkgs if not p.startswith("--cask ")]
+        casks = [p[7:] for p in pkgs if p.startswith("--cask ")]
+        return " && ".join(([f"{cmd} {' '.join(forms)}"] if forms else []) + ([f"brew install --cask {' '.join(casks)}"] if casks else []))
     return f"{cmd} {' '.join(pkgs)}"
+
+
+def _mac_hint(hint: str) -> str:
+    if "ollama.com/install.sh" in hint:
+        return "brew install ollama"
+    if hint == "sudo systemctl start ollama":
+        return "brew services start ollama"
+    return _linux_hint(hint, "mac")
 
 
 def _row(id_: str, label: str, ok: bool, detail: str, hint: str, used: str) -> dict:
     if plat.IS_WIN:
         hint = _win_hint(hint)
+    elif plat.IS_MAC:
+        hint = plat.localize(_mac_hint(hint))
     else:
         hint = plat.localize(hint)  # pacman -> this distro's package manager; .deb: scripts/ -> /opt/atelier/scripts
     return {"id": id_, "label": label, "ok": ok, "detail": detail, "hint": "" if ok else hint, "used_by": used,
@@ -104,10 +120,13 @@ def setup_info(rows: list[dict]) -> dict:
         elif pk:
             cmds.append(_linux_hint("sudo pacman -S " + " ".join(pk), d))
         cmds += [r["hint"] for r in miss if r["id"] in ("ollama", "model-translate_model")]
+        if d == "mac" and any(r["id"] == "ollama" for r in miss):
+            cmds.append("brew services start ollama")
     if d != "windows" and any(r["id"] == "ollama" for r in miss):  # model row exists once Ollama answers; win-setup -Models pulls it
         from . import engines
         if m := engines.model("translate"):
             cmds.append(f"ollama pull {m}")
+    cmds = list(dict.fromkeys(cmds))
     return {"os": d, "missing": miss, "commands": cmds, "can_run": plat.NT and plat.FROZEN and bool(miss),
             "output": str(output_dir()), "win_setup": plat.localize("scripts/win-setup.sh") if d == "windows" else ""}
 
@@ -126,8 +145,8 @@ async def deps() -> list[dict]:
     w = _bin(c["whisper"]["bin"])
     model = Path(c["whisper"]["model"]).expanduser()
     vert = (data_dir() / "vert" / "index.html").is_file()
-    rows.append(_row("vert", "VERT (conversion navigateur)", vert, "construit" if vert else "non construit",
-                     "scripts/build-vert.sh", "Convertir › Navigateur (optionnel)"))
+    rows.append(_row("vert", "VERT (conversion navigateur)", vert, "construit" if vert else "non construit (Linux seulement)" if plat.IS_MAC else "non construit",
+                     "" if plat.IS_MAC else "scripts/build-vert.sh", "Convertir › Navigateur (optionnel)"))
     rows.append(_row("languagetool", "LanguageTool (correcteur FR)", grammar.available(),
                      "trouvé" if grammar.available() else "introuvable", grammar.install_hint(), "Correcteur › français"))
     hp = grammar.harper_built(data_dir())
@@ -135,7 +154,7 @@ async def deps() -> list[dict]:
                      "scripts/build-harper.sh", "Correcteur › anglais (optionnel)"))
     rows.append(_row("whisper", "whisper.cpp + modèle", bool(w) and model.is_file(),
                      f"{w or 'binaire absent'} · {'modèle ok' if model.is_file() else 'modèle absent'}",
-                     "scripts/build-whisper.sh", "transcription, dictée"))
+                     "brew install whisper-cpp && scripts/build-whisper.sh" if plat.IS_MAC else "scripts/build-whisper.sh", "transcription, dictée"))
 
     # Ollama + the three configured models
     up = (await ollama.loaded())["up"]
@@ -186,11 +205,15 @@ async def deps() -> list[dict]:
         rows.append(_row(f"voice-{lang}", f"voix {voice}", bool(vf and vf.is_file()), "présente" if vf and vf.is_file() else "absente",
                          f"uv tool run --from piper-tts python -m piper.download_voices {voice} --download-dir {c['tts']['voices_dir']}",
                          used))
-    which("realesrgan", "Real-ESRGAN", c["images"]["realesrgan_bin"], "zip ncnn-vulkan: github.com/xinntao/Real-ESRGAN/releases", "Images ×2/×4")
+    which("realesrgan", "Real-ESRGAN", c["images"]["realesrgan_bin"],
+          "zip realesrgan-ncnn-vulkan-20220424-macos.zip: github.com/xinntao/Real-ESRGAN/releases" if plat.IS_MAC
+          else "zip ncnn-vulkan: github.com/xinntao/Real-ESRGAN/releases", "Images ×2/×4")
     which("rembg", "rembg", c["images"]["rembg_bin"], 'uv tool install "rembg[cpu,cli]"', "Images (détourage)")
     which("demucs", "Demucs", c["audio"]["demucs_bin"], "uv tool install demucs", "Audio (pistes)")
     which("deep-filter", "DeepFilterNet", c["audio"]["deepfilter_bin"], "binaire deep-filter: github.com/Rikorose/DeepFilterNet/releases", "Audio (bruit)")
-    if not plat.IS_WIN:
+    if plat.IS_MAC:
+        rows.append(_row("clipboard", "pbpaste (presse-papiers)", bool(_bin("pbpaste")), "pbpaste", "", "actions presse-papiers"))
+    elif not plat.IS_WIN:
         which("notify-send", "notify-send", "notify-send", "sudo pacman -S libnotify", "notifications")
         clip = _bin("wl-paste") or _bin("xclip")
         rows.append(_row("clipboard", "wl-paste / xclip", bool(clip), clip or "introuvable", "sudo pacman -S wl-clipboard", "actions presse-papiers"))

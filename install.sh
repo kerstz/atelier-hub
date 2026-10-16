@@ -10,6 +10,7 @@
 # Nothing is downloaded or built without being listed first (use --dry-run to only print the plan).
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+[ "$(uname)" = Darwin ] && exec /bin/bash "$ROOT/scripts/install-mac.sh" "$@"  # macOS: bash 3.2 + Homebrew
 TIER=standard YES=0 DRY=0 WHISPER=1 DESKTOP=1 SERVICE=1 OLLAMA=0 MODELS=0 ENGINE=
 
 usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; }

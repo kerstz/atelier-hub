@@ -308,3 +308,10 @@ decisions: Harper = anglais seulement (pas de FR en amont) -> FR via LanguageToo
 non testé: LanguageTool réel (pas installé ici: détection auto du binaire/jar à confirmer).
 env: sudo pacman -S languagetool && ./scripts/build-harper.sh && systemctl --user restart atelier
 Win/Mac Correcteur: grammar.py cherche LT dans <data>/languagetool (zip officiel), ProgramFiles, brew; scripts/get-languagetool.{sh,ps1} (+ appelé par win-setup, dans le .deb); Harper embarqué dans .exe/.deb (release.yml, HARPER_OUT=static/harper, /harper servi aussi depuis static/). Fix classpath LT (jars un à un). macOS: Atelier non porté, seul le chemin Correcteur est prêt. NON TESTÉ sur Windows/macOS réels.
+
+## Port macOS (smoke27)
+done: plat.py (IS_MAC, open/notify argv, mac_mem/vm_stat, mac_gpu Apple silicon), maint brew hints (PKG["mac"]), services `brew` key, convert VideoToolbox, install.sh -> scripts/install-mac.sh (--dry-run), launchd/fr.atelier.plist.in via install-service.sh, README EN/FR section macOS.
+decisions: Ollama + whisper-cpp via brew (Metal), Intel = CPU, pas de Seed-VC/lanceur bureau/VERT sur mac, pas de .app/.dmg.
+env: smoke27 ok sous Linux (ATELIER_FAKE_MAC/DARWIN); checks Mac réel (hw.detect, plutil) au prochain passage sur Mac.
+non testé: Mac réel (install, launchd, osascript, VideoToolbox, vm_stat).
+next: phase 27 sur vrai Mac: ./install.sh, launchctl kickstart, smoke27.

@@ -2,6 +2,8 @@
 # Construit VERT (AGPL-3.0) en site statique servi par Atelier sur /vert/. Hors-ligne ensuite.
 # VERT_REF = commit testé; `VERT_REF=<sha|branche> ./scripts/build-vert.sh` pour tester une autre version.
 set -euo pipefail
+# GNU sed -i / grep / xargs -r: Linux only (VERT stays optional)
+[ "$(uname)" = Darwin ] && { echo "VERT: Linux seulement (onglet Convertir › Navigateur indisponible sur macOS)" >&2; exit 1; }
 cd "$(dirname "$0")/.."
 ref="${VERT_REF:-f5ecdec90d52fa84d5204fb59bb8da7d31e3704a}"
 src="$HOME/.local/opt/VERT"

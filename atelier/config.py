@@ -62,7 +62,7 @@ def _load() -> dict:
     return plat.remap(out) if plat.IS_WIN else out
 
 
-if plat.NT:
+if plat.NT or plat.IS_MAC:
     plat.force_utf8()
     plat.extend_path()
 

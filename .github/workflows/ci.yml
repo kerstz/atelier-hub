@@ -24,13 +24,45 @@ jobs:
         run: |
           for n in 16 17 18 19 20 21 22 23 24; do
             echo "== smoke$n"; bash scripts/smoke$n.sh 2>&1 | grep -v Deprecat | tee /tmp/s$n.log
-            ! grep -q '^FAIL' /tmp/s$n.log
+            if grep -q '^FAIL' /tmp/s$n.log; then exit 1; fi
           done
       - name: Frozen Linux binary serves every route (PyInstaller)
         run: |
           uv run --with pyinstaller --with ctranslate2 --with sentencepiece pyinstaller --noconfirm --log-level WARN --distpath dist --workpath build packaging/atelier.spec
           dist/Atelier/Atelier --check-imports /tmp/imports.txt || { cat /tmp/imports.txt; exit 1; }
           ATELIER_NO_WINDOW=1 dist/Atelier/Atelier > /tmp/atelier.log 2>&1 &
+          pid=$!
+          ok=0
+          for i in $(seq 60); do curl -fsS -o /dev/null http://127.0.0.1:7777/api/system && ok=1 && break; sleep 1; done
+          [ $ok = 1 ] && uv run --frozen python scripts/frozen-check.py http://127.0.0.1:7777 /tmp/atelier.log || ok=0
+          kill $pid
+          [ $ok = 1 ] || { cat /tmp/atelier.log; exit 1; }
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: System tools used by the smoke tests
+        run: brew install ffmpeg pandoc poppler
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: Syntax (python, bash 3.2)
+        run: |
+          uv run --frozen python -m compileall -q atelier
+          for f in install.sh scripts/install-mac.sh scripts/install-service.sh scripts/build-whisper.sh scripts/env-check.sh scripts/build-vert.sh scripts/voice-setup.sh; do /bin/bash -n "$f"; done
+          plutil -lint launchd/fr.atelier.plist.in
+      - name: Installer plan (dry-run)
+        run: bash scripts/install-mac.sh --dry-run --yes
+      - name: Offline smoke tests (platform-neutral + macOS)
+        run: |
+          for n in 17 18 20 22 27; do
+            echo "== smoke$n"; bash scripts/smoke$n.sh 2>&1 | grep -v Deprecat | tee /tmp/s$n.log
+            if grep -q '^FAIL' /tmp/s$n.log; then exit 1; fi
+          done
+      - name: Server from source serves every route
+        run: |
+          uv run --frozen --offline python -m atelier > /tmp/atelier.log 2>&1 &
           pid=$!
           ok=0
           for i in $(seq 60); do curl -fsS -o /dev/null http://127.0.0.1:7777/api/system && ok=1 && break; sleep 1; done

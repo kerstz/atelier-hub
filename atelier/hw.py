@@ -78,9 +78,17 @@ def _flags(proc: str) -> set[str]:
 
 def detect() -> dict:
     sysfs, proc = os.environ.get("ATELIER_SYSFS_ROOT", "/sys"), os.environ.get("ATELIER_PROC_ROOT", "/proc")
-    ram_total, ram_avail = plat.win_mem() if plat.NT else _meminfo(proc)
-    flags = plat.win_cpu_flags() if plat.NT else _flags(proc)
-    gpus = _gpus(sysfs)
+    mac = plat.IS_MAC and not plat.NT and not (os.environ.get("ATELIER_SYSFS_ROOT") or os.environ.get("ATELIER_PROC_ROOT"))
+    if mac:
+        ram_total, ram_avail = plat.mac_mem()
+        leaf7 = plat._sysctl("machdep.cpu.leaf7_features").split()  # Intel only; empty on Apple silicon
+        flags = {f for f, k in (("avx2", "AVX2"), ("avx512f", "AVX512F")) if k in leaf7}
+        g = plat.mac_gpu()
+        gpus = [{**g, "vram_free": min(g["vram_total"], ram_avail)}] if g else []  # Intel Mac: CPU tier
+    else:
+        ram_total, ram_avail = plat.win_mem() if plat.NT else _meminfo(proc)
+        flags = plat.win_cpu_flags() if plat.NT else _flags(proc)
+        gpus = _gpus(sysfs)
     real = [g for g in gpus if not g["igpu"]]
     best = max(real, key=lambda g: g["vram_total"], default=None)
     try:

@@ -51,4 +51,5 @@ print("modèle direct chargé")
 PY
   )
 fi
-echo "ok. Ensuite: scripts/voice-refs.sh --piper  puis  systemctl --user restart atelier"
+if [ "$(uname)" = Darwin ]; then rs="launchctl kickstart -k gui/$(id -u)/fr.atelier"; else rs="systemctl --user restart atelier"; fi
+echo "ok. Ensuite: scripts/voice-refs.sh --piper  puis  $rs"

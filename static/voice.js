@@ -139,6 +139,7 @@
 
   async function poll() {
     try { live = await get("/api/voice/live"); } catch { live = {running: false}; }
+    if (live.unsupported) { liveBox.hidden = true; return; }  // macOS: no virtual mic
     await drawLive();
     clearTimeout(timer);
     timer = setTimeout(poll, live.running ? 1000 : 5000);

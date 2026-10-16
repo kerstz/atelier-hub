@@ -1,7 +1,8 @@
-"""Platform layer: everything that differs between Linux and Windows lives here.
-ATELIER_FAKE_WIN=1 flips argv/kwargs decisions on Linux for tests (real Windows APIs stay guarded by os.name)."""
+"""Platform layer: everything that differs between Linux, Windows and macOS lives here.
+ATELIER_FAKE_WIN=1 / ATELIER_FAKE_MAC=1 flip argv/kwargs decisions on Linux for tests (real Windows APIs stay guarded by os.name)."""
 import json
 import os
+import platform
 import re
 import shutil
 import signal
@@ -12,6 +13,7 @@ from pathlib import Path
 
 NT = os.name == "nt"
 IS_WIN = NT or os.environ.get("ATELIER_FAKE_WIN") == "1"
+IS_MAC = sys.platform == "darwin" or os.environ.get("ATELIER_FAKE_MAC") == "1"
 FROZEN = bool(getattr(sys, "frozen", False))
 CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW = 0x200, 0x08000000
 
@@ -42,7 +44,9 @@ def kill_tree(proc, force: bool = False) -> None:
 
 
 def open_folder_argv(folder: str) -> list[str]:
-    return ["explorer", folder] if IS_WIN else ["xdg-open", folder]
+    if IS_WIN:
+        return ["explorer", folder]
+    return ["open", folder] if IS_MAC else ["xdg-open", folder]
 
 
 def open_folder(folder: str) -> None:
@@ -54,9 +58,11 @@ def open_folder(folder: str) -> None:
 
 
 def distro() -> str:
-    """windows | arch | debian | fedora | unknown — which install commands the UI shows."""
+    """windows | mac | arch | debian | fedora | unknown — which install commands the UI shows."""
     if IS_WIN:
         return "windows"
+    if IS_MAC:
+        return "mac"
     from .maint import distro_family
     return distro_family(os.environ.get("ATELIER_OS_RELEASE", "/etc/os-release"))
 
@@ -86,6 +92,8 @@ def ollama_hint() -> str:
     d = distro()
     if d == "windows":
         return "lancer Ollama (menu Démarrer)" if have else "winget install Ollama.Ollama"
+    if d == "mac":
+        return "brew services start ollama" if have else "brew install ollama && brew services start ollama"
     if have:
         return "sudo systemctl start ollama"
     return "sudo pacman -S ollama && sudo systemctl enable --now ollama" if d == "arch" else OLLAMA_INSTALL
@@ -116,6 +124,11 @@ def localize(msg: str) -> str:
     msg = re.sub(r"sudo pacman -S [\w.+-]+(?: [\w.+-]+)*", lambda m: _pkg_cmd(m.group(0)), msg)
     if msg.startswith("Ollama injoignable") and " — " not in msg:
         msg += f" — {ollama_hint()}"
+    if IS_MAC and not IS_WIN:  # systemd hints -> launchd / brew services
+        for a, b in (("systemctl --user restart atelier", "launchctl kickstart -k gui/$(id -u)/fr.atelier"),
+                     ("sudo systemctl enable --now ollama", "brew services start ollama"),
+                     ("sudo systemctl start ollama", "brew services start ollama")):
+            msg = msg.replace(a, b)
     if not IS_WIN:
         if FROZEN:  # .deb ships the standalone setup scripts in /opt/atelier/scripts (scripts/build-deb.sh)
             def sh(m):
@@ -152,6 +165,12 @@ $app='{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.e
 [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($app).Show([Windows.UI.Notifications.ToastNotification]::new($x))
 """
     return ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps], {"ATELIER_T": title, "ATELIER_B": body}
+
+
+def notify_argv(title: str, body: str) -> list[str]:
+    """macOS notification; text passed as argv, never interpolated into AppleScript."""
+    return ["osascript", "-e", "on run argv", "-e", "display notification (item 2 of argv) with title (item 1 of argv)",
+            "-e", "end run", "--", title, body]
 
 
 def venv_python(venv: str) -> str:
@@ -210,12 +229,18 @@ def _registry_path() -> list[str]:
     return out
 
 
+# Homebrew / app bundles: a launchd- or Finder-started process inherits a bare PATH
+MAC_DIRS = ["/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin", os.path.expanduser("~/.local/bin"),
+            "/Applications/LibreOffice.app/Contents/MacOS", "/Applications/calibre.app/Contents/MacOS"]
+
+
 def extend_path() -> None:
     """Make freshly installed tools visible (winget edits the registry PATH, not our inherited one)."""
-    if not NT:
+    if not (NT or IS_MAC):
         return
     cur = os.environ.get("PATH", "").split(os.pathsep)
-    add = [d for d in dict.fromkeys(_registry_path() + path_candidates()) if d and d not in cur and os.path.isdir(d)]
+    extra = _registry_path() + path_candidates() if NT else MAC_DIRS
+    add = [d for d in dict.fromkeys(extra) if d and d not in cur and os.path.isdir(d)]
     os.environ["PATH"] = os.pathsep.join(cur + add)
 
 
@@ -309,3 +334,69 @@ def win_cpu_flags() -> set[str]:
     import ctypes
     f = ctypes.windll.kernel32.IsProcessorFeaturePresent
     return {n for n, pf in (("avx2", 40), ("avx512f", 41)) if f(pf)}
+
+
+# ---- hardware (macOS) -----------------------------------------------------------------------------
+
+def _sysctl(name: str) -> str:
+    try:
+        return subprocess.run(["sysctl", "-n", name], capture_output=True, text=True, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def parse_vm_stat(raw: str) -> int:
+    """Available bytes = (free + inactive + speculative) pages x page size."""
+    m = re.search(r"page size of (\d+) bytes", raw)
+    page = int(m.group(1)) if m else 4096
+    pages = 0
+    for line in raw.splitlines():
+        k, _, v = line.partition(":")
+        if k.strip() in ("Pages free", "Pages inactive", "Pages speculative"):
+            try:
+                pages += int(v.strip().rstrip("."))
+            except ValueError:
+                pass
+    return pages * page
+
+
+_mac_mem_cache: tuple[float, tuple[int, int]] = (0.0, (0, 0))
+
+
+def mac_mem(ttl: float = 5.0) -> tuple[int, int]:
+    """(total, available) bytes from sysctl + vm_stat. Cached."""
+    global _mac_mem_cache
+    if time.monotonic() - _mac_mem_cache[0] < ttl:
+        return _mac_mem_cache[1]
+    try:
+        total = int(_sysctl("hw.memsize") or 0)
+    except ValueError:
+        total = 0
+    try:
+        raw = subprocess.run(["vm_stat"], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        raw = ""
+    avail = min(parse_vm_stat(raw), total) if total else parse_vm_stat(raw)
+    _mac_mem_cache = (time.monotonic(), (total, avail))
+    return total, avail
+
+
+def parse_mac_gpu(memsize: str, brand: str, arm: bool) -> dict | None:
+    """Apple silicon: unified memory, ~2/3 usable by the GPU (Metal's default working-set limit)."""
+    try:
+        mem = int(memsize)
+    except ValueError:
+        return None
+    if not arm or mem <= 0:
+        return None
+    return {"vendor": "apple", "card": brand or "Apple silicon", "vram_total": int(mem * 0.66), "igpu": False}
+
+
+_mac_gpu_cache: list = []
+
+
+def mac_gpu() -> dict | None:
+    if not _mac_gpu_cache:
+        arm = platform.machine() == "arm64" or _sysctl("hw.optional.arm64") == "1"  # Rosetta python reports x86_64
+        _mac_gpu_cache.append(parse_mac_gpu(_sysctl("hw.memsize"), _sysctl("machdep.cpu.brand_string"), arm) if arm else None)
+    return _mac_gpu_cache[0]

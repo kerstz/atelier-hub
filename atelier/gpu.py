@@ -1,5 +1,8 @@
 import glob
 import os
+import time
+
+import httpx
 
 from . import plat
 from .config import cfg
@@ -36,9 +39,30 @@ def _win_vram() -> dict | None:
     return {"card": c["card"], "used": c["used"], "total": c["total"], "busy": None}
 
 
+_mac_used: list[float] = [0.0, 0.0]  # (monotonic time, bytes): /api/system polls every few seconds
+
+
+def _mac_vram() -> dict | None:
+    g = plat.mac_gpu()
+    if not g:
+        return None
+    if time.monotonic() - _mac_used[0] < 5:
+        return {"card": g["card"], "used": int(_mac_used[1]), "total": g["vram_total"], "busy": None}
+    used = 0
+    try:  # unified memory: what Ollama holds is the only GPU use we can attribute
+        r = httpx.get(cfg["ollama"]["url"].rstrip("/") + "/api/ps", timeout=1)
+        used = sum(int(m.get("size_vram") or 0) for m in r.json().get("models", []))
+    except (httpx.HTTPError, ValueError, AttributeError, TypeError):
+        pass
+    _mac_used[:] = [time.monotonic(), min(used, g["vram_total"])]
+    return {"card": g["card"], "used": int(_mac_used[1]), "total": g["vram_total"], "busy": None}
+
+
 def vram() -> dict | None:
     if plat.IS_WIN:
         return _win_vram()
+    if plat.IS_MAC:
+        return _mac_vram()
     dev = _device()
     if not dev:
         return None

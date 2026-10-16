@@ -81,6 +81,7 @@ LO_FILTER = {".pdf": "pdf", ".docx": "docx:MS Word 2007 XML", ".odt": "odt", ".r
 QUALITY = {"high": 0, "normal": 1, "low": 2}
 # per quality tier: vaapi qp / x264 crf / x265 crf / svtav1 crf / image Q / lame -q:a
 Q_VAAPI, Q_X264, Q_X265, Q_AV1, Q_IMG, Q_MP3 = (20, 25, 30), (19, 23, 28), (21, 26, 31), (24, 30, 38), (92, 82, 65), (0, 2, 5)
+Q_VT, B_VT = (65, 55, 45), ("8M", "5M", "3M")  # videotoolbox -q:v (Apple silicon) / -b:v (Intel Mac: no constant quality)
 COMPRESSED = {".mp4", ".mkv", ".mp3", ".m4a", ".opus", ".ogg", ".flac", ".jpg", ".png", ".webp", ".avif", ".heic", ".epub", ".docx", ".odt", ".xlsx", ".pptx", ".pdf"}
 
 _sem: asyncio.Semaphore | None = None
@@ -174,8 +175,21 @@ def win_hw() -> str | None:
     return kind if kind and f"h264_{kind}" in _ffmpeg_encoders() else None
 
 
+_vt: list[bool] = []
+
+
+def vt_ok() -> bool:
+    if not _vt:
+        _vt.append(plat.IS_MAC and "h264_videotoolbox" in _ffmpeg_encoders())
+    return _vt[0]
+
+
 def hw_kind() -> str | None:
-    return win_hw() if plat.IS_WIN else ("vaapi" if vaapi_ok() else None)
+    if plat.IS_WIN:
+        return win_hw()
+    if plat.IS_MAC:
+        return "videotoolbox" if vt_ok() else None
+    return "vaapi" if vaapi_ok() else None
 
 
 def vaapi_ok() -> bool:
@@ -183,8 +197,12 @@ def vaapi_ok() -> bool:
     return bool(dev) and not plat.IS_WIN and Path(dev).exists()
 
 
-def is_gpu_target(target: str) -> bool:
+def is_hw_target(target: str) -> bool:
     return target in ("v:mp4-h264", "v:mp4-hevc", "v:mkv-h264", "v:mkv-hevc") and hw_kind() is not None
+
+
+def is_gpu_target(target: str) -> bool:
+    return is_hw_target(target) and hw_kind() != "videotoolbox"  # media engine: no VRAM contention, no GPU lock
 
 
 async def ffmpeg(ctx: Ctx, argv: list[str], duration: float, lo: float = 0.0, hi: float = 1.0) -> None:
@@ -219,6 +237,11 @@ def video_args(target: str, q: int, height: int, src_h: int, vaapi: bool | str) 
                  "amf": ["-rc", "cqp", "-qp_i", qp, "-qp_p", qp, "-quality", "quality"],
                  "qsv": ["-global_quality", qp, "-preset", "medium"]}[kind]
         return ["-vf", ",".join(vf), "-c:v", enc, *extra, *(["-tag:v", "hvc1"] if codec == "hevc" else [])]
+    if kind == "videotoolbox":
+        vf = [f"scale=-2:{height}"] if scale else []
+        vf.append("format=yuv420p")
+        rate = ["-q:v", str(Q_VT[q])] if plat.mac_gpu() else ["-b:v", B_VT[q]]
+        return ["-vf", ",".join(vf), "-c:v", f"{codec}_videotoolbox", *rate, *(["-tag:v", "hvc1"] if codec == "hevc" else [])]
     if kind == "vaapi":
         vf = "format=nv12,hwupload" + (f",scale_vaapi=w=-2:h={height}" if scale else "")
         enc = "h264_vaapi" if codec == "h264" else "hevc_vaapi"
@@ -256,7 +279,7 @@ async def do_video(ctx: Ctx, src: Path, target: str, dest: Path, q: int, height:
             ctx.set(0, "sous-titres incompatibles: ignorés…")
             await encode(vaapi, False)
 
-    if is_gpu_target(target):
+    if is_hw_target(target):
         kind = hw_kind()
         ctx.set(0, f"encodage {kind.upper()}…")
         try:

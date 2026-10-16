@@ -22,6 +22,8 @@ def finished(job: dict | None, params: dict, secs: float) -> None:
     if plat.IS_WIN:
         argv, extra = plat.toast_argv(title[:100], body)
         env = {**os.environ, **extra}
+    elif plat.IS_MAC:
+        argv = plat.notify_argv(title[:100], body)
     else:
         bin_ = shutil.which("notify-send")
         if not bin_:

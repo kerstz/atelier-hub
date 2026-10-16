@@ -3,6 +3,7 @@ import re
 import shutil
 from pathlib import Path
 
+from . import plat
 from .config import cfg, output_dir
 from .convert import need, unique
 from .jobs import Ctx, register
@@ -27,7 +28,8 @@ async def size(path: Path) -> tuple[int, int]:
 
 async def upscale(ctx: Ctx, src: Path, dest: Path, factor: int, style: str) -> None:
     d = cfg["images"]
-    need(binpath(d["realesrgan_bin"]), hint="zip ncnn-vulkan ubuntu de github.com/xinntao/Real-ESRGAN/releases → ~/.local/opt/realesrgan, puis [images] realesrgan_bin")
+    zip = "realesrgan-ncnn-vulkan-20220424-macos.zip" if plat.IS_MAC else "zip ncnn-vulkan ubuntu"
+    need(binpath(d["realesrgan_bin"]), hint=f"{zip} de github.com/xinntao/Real-ESRGAN/releases → ~/.local/opt/realesrgan, puis [images] realesrgan_bin")
     w, h = await size(src)
     if w * h > (MAX_PIXELS if factor == 4 else MAX_PIXELS // 2):
         raise RuntimeError(f"image trop grande ({w}x{h}) pour ×{factor}")

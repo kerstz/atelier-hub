@@ -13,6 +13,7 @@ const setup = (() => {
     windows: "Ouvrir PowerShell (menu Démarrer › « PowerShell »), coller la commande, valider avec Entrée et suivre les étapes.",
     debian: "Ouvrir un terminal (Ctrl+Alt+T), coller les commandes une par une et valider avec Entrée (mot de passe demandé).",
     arch: "Ouvrir un terminal, coller les commandes une par une et valider avec Entrée (mot de passe demandé).",
+    mac: "Ouvrir Terminal (Cmd+Espace, taper « Terminal »), coller les commandes une par une et valider avec Entrée. Nécessite Homebrew (brew.sh).",
   };
   let info = null, rows = [];
   let later = false;

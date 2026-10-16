@@ -10,7 +10,7 @@ One small service on your machine. Your texts and files never leave it.
 [![CI](https://github.com/kerstz/atelier-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/kerstz/atelier-hub/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab.svg)
-![Platform](https://img.shields.io/badge/platform-Linux-informational.svg)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-informational.svg)
 ![Offline](https://img.shields.io/badge/runs-100%25%20local-success.svg)
 ![UI](https://img.shields.io/badge/UI-EN%20%7C%20FR-8a6cff.svg)
 
@@ -130,7 +130,7 @@ systemctl --user restart atelier
 
 Other systems: the `.exe` and `.deb` releases already embed Harper. French needs Java + LanguageTool:
 Windows `scripts\get-languagetool.ps1` (also run by `win-setup.ps1`), Linux without the package `bash scripts/get-languagetool.sh`,
-macOS `brew install languagetool` (the Proofreader code path is ready, but Atelier as a whole is not ported to macOS yet).
+macOS `brew install languagetool` (see the macOS section).
 
 ## Windows (experimental)
 
@@ -139,6 +139,18 @@ Same app, packaged as `Atelier.exe` (PyInstaller + WebView2 window, Inno Setup i
 Config: `%APPDATA%\Atelier\config.toml`, data: `%LOCALAPPDATA%\Atelier`. Not available on Windows: live voice changer
 (PipeWire virtual mic), desktop notifications, systemd services (docker compose services work). Not tested on real
 Windows yet; CI builds the exe and checks that it serves.
+
+## macOS (experimental)
+
+Same app from source, through Homebrew. Run `./install.sh` (it calls `scripts/install-mac.sh`; Homebrew required, https://brew.sh).
+Apple Silicon is recommended: Ollama and whisper.cpp use Metal. Intel Macs run on CPU only (slow, but they work).
+Autostart is a launchd agent (`fr.atelier`, written by `scripts/install-service.sh`); restart it with
+`launchctl kickstart -k gui/$(id -u)/fr.atelier`, logs in `~/Library/Logs/Atelier.log`.
+
+Works: Traduire, YouTube, Sous-titres, Documents, Convertir (ffmpeg with VideoToolbox), Correcteur, Résumé/OCR, Système,
+Services (optional `brew = "formula"` key in `[services.<id>]` of `config.toml`, started with `brew services`).
+Not available: live voice changer (Seed-VC), desktop launcher, VERT build. No `.app` or `.dmg` release yet: use the source and `install.sh`.
+Not tested on a real Mac yet.
 
 ## Hardware adaptation
 

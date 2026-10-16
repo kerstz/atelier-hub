@@ -210,7 +210,7 @@ open(os.environ["FAKE_LOG"], "w").close()
 st, st2 = asyncio.run(live_ai())
 L = log()
 check("direct IA: worker lancé avec source par défaut, sink, bloc et étapes",
-      st["engine"] == "seedvc" and "worker " in L and "--sink atelier_vc_sink" in L and "--block 0.18" in L and "--steps 6" in L and "@DEFAULT_SOURCE@" in L)
+      st["engine"] == "seedvc" and "worker " in L and "--sink atelier_vc_sink" in L and "--block 0.18" in L and "--steps 6" in L and "--source  --sink" in L)  # default source = "" (worker picks the default)
 check("direct IA: prêt + statistiques du worker remontées", st["ready"] and st2["stats"].get("infer_ms") == 42)
 check("direct IA: bypass et changement de voix transmis au worker (JSON stdin)",
       '"bypass": true' in L and 'voices/voix-agee.wav' in L and st2["voice"] == "voix-agee")

@@ -10,7 +10,7 @@ Un petit service sur votre machine. Vos textes et fichiers ne la quittent jamais
 [![CI](https://github.com/kerstz/atelier-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/kerstz/atelier-hub/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab.svg)
-![Platform](https://img.shields.io/badge/platform-Linux-informational.svg)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-informational.svg)
 ![Offline](https://img.shields.io/badge/runs-100%25%20local-success.svg)
 ![UI](https://img.shields.io/badge/UI-EN%20%7C%20FR-8a6cff.svg)
 
@@ -130,7 +130,7 @@ systemctl --user restart atelier
 
 Autres systèmes : les releases `.exe` et `.deb` embarquent déjà Harper. Le français demande Java + LanguageTool :
 Windows `scripts\get-languagetool.ps1` (lancé aussi par `win-setup.ps1`), Linux sans le paquet `bash scripts/get-languagetool.sh`,
-macOS `brew install languagetool` (le chemin du Correcteur est prêt, mais Atelier n'est pas encore porté sur macOS).
+macOS `brew install languagetool` (voir la section macOS).
 
 ## Windows (expérimental)
 
@@ -139,6 +139,18 @@ Même application, empaquetée en `Atelier.exe` (PyInstaller + fenêtre WebView2
 Config : `%APPDATA%\Atelier\config.toml`, données : `%LOCALAPPDATA%\Atelier`. Indisponible sous Windows : voix en direct
 (micro virtuel PipeWire), notifications, services systemd (les services docker compose marchent). Pas encore testé sur un vrai
 Windows ; la CI construit l'exe et vérifie qu'il répond.
+
+## macOS (expérimental)
+
+Même application, depuis les sources, via Homebrew. Lancer `./install.sh` (il appelle `scripts/install-mac.sh` ; Homebrew requis, https://brew.sh).
+Apple Silicon recommandé : Ollama et whisper.cpp utilisent Metal. Les Mac Intel tournent sur CPU seulement (lent, mais ça marche).
+Le démarrage automatique est un agent launchd (`fr.atelier`, écrit par `scripts/install-service.sh`) ; le relancer avec
+`launchctl kickstart -k gui/$(id -u)/fr.atelier`, journaux dans `~/Library/Logs/Atelier.log`.
+
+Fonctionne : Traduire, YouTube, Sous-titres, Documents, Convertir (ffmpeg avec VideoToolbox), Correcteur, Résumé/OCR, Système,
+Services (clé optionnelle `brew = "formule"` dans `[services.<id>]` de `config.toml`, démarrée avec `brew services`).
+Indisponible : voix en direct (Seed-VC), lanceur de bureau, build VERT. Pas encore de release `.app` ni `.dmg` : sources et `install.sh`.
+Pas encore testé sur un vrai Mac.
 
 ## Adaptation au matériel
 

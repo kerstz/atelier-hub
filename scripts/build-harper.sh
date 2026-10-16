@@ -8,7 +8,7 @@ die() { echo "build Harper: $*" >&2; exit 1; }
 command -v npm >/dev/null || die "npm absent (sudo pacman -S npm)"
 
 # HARPER_OUT=static/harper pour embarquer dans les releases (.exe/.deb)
-out="${HARPER_OUT:-$(python3 -c 'from atelier.config import data_dir; print(data_dir() / "harper")')}"
+out="${HARPER_OUT:-$(uv run --frozen --offline python -c 'from atelier.config import data_dir; print(data_dir() / "harper")' 2>/dev/null || echo "$HOME/.local/share/atelier/harper")}"
 work="$HOME/.local/opt/harper-build"
 mkdir -p "$work" "$out"
 cp scripts/harper/entry.js "$work/entry.js"

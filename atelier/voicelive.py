@@ -226,6 +226,8 @@ async def inputs():
 
 @router.get("/api/voice/live")
 async def live_state():
+    if plat.IS_MAC:  # PipeWire virtual mic: Linux only
+        return {"running": False, "unsupported": True}
     return {k: v for k, v in STATE.items()} if STATE.get("running") else {"running": False}
 
 

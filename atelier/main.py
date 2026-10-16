@@ -118,7 +118,8 @@ class UnloadIn(BaseModel):
 
 @app.get("/api/system")
 async def system():
-    return {"vram": gpu.vram(), "ollama": await ollama.loaded(), "gpu_busy": manager.gpu_lock.locked()}
+    vram = await asyncio.to_thread(gpu.vram) if plat.IS_MAC else gpu.vram()  # mac: sync HTTP to Ollama, off the event loop
+    return {"vram": vram, "ollama": await ollama.loaded(), "gpu_busy": manager.gpu_lock.locked()}
 
 
 @app.post("/api/ollama/unload")

@@ -19,6 +19,9 @@ def _control(s: dict) -> str | None:
             return "winsvc"
         if s.get("win_exe"):
             return "winexe"
+    elif plat.IS_MAC:
+        if s.get("brew"):
+            return "brew"
     elif s.get("unit"):
         return "systemd"
     if s.get("dir"):
@@ -62,7 +65,9 @@ def _win_argv(s: dict, action: str) -> list[str]:
 
 
 def _argv(s: dict, action: str) -> list[str]:
-    if s.get("unit"):
+    if _control(s) == "brew":
+        return ["brew", "services", action, s["brew"]]
+    if s.get("unit") and not plat.IS_MAC:
         return ["systemctl", "--user", action, s["unit"]]
     d = Path(s["dir"]).expanduser()
     if not d.is_dir():
