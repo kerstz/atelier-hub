@@ -8,6 +8,7 @@ B=http://127.0.0.1:7777
 vert="$(python3 -c 'from atelier.config import data_dir; print(data_dir() / "vert")')"
 t "build-vert.sh: syntaxe" "bash -n scripts/build-vert.sh"
 t "vert.js: syntaxe" "node --check static/vert.js"
+t "CSP /vert (même sans build)" "curl -sI $B/vert/ | grep -qi \"^content-security-policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' blob: data:; worker-src 'self' blob:\""
 t "en-têtes anti-cadrage sur l'UI" "curl -sI $B/ | grep -qi '^x-frame-options: SAMEORIGIN' && curl -sI $B/ | grep -qi 'frame-ancestors'"
 if [ ! -f "$vert/index.html" ]; then echo "skip VERT non construit ($vert): ./scripts/build-vert.sh"; exit $fail; fi
 t "/vert/ 200 html" "curl -s -o /dev/null -w '%{http_code} %{content_type}' $B/vert/ | grep -q '^200 text/html'"

@@ -77,6 +77,20 @@ async def lifespan(_: FastAPI):
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None)
 
 
+APP_CSP = {  # sub-apps served under their own paths: stricter than the UI, which keeps frame-ancestors only
+    "/vert": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+             "img-src 'self' data: blob:; connect-src 'self' blob: data:; worker-src 'self' blob:; frame-ancestors 'self'",
+    "/harper": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; frame-ancestors 'self'",
+}
+
+
+def _csp(path: str) -> str:
+    for prefix, policy in APP_CSP.items():
+        if path == prefix or path.startswith(prefix + "/"):
+            return policy
+    return "frame-ancestors 'self'"
+
+
 @app.middleware("http")
 async def local_only(request: Request, call_next):
     if urlparse("//" + request.headers.get("host", "")).hostname not in LOCAL_HOSTS:
@@ -94,7 +108,7 @@ async def local_only(request: Request, call_next):
     if not request.url.path.startswith("/api/"):  # UI files: revalidate (etag) so an update never mixes old and new JS
         resp.headers.setdefault("cache-control", "no-cache")
         resp.headers["X-Frame-Options"] = "SAMEORIGIN"
-        resp.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
+        resp.headers["Content-Security-Policy"] = _csp(request.url.path)
         resp.headers["X-Content-Type-Options"] = "nosniff"
     return resp
 

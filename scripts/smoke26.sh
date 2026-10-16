@@ -7,6 +7,7 @@ t() { if ( eval "$2" ); then echo "ok   $1"; else echo "FAIL $1"; fail=1; fi; }
 B=http://127.0.0.1:7777
 t "build-harper.sh: syntaxe" "bash -n scripts/build-harper.sh"
 t "grammar.js: syntaxe" "node --check static/grammar.js"
+t "CSP /harper (même sans build)" "curl -sI $B/harper/ | grep -qi \"^content-security-policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; frame-ancestors\""
 t "status" "curl -sf $B/api/grammar/status | grep -q lt_available"
 t "langue inconnue refusée" "[ \$(curl -s -o /dev/null -w '%{http_code}' -XPOST $B/api/grammar/check -H 'content-type: application/json' -d '{\"text\":\"a\",\"lang\":\"xx\"}') = 400 ]"
 if curl -sf $B/api/grammar/status | grep -q '"harper":true'; then
