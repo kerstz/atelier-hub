@@ -315,3 +315,10 @@ decisions: Ollama + whisper-cpp via brew (Metal), Intel = CPU, pas de Seed-VC/la
 env: smoke27 ok sous Linux (ATELIER_FAKE_MAC/DARWIN); checks Mac réel (hw.detect, plutil) au prochain passage sur Mac.
 non testé: Mac réel (install, launchd, osascript, VideoToolbox, vm_stat).
 next: phase 27 sur vrai Mac: ./install.sh, launchctl kickstart, smoke27.
+
+## v0.1.5 — images sans vips, diagnostic, CSP, mise à jour opt-in
+done: A images.py/convert.py: jpg/webp/png, redim et ×2 via ffmpeg si vips absent (avif/heic exigent vips). B /api/diagnostic (zip: diagnostic.json, config.toml épuré, 500 lignes atelier.log), bouton Système. C CSP /vert et /harper (+frame-ancestors). D [update] check=false; /api/update, cache 6 h (30 min si échec), bannière Système, README EN/FR.
+decisions: CSP sous-apps = politique du brief + "frame-ancestors 'self'" (anti-cadrage conservé). Diagnostic: clés contenant token/key/secret/password retirées ligne à ligne; userinfo d'URL masqué; HOME -> ~ (aussi dans le log). Log: atelier.log n'existe que sous Windows (Linux = journal systemd, non inclus). smoke19: "Diagnostic" ajouté aux mots identiques FR/EN.
+env: service restart requis (version affichée). Historique: HEAD remis sur origin/main hors session (mêmes sujets, autres hashes) : arbre identique aux gates.
+non testé: vérif de mise à jour contre l'API GitHub réelle (aucun release v>0.1.4 ni réseau testé); zip diagnostic ouvert dans un vrai navigateur; VERT/Harper rebuild (CSP vérifiée par en-tête seulement si build présent).
+next: CI, tag v0.1.5, Release.
