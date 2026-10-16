@@ -141,7 +141,9 @@ class Ctx:
 d = Path(sys.argv[1]); src = d / "src.png"
 def dims(p): return subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", str(p)], capture_output=True, text=True).stdout.strip()
 assert shutil.which("vips") is None
+from atelier.convert import has_encoder
 for tgt, side, ext, want in (("i:jpg", 0, ".jpg", "640,480"), ("i:webp", 200, ".webp", "200,150"), ("i:png", 100, ".png", "100,75")):
+    if tgt == "i:webp" and not has_encoder("libwebp"): continue
     dest = d / f"out{tgt[2:]}{side}{ext}"; dest.touch()
     asyncio.run(do_image(Ctx(), src, tgt, dest, 1, side))
     assert dest.stat().st_size > 0 and dims(dest) == want, (tgt, dims(dest))

@@ -323,10 +323,17 @@ IMG_FF = {
 }
 
 
+def has_encoder(name: str) -> bool:
+    out = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True).stdout
+    return f" {name} " in out
+
+
 async def do_image(ctx: Ctx, src: Path, target: str, dest: Path, q: int, side: int) -> None:
     ctx.set(0.1, "conversion image…")
     if target in IMG_FF and not shutil.which("vips"):
         need("ffmpeg", hint="sudo pacman -S ffmpeg (ou libvips)")
+        if target == "i:webp" and not has_encoder("libwebp"):
+            raise RuntimeError("encodeur libwebp absent de ffmpeg: installer libvips")
         vf = ["-vf", f"scale='min({side},iw)':'min({side},ih)':force_original_aspect_ratio=decrease"] if side else []
         await run_cmd(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(src), *vf, *IMG_FF[target](Q_IMG[q]),
                        "-frames:v", "1", str(dest)])
