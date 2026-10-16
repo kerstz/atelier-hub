@@ -26,6 +26,19 @@ jobs:
             echo "== smoke$n"; bash scripts/smoke$n.sh 2>&1 | grep -v Deprecat | tee /tmp/s$n.log
             if grep -q '^FAIL' /tmp/s$n.log; then exit 1; fi
           done
+      - name: Smokes en direct (serveur 7777, Correcteur + VERT)
+        run: |
+          uv run --frozen python -m atelier > /tmp/atelier-live.log 2>&1 &
+          pid=$!
+          ok=0
+          for i in $(seq 60); do curl -fsS -o /dev/null http://127.0.0.1:7777/api/system && ok=1 && break; sleep 1; done
+          for n in 25 26; do
+            [ $ok = 1 ] || break
+            echo "== smoke$n"; bash scripts/smoke$n.sh 2>&1 | tee /tmp/s$n.log
+            grep -q '^FAIL' /tmp/s$n.log && ok=0
+          done
+          kill $pid
+          [ $ok = 1 ] || { cat /tmp/atelier-live.log; exit 1; }
       - name: Frozen Linux binary serves every route (PyInstaller)
         run: |
           uv run --with pyinstaller --with ctranslate2 --with sentencepiece pyinstaller --noconfirm --log-level WARN --distpath dist --workpath build packaging/atelier.spec
