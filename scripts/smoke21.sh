@@ -157,6 +157,7 @@ check("voix du catalogue non supprimable", e2 == 400)
 from atelier import images
 subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=s=320x240:d=1", "-frames:v", "1", "-y", str(d / "w.png")])
 r = go("image", path=str(d / "w.png"), action="watermark", zone="br")
+print("DEBUG filigrane:", repr(r), file=sys.stderr)
 check("filigrane coin bas-droite -> .sans-filigrane.png, même taille", isinstance(r, str) and r.endswith(".sans-filigrane.png") and
       subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=width,height", "-of", "csv=p=0", r], capture_output=True, text=True).stdout.strip() == "320,240")
 r = go("image", path=str(d / "w.png"), action="watermark", zone="x")
