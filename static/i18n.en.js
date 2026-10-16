@@ -154,6 +154,10 @@ const I18N_EN = {
   "Outil manquant pour cet onglet": "Missing tool for this tab", "Outils manquants pour cet onglet": "Missing tools for this tab",
   "Essentiel : tout est en place.": "Essentials: all in place.",
   "YouTube vidéo": "YouTube video", "YouTube audio": "YouTube audio", "YouTube sous-titres": "YouTube subtitles",
+  // diagnostic
+  "Diagnostic": "Diagnostic",
+  "Archive pour un signalement de bug : version, plateforme, dépendances, fin du journal et configuration sans secrets.": "Archive for a bug report: version, platform, dependencies, end of the log and configuration without secrets.",
+  "Télécharger le diagnostic": "Download diagnostic",
 };
 
 const I18N_RX = [

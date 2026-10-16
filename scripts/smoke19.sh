@@ -63,7 +63,7 @@ import json, sys
 d = sys.argv[1]
 fr = json.load(open(d + "/html.json")); en = json.load(open(d + "/html_en.json"))
 SAME = {"Atelier", "Navigation", "YouTube", "Audio", "Images", "Services", "Format", "Action", "Option", "Source", "PDF", "OCR", "MP3",
-        "Ctrl ↵", "https://www.youtube.com/watch?v=…", "English", "Langue / Language", "Documents", "Mode", "Photo", "Anime", "Test GPU (5 s)", "Test CPU (5 s)"}
+        "Ctrl ↵", "https://www.youtube.com/watch?v=…", "English", "Langue / Language", "Documents", "Mode", "Photo", "Anime", "Test GPU (5 s)", "Test CPU (5 s)", "Diagnostic"}
 left = [f for f, e in zip(fr, en) if f == e and f not in SAME]
 open(d + "/left.txt", "w").write("\n".join(left))
 print(f"{len(fr)} chaînes statiques, {len(left)} sans traduction")

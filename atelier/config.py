@@ -66,10 +66,14 @@ DEFAULTS = {
 }
 
 
-def _load() -> dict:
-    path = Path(os.environ.get("ATELIER_CONFIG", ROOT / "config.toml"))
+def config_path() -> Path:
     if "ATELIER_CONFIG" not in os.environ and (plat.IS_WIN or plat.FROZEN) and (plat.config_dir() / "config.toml").exists():
-        path = plat.config_dir() / "config.toml"
+        return plat.config_dir() / "config.toml"
+    return Path(os.environ.get("ATELIER_CONFIG", ROOT / "config.toml"))
+
+
+def _load() -> dict:
+    path = config_path()
     user = tomllib.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     out = {k: {**v, **user.get(k, {})} for k, v in DEFAULTS.items()} | {
         k: v for k, v in user.items() if k not in DEFAULTS

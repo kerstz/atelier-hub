@@ -10,13 +10,14 @@ from urllib.parse import quote, urlparse
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import FileResponse, PlainTextResponse, Response, StreamingResponse
 from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import audio, convert, plat, db, docs, engines, gpu, grammar, hw, images, joblog, maint, media, player, speech, ocr, ollama, services, subs, summary, translate, voice, voicelive, youtube  # noqa: F401
 from .config import ROOT, VERSION, cfg, data_dir, output_dir
+from .diagnostic import build_zip
 from .jobs import KINDS, manager
 from .util import missing_uploads, upload_paths
 
@@ -318,6 +319,12 @@ app.include_router(voicelive.router)
 @app.get("/api/deps")
 async def deps():
     return await maint.deps()
+
+
+@app.get("/api/diagnostic")
+async def diagnostic():
+    return Response(await build_zip(), media_type="application/zip",
+                    headers={"Content-Disposition": 'attachment; filename="atelier-diagnostic.zip"'})
 
 
 @app.get("/api/setup")
