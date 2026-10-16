@@ -18,7 +18,11 @@ MAX_PIXELS = 24_000_000  # input cap for x4 (output = 16x)
 
 
 async def size(path: Path) -> tuple[int, int]:
-    need("vipsheader", hint="sudo pacman -S libvips")
+    if not shutil.which("vipsheader"):
+        out: list[str] = []
+        await run_cmd(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", str(path)], out.append)
+        w, h = out[-1].strip().split(",")[:2]
+        return int(w), int(h)
     w: list[str] = []
     h: list[str] = []
     await run_cmd(["vipsheader", "-f", "width", str(path)], w.append)
